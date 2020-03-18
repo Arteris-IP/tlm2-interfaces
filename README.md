@@ -4,9 +4,9 @@ TLM2 based interface definitions for AMBA AXI, ACE and CHI protocol compliance. 
 
 For installation, follow these steps:
 
-mkdir build 
-cmake -DCMAKE_PREFIX_PATH=$SYSTEMC_HOME ..  
-make install 
+    mkdir build 
+    cmake -DCMAKE_PREFIX_PATH=$SYSTEMC_HOME ..  
+    make install 
 
 
 The library depends on IEEE 1666-2011 SystemC and is tested against SystemC version 2.3.3 with gcc-6.3. Other combinations will most likely also work. SystemC libraries are available for download at https://www.accellera.org/downloads/standards/systemc.
