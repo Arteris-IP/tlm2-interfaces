@@ -103,8 +103,22 @@ enum class req_optype_e : uint8_t {
     ReadOnceMakeInvalid = 0x25,
     ReadNotSharedDirty = 0x26,
     CleanSharedPersist = 0x27,
-    AtomicLoad = 0x28,  // 0x28 to 0x2F
-    AtomicStore = 0x30, // 0x30 to 0x37
+    AtomicStoreAdd = 0x28,
+    AtomicStoreClr = 0x29,
+    AtomicStoreEor = 0x2A,
+    AtomicStoreSet = 0x2B,
+    AtomicStoreSmax = 0x2C,
+    AtomicStoreSmin = 0x2D,
+    AtomicStoreUmax = 0x2E,
+    AtomicStoreUmin = 0x2F,
+    AtomicLoadAdd = 0x30,
+    AtomicLoadClr = 0x31,
+    AtomicLoadEor = 0x32,
+    AtomicLoadSet = 0x33,
+    AtomicLoadSmax = 0x34,
+    AtomicLoadSmin = 0x35,
+    AtomicLoadUmax = 0x36,
+    AtomicLoadUmin = 0x37,
     AtomicSwap = 0x38,
     AtomicCompare = 0x39,
     PrefetchTgt = 0x3A
@@ -154,6 +168,7 @@ enum class dat_optype_e : uint8_t {
     // Reserved        = 0x8-0xA
     // Reserved        = 0xD-0xF
     // Table 4-9 Permitted Non-forward type data opcode
+    SnpRespData_I = 0x1,
     SnpRespData_UC = 0x1,
     SnpRespData_UD = 0x1,
     SnpRespData_SC = 0x1,
@@ -190,7 +205,8 @@ enum class dat_resptype_e : uint8_t {
     RespSepData_SC = 0b001,
     CompData_UD_PD = 0b110,
     CompData_SD_PD = 0b111,
-    // STable 4-9 Permitted Non-forward type snoop responses with data(Dat opcode =0x1)
+    // Table 4-9 Permitted Non-forward type snoop responses with data(Dat opcode =0x1)
+    SnpRespData_I = 0b000,
     SnpRespData_UC = 0b010,
     SnpRespData_UD = 0b010,
     SnpRespData_SC = 0b001,
@@ -230,16 +246,19 @@ enum class rsp_optype_e : uint8_t {
     RespSepData = 0xB
     // Reserved     = 0xA,
     // Reserved     = 0xC-0xF
-
 };
 
 enum class rsp_resptype_e : uint8_t {
-    // snoop related
+    // Table 4-7 Permitted Non-forward type snoop responses without data
     SnpResp_I = 0b000,
     SnpResp_SC = 0b001,
     SnpResp_UC = 0b010,
     SnpResp_UD = 0b010,
     SnpResp_SD = 0b011,
+    // Table 4-5 Permitted Dataless transaction completion
+    Comp_I = 0b000,  // final state must be I
+    Comp_UC = 0b010, // final state can be UC, UCE,SC or I
+    Comp_SC = 0b001, // final state SC or I
 };
 
 /**
@@ -290,7 +309,7 @@ public:
     //! @return chi qos value
     unsigned int get_qos() const;
 
-protected:
+private:
     uint32_t qos{0};
     uint16_t src_id{0};
     uint16_t txn_id{0};
@@ -300,7 +319,7 @@ protected:
  * request : This structure to be used in extension of payload for providing transaction
  *  request on REQ channel (TXREQ channel for RN node)
  */
-struct request : public common {
+struct request {
     // request() { }
     // A transaction request includes a TgtID that identifies the target node
     void set_tgt_id(uint8_t);
@@ -320,6 +339,10 @@ struct request : public common {
       determines the number of data packets within the transaction */
     void set_size(uint8_t);
     uint8_t get_size() const;
+    /*Max number of flits in current transaction. The number is determined based on data length and bus width
+     * The number is required to identify the last flit in data transaction. */
+    void set_max_flit(uint8_t data_id);
+    uint8_t get_max_flit() const;
     /* Memory attribute. Determines the memory attributes associated with the
     transaction. */
     void set_mem_attr(uint8_t);
@@ -385,8 +408,8 @@ struct request : public common {
     void set_rsvdc(uint32_t);
     uint32_t get_rsvdc() const; // Reserved for customer use.
 
-protected:
-    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, mem_attr{0}, pcrd_type{0}, order{22};
+private:
+    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0}, order{22};
     bool endian{false}, trace_tag{false};
     uint16_t return_n_id{0}, stash_n_id{0};
     req_optype_e opcode{req_optype_e::ReqLCrdReturn};
@@ -399,7 +422,7 @@ protected:
  * snp_request : This structure to be used in extension of payload for providing snoop
  *  request on SNP channel
  */
-struct snp_request : public common {
+struct snp_request {
     /*Forward Transaction ID. The transaction ID used in the Request by the original
     Requester.*/
     void set_fwd_txn_id(uint8_t);
@@ -441,12 +464,12 @@ struct snp_request : public common {
     void set_trace_tag(bool = true);
     bool is_trace_tag() const;
 
-protected:
-    uint8_t fwd_txn_id, stash_lp_id, vm_id_ext;
-    bool stash_lp_id_valid;
+private:
+    uint8_t fwd_txn_id{0}, stash_lp_id{0}, vm_id_ext{0};
+    bool stash_lp_id_valid{false};
     snp_optype_e opcode;
-    uint16_t fwd_n_id;
-    bool ns, do_not_goto_sd, do_not_data_pull, ret_to_src, trace_tag;
+    uint16_t fwd_n_id{0};
+    bool ns{false}, do_not_goto_sd{false}, do_not_data_pull{false}, ret_to_src{false}, trace_tag{false};
 };
 
 /**
@@ -454,7 +477,7 @@ protected:
  *        (to be used in Request of Write & Read operations on WDAT and RDAT channels respectively)
  *        ( or in Reponse of Snoop operation on WDAT channel)
  */
-struct data : public common {
+struct data {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to this message*/
     void set_db_id(uint8_t);
     uint8_t get_db_id() const;
@@ -508,22 +531,22 @@ struct data : public common {
     void set_trace_tag(bool);
     bool is_trace_tag() const;
 
-protected:
-    uint8_t db_id, resp_err;
-    dat_resptype_e resp;
-    uint8_t fwd_state, data_pull, data_source, cc_id, data_id, poison;
-    uint16_t tgt_id, home_n_id;
+private:
+    uint8_t db_id{0}, resp_err{0};
+    dat_resptype_e resp{dat_resptype_e::CompData_I};
+    uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
+    uint16_t tgt_id{0}, home_n_id{0};
     dat_optype_e opcode;
-    uint32_t rsvdc;
-    uint64_t data_check;
-    bool trace_tag;
+    uint32_t rsvdc{0};
+    uint64_t data_check{0};
+    bool trace_tag{false};
 };
 
 /**
  * response : This structure to be used as response for both Transaction request as well as Snoop request
  * (used for both CRSP channel Completor response and SRSP channel Snoop response)
  */
-struct response : public common {
+struct response {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
     this message*/
     void set_db_id(uint8_t);
@@ -545,8 +568,8 @@ struct response : public common {
     void set_fwd_state(uint8_t);
     uint8_t get_fwd_state() const;
     /*Data Pull. Indicates the inclusion of an implied Read request in the Data response*/
-    void set_data_pull(uint8_t);
-    uint8_t get_data_pull() const;
+    void set_data_pull(bool);
+    bool get_data_pull() const;
 
     /*A transaction request includes a TgtID that identifies the target node*/
     void set_tgt_id(uint16_t);
@@ -556,12 +579,13 @@ struct response : public common {
     void set_trace_tag(bool);
     bool is_trace_tag() const;
 
-protected:
-    uint8_t db_id, pcrd_type, resp_err, fwd_state, data_pull;
-    rsp_optype_e opcode;
-    rsp_resptype_e resp;
-    uint16_t tgt_id;
-    bool trace_tag;
+private:
+    uint8_t db_id{0}, pcrd_type{0}, resp_err{0}, fwd_state{0};
+    bool data_pull{false};
+    rsp_optype_e opcode{rsp_optype_e::RespLCrdReturn};
+    rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
+    uint16_t tgt_id{0};
+    bool trace_tag{false};
 };
 
 struct lcredit {
@@ -570,37 +594,53 @@ struct lcredit {
     void decrement_lcredits() { lcredits--; }
     unsigned get_lcredits() { return lcredits; }
 
-protected:
+private:
     int lcredits{0};
 };
 
-struct chi_req_extension : public tlm::tlm_extension<chi_req_extension>, public request {
+struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
     /**
      * @brief the default constructor
      */
-    chi_req_extension() = default;
+    chi_ctrl_extension() = default;
     /**
      * @brief the copy constructor
      * @param the extension to copy from
      */
-    chi_req_extension(const chi_req_extension& o) = default;
+    chi_ctrl_extension(const chi_ctrl_extension& o) = default;
     /**
      * @brief the clone function to create deep copies of
      * @return pointer to heap-allocated extension
      */
-    tlm::tlm_extension_base* clone() const { return new chi_req_extension(*this); }
+    tlm::tlm_extension_base* clone() const { return new chi_ctrl_extension(*this); }
     /**
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_req_extension&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_ctrl_extension&>(ext); } // use assignment operator
+
+    void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
+
+    unsigned int get_txn_id() const { return cmn.get_txn_id(); }
+
+    void set_src_id(unsigned int id) { cmn.set_src_id(id); }
+
+    unsigned int get_src_id() const { return cmn.get_src_id(); }
+
+    void set_qos(uint8_t qos) { cmn.set_qos(qos); }
+
+    unsigned int get_qos() const { return cmn.get_qos(); }
+
+    common cmn;
+    request req;
+    response resp;
 };
 
-struct chi_snp_req_extension : public tlm::tlm_extension<chi_snp_req_extension>, public snp_request {
+struct chi_snp_extension : public tlm::tlm_extension<chi_snp_extension> {
     /**
      * @brief the default constructor
      */
-    chi_snp_req_extension() = default;
+    chi_snp_extension() = default;
     /**
      * @brief the copy constructor
      * @param the extension to copy from
@@ -610,15 +650,31 @@ struct chi_snp_req_extension : public tlm::tlm_extension<chi_snp_req_extension>,
      * @brief the clone function to create deep copies of
      * @return pointer to heap-allocated extension
      */
-    tlm::tlm_extension_base* clone() const { return new chi_snp_req_extension(*this); };
+    tlm::tlm_extension_base* clone() const { return new chi_snp_extension(*this); };
     /**
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_snp_req_extension&>(ext); }
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_snp_extension&>(ext); }
+
+    void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
+
+    unsigned int get_txn_id() const { return cmn.get_txn_id(); }
+
+    void set_src_id(unsigned int id) { cmn.set_src_id(id); }
+
+    unsigned int get_src_id() const { return cmn.get_src_id(); }
+
+    void set_qos(uint8_t qos) { cmn.set_qos(qos); }
+
+    unsigned int get_qos() const { return cmn.get_qos(); }
+
+    common cmn;
+    snp_request req;
+    response resp;
 };
 
-struct chi_data_extension : public tlm::tlm_extension<chi_data_extension>, public data {
+struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     /**
      * @brief the default constructor
      */
@@ -638,28 +694,21 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension>, publi
      * @param ext
      */
     void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_data_extension&>(ext); } // use assignment operator
-};
 
-struct chi_rsp_extension : public tlm::tlm_extension<chi_rsp_extension>, public response {
-    /**
-     * @brief the default constructor
-     */
-    chi_rsp_extension() = default;
-    /**
-     * @brief the copy constructor
-     * @param the extension to copy from
-    chi_rsp_extension(const chi_rsp_extension* o) : chi_extension<response>(o){}
-     */
-    /**
-     * @brief the clone function to create deep copies of
-     * @return pointer to heap-allocated extension
-     */
-    tlm::tlm_extension_base* clone() const { return new chi_rsp_extension(*this); };
-    /**
-     * @brief deep copy all values from ext
-     * @param ext
-     */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_rsp_extension&>(ext); } // use assignment operator
+    void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
+
+    unsigned int get_txn_id() const { return cmn.get_txn_id(); }
+
+    void set_src_id(unsigned int id) { cmn.set_src_id(id); }
+
+    unsigned int get_src_id() const { return cmn.get_src_id(); }
+
+    void set_qos(uint8_t qos) { cmn.set_qos(qos); }
+
+    unsigned int get_qos() const { return cmn.get_qos(); }
+
+    common cmn{};
+    data dat{};
 };
 
 struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public lcredit {
@@ -699,10 +748,13 @@ struct chi_protocol_types {
 /**
  * definition of the additional protocol phases
  */
-DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_REQ);
-DECLARE_EXTENDED_PHASE(END_PARTIAL_REQ);
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_RESP);
 DECLARE_EXTENDED_PHASE(END_PARTIAL_RESP);
+DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_DATA);
+DECLARE_EXTENDED_PHASE(END_PARTIAL_DATA);
+DECLARE_EXTENDED_PHASE(BEGIN_DATA);
+DECLARE_EXTENDED_PHASE(END_DATA);
+DECLARE_EXTENDED_PHASE(ACK);
 DECLARE_EXTENDED_PHASE(LINK_INIT);
 
 //! alias declaration for the forward interface
@@ -711,7 +763,7 @@ template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = 
 template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
 
 /**
- * CHI TRX initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
+ * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
@@ -745,7 +797,7 @@ struct chi_initiator_socket
 };
 
 /**
- * CHI TRX target socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
+ * CHI target socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
@@ -827,7 +879,10 @@ template <> inline rsp_resptype_e into<rsp_resptype_e>(typename std::underlying_
 //! set the transition id value of REQ,WDAT,RDAT and CRSP a particular channel
 //! @param the TxnID of the channel
 // A transaction request includes a TxnID that is used to identify the transaction from a given Requester
-inline void common::set_txn_id(unsigned int txn_id) { this->txn_id = txn_id; }
+inline void common::set_txn_id(unsigned int txn_id) {
+    sc_assert(txn_id <= 1024); // TxnID field is defined to accommodate up to 1024 outstanding transactions.
+    this->txn_id = txn_id;
+}
 
 //! get the transition id value of a particular channel
 //! @return the TxnID
@@ -878,6 +933,10 @@ inline void request::set_size(uint8_t sz) {
     size = sz;
 }
 inline uint8_t request::get_size() const { return size; }
+
+/*Max number of flits in current transaction. The number determined based on data length and bus width*/
+inline void request::set_max_flit(uint8_t data_id) { max_flit = data_id; }
+inline uint8_t request::get_max_flit() const { return max_flit; }
 
 /* Memory attribute. Determines the memory attributes associated with the
 transaction. */
@@ -1126,8 +1185,8 @@ inline uint8_t response::get_fwd_state() const { return fwd_state; }
 
 /*Data Pull. Indicates the inclusion of an implied Read request in the Data
 response*/
-inline void response::set_data_pull(uint8_t data_pull) { this->data_pull = data_pull; }
-inline uint8_t response::get_data_pull() const { return data_pull; }
+inline void response::set_data_pull(bool data_pull) { this->data_pull = data_pull; }
+inline bool response::get_data_pull() const { return data_pull; }
 
 /*A transaction request includes a TgtID that identifies the target node*/
 inline void response::set_tgt_id(uint16_t tgt_id) { this->tgt_id = tgt_id; }
