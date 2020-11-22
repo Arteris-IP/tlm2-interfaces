@@ -12,28 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.12)
 if(POLICY CMP0048)
 	cmake_policy(SET CMP0048 NEW)
 endif()
 
-project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
-
-find_package(SystemCLanguage CONFIG REQUIRED)
-set (CMAKE_CXX_STANDARD ${SystemC_CXX_STANDARD})
+project (tlm2-interfaces LANGUAGES CXX VERSION 1.0.0)
 
 set(LIB_SOURCES chi/chi_tlm.cpp axi/axi_tlm.cpp)
+if(TARGET scc)
+	set(LIB_SOURCES ${LIB_SOURCES} 
+		axi/fsm/base.cpp
+		axi/pe/simple_initiator.cpp
+		axi/pe/simple_target.cpp
+#		axi/pe/axi_initiator.cpp
+#		chi/pe/chi_rn_initiator.cpp
+#		clp/clp_tlm.cpp
+	)
+endif()
 
-add_library(tlm-interfaces ${LIB_SOURCES})
-target_include_directories (tlm-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(tlm-interfaces SystemC::systemc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-set_target_properties(tlm-interfaces PROPERTIES
+if(${CMAKE_VERSION} VERSION_LESS "3.13.0") 
+	link_directories(${SystemC_LIBRARY_DIRS})
+endif()
+
+add_library(tlm2-interfaces ${LIB_SOURCES})
+#FILE(GLOB LibHeaders axi/*.h chi/*.h clp/*.h)
+set_target_properties(tlm2-interfaces PROPERTIES
 	  VERSION ${PROJECT_VERSION}
 	  FRAMEWORK FALSE
+	  #PUBLIC_HEADER "${LibHeaders}" # specify the public headers
 )
+target_include_directories (tlm2-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories (tlm2-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories (tlm2-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../fmt/include)
+target_include_directories (tlm2-interfaces PUBLIC ${SystemC_INCLUDE_DIRS})
 
-install(TARGETS tlm-interfaces
-        LIBRARY       DESTINATION lib
-        ARCHIVE       DESTINATION lib/static
-        PUBLIC_HEADER DESTINATION include/tlm)
+if(TARGET scc)
+	target_link_libraries(tlm2-interfaces PUBLIC scc)
+else()
+	target_link_libraries(tlm2-interfaces SystemC::systemc)
+endif()
+if(NOT ${CMAKE_VERSION} VERSION_LESS "3.13.0") 
+	target_link_directories(tlm2-interfaces PUBLIC ${SystemC_LIBRARY_DIRS})
+endif()
+
+install(TARGETS tlm2-interfaces
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}/static
+        #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tlm
+        )
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tlm
+    FILES_MATCHING PATTERN "*.h")
+        
