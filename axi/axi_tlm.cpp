@@ -34,6 +34,8 @@ std::string to_read_string(snoop_e snoop) {
         return "CLEAN_SHARED"; // = 0x8,
     case snoop_e::CLEAN_INVALID:
         return "CLEAN_INVALID"; // = 0x9,
+    case snoop_e::CLEAN_SHARED_PERSIST:
+        return "CLEAN_SHARED_PERSIST"; // = 0xa,
     case snoop_e::CLEAN_UNIQUE:
         return "CLEAN_UNIQUE"; // = 0xb,
     case snoop_e::MAKE_UNIQUE:
@@ -63,6 +65,16 @@ std::string to_write_string(snoop_e snoop) {
         return "EVICT"; // = 0x4,
     case snoop_e::WRITE_EVICT:
         return "WRITE_EVICT"; // = 0x5,
+    case snoop_e::WRITE_UNIQUE_PTL_STASH:
+        return "WRITE_UNIQUE_PTL_STASH"; // = 0x8,
+    case snoop_e::WRITE_UNIQUE_FULL_STASH:
+        return "WRITE_UNIQUE_FULL_STASH"; // = 0x9,
+    case snoop_e::STASH_ONCE_SHARED:
+        return "STASH_ONCE_SHARED"; // = 0xc,
+    case snoop_e::STASH_ONCE_UNIQUE:
+        return "STASH_ONCE_UNIQUE"; // = 0xd,
+    case snoop_e::STASH_TRANSLATION:
+        return "STASH_TRANSLATION"; // = 0xe,
     default:
         return "reserved";
     };
@@ -83,23 +95,25 @@ template <> const char* to_char<snoop_e>(snoop_e v) {
     case 5:
         return "WRITE_EVICT";
     case 6:
-        return "READ_ONCE/WRITE_UNIQUE";
+        return "READ_ONCE/CMO_ON_WRITE";
     case 7:
         return "READ_UNIQUE";
     case 8:
-        return "CLEAN_SHARED";
+        return "CLEAN_SHARED/WRITE_UNIQUE_PTL_STASH";
     case 9:
-        return "CLEAN_INVALID";
+        return "CLEAN_INVALID/WRITE_UNIQUE_FULL_STASH";
     case 11:
         return "CLEAN_UNIQUE";
     case 12:
-        return "MAKE_UNIQUE";
+        return "MAKE_UNIQUE/STASH_ONCE_SHARED";
     case 13:
-        return "MAKE_INVALID";
+        return "MAKE_INVALID/STASH_ONCE_UNIQUE";
     case 14:
-        return "DVM_COMPLETE";
+        return "DVM_COMPLETE/STASH_TRANSLATION";
     case 15:
         return "DVM_MESSAGE";
+    case 0xc0:
+        return "STASH_ONCE_SHARED";
     default:
         return "reserved";
     }
@@ -184,12 +198,10 @@ using namespace scv4tlm;
 
 class axi3_ext_recording : public tlm2_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext3 = trans.get_extension<axi3_extension>();
         if(ext3) { // CTRL, DATA, RESP
-            handle.record_attribute("trans.axi3.id[CTRL]", ext3->get_id(common::id_type::CTRL));
-            handle.record_attribute("trans.axi3.id[DATA]", ext3->get_id(common::id_type::DATA));
-            handle.record_attribute("trans.axi3.id[RESP]", ext3->get_id(common::id_type::RESP));
+            handle.record_attribute("trans.axi3.id", ext3->get_id());
             handle.record_attribute("trans.axi3.user[CTRL]", ext3->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi3.user[DATA]", ext3->get_user(common::id_type::DATA));
             handle.record_attribute("trans.axi3.user[RESP]", ext3->get_user(common::id_type::RESP));
@@ -208,7 +220,7 @@ class axi3_ext_recording : public tlm2_extensions_recording_if<axi_protocol_type
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext3 = trans.get_extension<axi3_extension>();
         if(ext3) {
             handle.record_attribute("trans.axi3.resp", std::string(to_char(ext3->get_resp())));
@@ -217,12 +229,10 @@ class axi3_ext_recording : public tlm2_extensions_recording_if<axi_protocol_type
 };
 class axi4_ext_recording : public tlm2_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<axi4_extension>();
         if(ext4) {
-            handle.record_attribute("trans.axi4.id[CTRL]", ext4->get_id(common::id_type::CTRL));
-            handle.record_attribute("trans.axi4.id[DATA]", ext4->get_id(common::id_type::DATA));
-            handle.record_attribute("trans.axi4.id[RESP]", ext4->get_id(common::id_type::RESP));
+            handle.record_attribute("trans.axi4.id", ext4->get_id());
             handle.record_attribute("trans.axi4.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi4.user[DATA]", ext4->get_user(common::id_type::DATA));
             handle.record_attribute("trans.axi4.user[RESP]", ext4->get_user(common::id_type::RESP));
@@ -241,7 +251,7 @@ class axi4_ext_recording : public tlm2_extensions_recording_if<axi_protocol_type
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<axi4_extension>();
         if(ext4) {
             handle.record_attribute("trans.axi4.resp", std::string(to_char(ext4->get_resp())));
@@ -250,12 +260,10 @@ class axi4_ext_recording : public tlm2_extensions_recording_if<axi_protocol_type
 };
 class ace_ext_recording : public tlm2_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<ace_extension>();
         if(ext4) {
-            handle.record_attribute("trans.ace.id[CTRL]", ext4->get_id(common::id_type::CTRL));
-            handle.record_attribute("trans.ace.id[DATA]", ext4->get_id(common::id_type::DATA));
-            handle.record_attribute("trans.ace.id[RESP]", ext4->get_id(common::id_type::RESP));
+            handle.record_attribute("trans.ace.id", ext4->get_id());
             handle.record_attribute("trans.ace.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.ace.user[DATA]", ext4->get_user(common::id_type::DATA));
             handle.record_attribute("trans.ace.length", ext4->get_length());
@@ -278,7 +286,7 @@ class ace_ext_recording : public tlm2_extensions_recording_if<axi_protocol_types
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<ace_extension>();
         if(ext4) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
@@ -293,13 +301,13 @@ class ace_ext_recording : public tlm2_extensions_recording_if<axi_protocol_types
 } // namespace axi
 namespace scv4axi {
 __attribute__((constructor)) bool register_extensions() {
-    axi::axi3_extension ext3;
-    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording());
-    axi::axi4_extension ext4;
-    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording());
-    axi::ace_extension extace;
-    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording());
-    return true;
+    axi::axi3_extension ext3; // NOLINT
+    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
+    axi::axi4_extension ext4; // NOLINT
+    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
+    axi::ace_extension extace; // NOLINT
+    scv4tlm::tlm2_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
+    return true; // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv4axi

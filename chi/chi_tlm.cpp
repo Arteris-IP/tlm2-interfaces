@@ -188,6 +188,8 @@ template <> const char* to_char<rsp_optype_e>(rsp_optype_e v) {
         return "SnpRespFwded";
     case rsp_optype_e::RespSepData:
         return "RespSepData";
+    case rsp_optype_e::Invalid:
+        return "---";
     default:
         return "UNKNOWN_rsp_optype_e";
     }

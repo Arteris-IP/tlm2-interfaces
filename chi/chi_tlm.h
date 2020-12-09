@@ -243,9 +243,10 @@ enum class rsp_optype_e : uint8_t {
     PCrdGrant = 0x7,
     ReadReceipt = 0x8,
     SnpRespFwded = 0x9,
-    RespSepData = 0xB
+    RespSepData = 0xB,
     // Reserved     = 0xA,
     // Reserved     = 0xC-0xF
+    Invalid = 0x10
 };
 
 enum class rsp_resptype_e : uint8_t {
@@ -582,7 +583,7 @@ struct response {
 private:
     uint8_t db_id{0}, pcrd_type{0}, resp_err{0}, fwd_state{0};
     bool data_pull{false};
-    rsp_optype_e opcode{rsp_optype_e::RespLCrdReturn};
+    rsp_optype_e opcode{rsp_optype_e::Invalid};
     rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
     uint16_t tgt_id{0};
     bool trace_tag{false};

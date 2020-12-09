@@ -20,7 +20,7 @@ endif()
 project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
 
 if(TARGET scc)
-	add_library(tlm-interfaces chi/chi_tlm.cpp axi/axi_tlm.cpp)
+	add_library(tlm-interfaces chi/chi_tlm.cpp axi/axi_tlm.cpp axi/fsm/base.cpp axi/pe/simple_initiator.cpp axi/pe/simple_target.cpp)
 	target_include_directories (tlm-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 	target_link_libraries(tlm-interfaces PUBLIC scc)
 else()

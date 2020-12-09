@@ -90,6 +90,8 @@ enum class snoop_e : uint8_t { // non-snooping (domain==0 || domain==3, bar==0)
     READ_SHARED = 0x1,
     READ_CLEAN = 0x2,
     READ_NOT_SHARED_DIRTY = 0x3,
+    READ_ONCE_CLEAN_INVALID=0x4, // ACE5
+    READ_ONCE_MAKE_INVALID=0x5, // ACE5
     READ_UNIQUE = 0x7,
     CLEAN_UNIQUE = 0xb,
     MAKE_UNIQUE = 0xc,
@@ -118,9 +120,19 @@ enum class snoop_e : uint8_t { // non-snooping (domain==0 || domain==3, bar==0)
     // Cache Stash Transactions, ACE5Lite
     WRITE_UNIQUE_PTL_STASH = 0x8,
     WRITE_UNIQUE_FULL_STASH = 0x9,
-    STASH_ONCE_SHARED = 0xc0,
-    STASH_ONCE_UNIQUE = 0x0d,
+    STASH_ONCE_SHARED = 0xc,
+    STASH_ONCE_UNIQUE = 0xd,
     STASH_TRANSLATION = 0xe
+};
+
+enum class atop_low_e { ADD = 0x0, CLR = 0x1, EOR = 0x2, SET = 0x3, SMAX = 0x4, SMIN = 0x5, UMAX = 0x6, UMIN = 0x7 };
+
+enum class atop_enc_e {
+    NonAtomic = 0x00,
+    AtomicStore = 0x10,
+    AtomicLoad = 0x20,
+    AtomicSwap = 0x30,
+    AtomicCompare = 0x31,
 };
 /**
  * the response type enumeration class
@@ -164,10 +176,10 @@ struct common {
     enum class id_type { CTRL, DATA, RESP };
     //! set the id value of a particular channel
     //! @param the AxID of the ADDR, DATA, and RESP channel
-    void set_id(id_type chnl, unsigned int);
+    void set_id(unsigned int);
     //! get the id value of a particular channel
     //! @return the AxID
-    unsigned int get_id(id_type chnl) const;
+    unsigned int get_id() const;
     //! set the user value of a particular channel
     //! @param AxUSER value of the ADDR, DATA, and RESP channel
     void set_user(id_type chnl, unsigned int);
@@ -176,7 +188,7 @@ struct common {
     unsigned int get_user(id_type chnl) const;
 
 protected:
-    std::array<unsigned, 3> id{{0, 0, 0}};
+    unsigned id{0};
     std::array<unsigned, 3> user{{0, 0, 0}};
 };
 /**
@@ -291,6 +303,46 @@ struct request {
      * @return the region value
      */
     uint8_t get_region() const;
+    /**
+     * @brief set the raw AWATOP value
+     * @param the atop value
+     */
+    void set_atop(uint8_t);
+    /**
+     * @brief get the raw AWATOP value
+     * return the unique value
+     */
+    uint8_t get_atop() const;
+    /**
+     * @brief set the raw AWSTASHNID value
+     * @param the atop value
+     */
+    void set_stash_nid(uint8_t);
+    /**
+     * @brief get the raw AWSTASHNID value
+     * return the unique value
+     */
+    uint8_t get_stash_nid() const;
+    /**
+     * @brief check if AWSTASHNID is valid
+     * return the valid value
+     */
+    bool is_stash_nid_en() const;
+    /**
+     * @brief set the raw AWSTASHLPID value
+     * @param the atop value
+     */
+    void set_stash_lpid(uint8_t);
+    /**
+     * @brief get the raw AWSTASHLPID value
+     * return the unique value
+     */
+    uint8_t get_stash_lpid() const;
+    /**
+     * @brief check if AWSTASHLPID is valid
+     * return the valid value
+     */
+    bool is_stash_lpid_en() const;
 
 protected:
     /**
@@ -311,14 +363,15 @@ protected:
         lock = o.lock;
         cache = o.cache;
         unique = o.unique;
+        atop = o.atop;
         return *this;
     }
 
     enum { // bit masks
         BUFFERABLE = 1,
         CACHEABLE = 2,
-        WA = 4,
-        RA = 8,
+        RA = 4,
+        WA = 8,
         EXCL = 1,
         LOCKED = 2,
         PRIVILEGED = 1,
@@ -338,6 +391,9 @@ protected:
     bar_e barrier{bar_e::RESPECT_BARRIER};
     lock_e lock{lock_e::NORMAL};
     uint8_t cache{0};
+    uint8_t atop{0};
+    uint16_t stash_nid{std::numeric_limits<uint16_t>::max()};
+    uint8_t stash_lpid{std::numeric_limits<uint8_t>::max()};
 };
 /**
  * The AXI3 specific interpretation of request data members
@@ -609,7 +665,7 @@ struct response {
     void set_decerr();
 
 protected:
-    enum { // bit masks
+    enum { // bit masks for CRESP
         DATATRANSFER = 1,
         SNOOPEERROR = 2,
         PASSDIRTY = 4,
@@ -994,6 +1050,19 @@ struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_t
 /*****************************************************************************
  * free function easing handling of transactions and extensions
  *****************************************************************************/
+inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
+    if(auto e = trans.get_extension<axi::ace_extension>())
+        return e->get_id();
+    if(auto e = trans.get_extension<axi::axi4_extension>())
+        return e->get_id();
+    if(auto e = trans.get_extension<axi::axi3_extension>())
+        return e->get_id();
+    sc_assert(false && "transaction is not an axi or ace transaction");
+    return std::numeric_limits<unsigned>::max();
+}
+
+inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const* trans) { return get_axi_id(*trans); }
+
 /**
  * determine if the transaction is an AXI burst
  * @param trans
@@ -1119,7 +1188,7 @@ template <> inline bar_e into<bar_e>(typename std::underlying_type<bar_e>::type 
 
 template <> inline snoop_e into<snoop_e>(typename std::underlying_type<snoop_e>::type t) {
     assert(t >= static_cast<typename std::underlying_type<snoop_e>::type>(snoop_e::READ_NO_SNOOP) &&
-           t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::DVM_MESSAGE));
+                    t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::DVM_MESSAGE));
     return static_cast<snoop_e>(t);
 }
 
@@ -1129,9 +1198,9 @@ template <> inline resp_e into<resp_e>(typename std::underlying_type<resp_e>::ty
     return static_cast<resp_e>(t);
 }
 
-inline void common::set_id(id_type chnl, unsigned int id) { this->id[static_cast<size_t>(chnl)] = id; }
+inline void common::set_id(unsigned int id) { this->id = id; }
 
-inline unsigned int common::get_id(id_type chnl) const { return id[static_cast<size_t>(chnl)]; }
+inline unsigned int common::get_id() const { return id; }
 
 inline void common::set_user(id_type chnl, unsigned int user) { this->user[static_cast<size_t>(chnl)] = user; }
 
@@ -1254,6 +1323,7 @@ inline void request::reset() {
     lock = lock_e::NORMAL;
     cache = 0;
     unique = false;
+    atop = 0;
 }
 
 inline void request::set_length(uint8_t length) { this->length = length; }
@@ -1333,6 +1403,23 @@ inline void ace::set_unique(bool uniq) { this->unique = uniq; }
 
 inline bool ace::get_unique() const { return unique; }
 
+inline void request::set_atop(uint8_t atop) { this->atop = atop; }
+
+inline uint8_t request::get_atop() const { return atop; }
+
+inline void request::set_stash_nid(uint8_t stash_nid){this->stash_nid=stash_nid;}
+
+inline uint8_t request::get_stash_nid() const { return stash_nid<0x800? stash_nid : 0;}
+
+inline bool request::is_stash_nid_en() const {return stash_nid<0x800;}
+
+inline void request::set_stash_lpid(uint8_t stash_lpid) {this->stash_lpid=stash_lpid;}
+
+inline uint8_t request::get_stash_lpid() const {return stash_lpid<0x20? stash_lpid : 0;}
+
+inline bool request::is_stash_lpid_en() const {return stash_lpid<0x20;}
+
+
 inline void response::reset() { resp = static_cast<uint8_t>(resp_e::OKAY); }
 
 inline resp_e response::from_tlm_response_status(tlm::tlm_response_status st) {
@@ -1370,7 +1457,7 @@ inline resp_e response::get_resp() const { // @suppress("No return")
         return resp_e::EXOKAY;
     case 2:
         return resp_e::SLVERR;
-    case 3:
+    default:
         return resp_e::DECERR;
     }
 }

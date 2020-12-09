@@ -31,6 +31,37 @@ namespace scv4axi {
 
 bool register_extensions();
 
+namespace impl {
+//! \brief the class to hold the information to be recorded on the timed
+//! streams
+template <typename TYPES = axi::axi_protocol_types> class ace_recording_payload : public TYPES::tlm_payload_type {
+public:
+    scv_tr_handle parent;
+    uint64 id{0};
+    bool is_snoop{false};
+    ace_recording_payload& operator=(const typename TYPES::tlm_payload_type& x) {
+        id = (uint64)&x;
+        this->set_command(x.get_command());
+        this->set_address(x.get_address());
+        this->set_data_ptr(nullptr);
+        this->set_data_length(x.get_data_length());
+        this->set_response_status(x.get_response_status());
+        this->set_byte_enable_ptr(nullptr);
+        this->set_byte_enable_length(x.get_byte_enable_length());
+        this->set_streaming_width(x.get_streaming_width());
+        return (*this);
+    }
+    explicit ace_recording_payload(tlm::tlm_mm_interface* mm)
+    : TYPES::tlm_payload_type(mm)
+    , parent() {}
+};
+
+template <typename TYPES = axi::axi_protocol_types> struct ace_recording_types {
+    using tlm_payload_type = ace_recording_payload<TYPES>;
+    using tlm_phase_type = typename TYPES::tlm_phase_type;
+};
+
+} // namespace impl
 /*! \brief The TLM2 transaction recorder
  *
  * This module records all TLM transaction to a SCV transaction stream for
@@ -47,6 +78,10 @@ public:
 
     template <unsigned int BUSWIDTH = 32, int N = 1, sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
     using target_socket_type = axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>;
+
+    using recording_types = impl::ace_recording_types<TYPES>;
+    using mm = tlm::tlm_mm<recording_types>;
+    using tlm_recording_payload = impl::ace_recording_payload<TYPES>;
 
     SC_HAS_PROCESS(ace_recorder<TYPES>); // NOLINT
 
@@ -77,22 +112,9 @@ public:
     ace_recorder(const char* name, bool recording_enabled = true, scv_tr_db* tr_db = scv_tr_db::get_default_db())
     : enableTracing("enableTracing", recording_enabled)
     , enableTimed("enableTimed", recording_enabled)
-    , mm(new RecodingMemoryManager())
     , b_timed_peq(this, &ace_recorder::btx_cb)
     , nb_timed_peq(this, &ace_recorder::nbtx_cb)
     , m_db(tr_db)
-    , b_streamHandle(NULL)
-    , b_streamHandleTimed(NULL)
-    , b_trTimedHandle(3)
-    , nb_streamHandle(2)
-    , nb_streamHandleTimed(2)
-    , nb_fw_trHandle(3)
-    , nb_txReqHandle(4)
-    , nb_bw_trHandle(4)
-    , nb_txRespHandle(3)
-    , dmi_streamHandle(NULL)
-    , dmi_trGetHandle(NULL)
-    , dmi_trInvalidateHandle(NULL)
     , fixed_basename(name) {
         register_extensions();
     }
@@ -191,74 +213,6 @@ public:
     const bool isRecordingEnabled() const { return m_db != NULL && enableTracing.value; }
 
 private:
-    //! \brief the class to hold the information to be recorded on the timed
-    //! streams
-    class tlm_recording_payload : public TYPES::tlm_payload_type {
-    public:
-        scv_tr_handle parent;
-        uint64 id{0};
-        bool is_snoop{false};
-        tlm_recording_payload& operator=(const typename TYPES::tlm_payload_type& x) {
-            id = (uint64)&x;
-            this->set_command(x.get_command());
-            this->set_address(x.get_address());
-            this->set_data_ptr(x.get_data_ptr());
-            this->set_data_length(x.get_data_length());
-            this->set_response_status(x.get_response_status());
-            this->set_byte_enable_ptr(x.get_byte_enable_ptr());
-            this->set_byte_enable_length(x.get_byte_enable_length());
-            this->set_streaming_width(x.get_streaming_width());
-            return (*this);
-        }
-        explicit tlm_recording_payload(tlm::tlm_mm_interface* mm)
-        : TYPES::tlm_payload_type(mm)
-        , parent() {}
-    };
-    //! \brief Memory manager for the tlm_recording_payload
-    class RecodingMemoryManager : public tlm::tlm_mm_interface {
-    public:
-        RecodingMemoryManager()
-        : free_list(0)
-        , empties(0) {}
-        tlm_recording_payload* allocate() {
-            typename TYPES::tlm_payload_type* ptr;
-            if(free_list) {
-                ptr = free_list->trans;
-                empties = free_list;
-                free_list = free_list->next;
-            } else {
-                ptr = new tlm_recording_payload(this);
-            }
-            return (tlm_recording_payload*)ptr;
-        }
-        void free(tlm::tlm_generic_payload* trans) override {
-            trans->reset();
-            if(!empties) {
-                empties = new access;
-                empties->next = free_list;
-                empties->prev = 0;
-                if(free_list)
-                    free_list->prev = empties;
-            }
-            free_list = empties;
-            free_list->trans = trans;
-            empties = free_list->prev;
-        }
-
-    private:
-        struct access {
-            typename TYPES::tlm_payload_type* trans;
-            access* next;
-            access* prev;
-        };
-        access *free_list, *empties;
-    };
-    RecodingMemoryManager* mm;
-    //! peq type definition
-    struct recording_types {
-        using tlm_payload_type = tlm_recording_payload;
-        using tlm_phase_type = typename TYPES::tlm_phase_type;
-    };
     //! event queue to hold time points of blocking transactions
     tlm_utils::peq_with_cb_and_phase<ace_recorder, recording_types> b_timed_peq;
     //! event queue to hold time points of non-blocking transactions
@@ -274,42 +228,42 @@ private:
      */
     void nbtx_cb(tlm_recording_payload& rec_parts, const typename TYPES::tlm_phase_type& phase);
     //! transaction recording database
-    scv_tr_db* m_db;
+    scv_tr_db* m_db{nullptr};
     //! blocking transaction recording stream handle
-    scv_tr_stream* b_streamHandle;
+    scv_tr_stream* b_streamHandle{nullptr};
     //! transaction generator handle for blocking transactions
-    std::array<scv_tr_generator<sc_dt::uint64, sc_dt::uint64>*, 3> b_trHandle;
+    std::array<scv_tr_generator<sc_dt::uint64, sc_dt::uint64>*, 3> b_trHandle{{nullptr, nullptr, nullptr}};
     //! timed blocking transaction recording stream handle
-    scv_tr_stream* b_streamHandleTimed;
+    scv_tr_stream* b_streamHandleTimed{nullptr};
     //! transaction generator handle for blocking transactions with annotated
     //! delays
-    std::vector<scv_tr_generator<tlm::tlm_command, tlm::tlm_response_status>*> b_trTimedHandle;
+    std::array<scv_tr_generator<tlm::tlm_command, tlm::tlm_response_status>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> btx_handle_map;
 
     enum DIR { FW, BW };
     //! non-blocking transaction recording stream handle
-    std::vector<scv_tr_stream*> nb_streamHandle;
+    std::array<scv_tr_stream*, 2> nb_streamHandle{{nullptr, nullptr}};
     //! non-blocking transaction recording stream handle
-    std::vector<scv_tr_stream*> nb_streamHandleTimed;
+    std::array<scv_tr_stream*, 2> nb_streamHandleTimed{{nullptr, nullptr}};
     //! transaction generator handle for forward non-blocking transactions
-    std::vector<scv_tr_generator<std::string, tlm::tlm_sync_enum>*> nb_fw_trHandle;
+    std::array<scv_tr_generator<std::string, tlm::tlm_sync_enum>*, 3> nb_fw_trHandle{{nullptr, nullptr, nullptr}};
     //! transaction generator handle for forward non-blocking transactions with
     //! annotated delays
-    std::vector<scv_tr_generator<>*> nb_txReqHandle;
+    std::array<scv_tr_generator<>*, 4> nb_txReqHandle{{nullptr, nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> nbtx_req_handle_map;
     //! transaction generator handle for backward non-blocking transactions
-    std::vector<scv_tr_generator<std::string, tlm::tlm_sync_enum>*> nb_bw_trHandle;
+    std::array<scv_tr_generator<std::string, tlm::tlm_sync_enum>*, 4> nb_bw_trHandle{{nullptr, nullptr, nullptr, nullptr}};
     //! transaction generator handle for backward non-blocking transactions with
     //! annotated delays
-    std::vector<scv_tr_generator<>*> nb_txRespHandle;
+    std::array<scv_tr_generator<>*, 4> nb_txRespHandle{{nullptr, nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> nbtx_last_req_handle_map;
     std::unordered_map<uint64, scv_tr_handle> nbtx_resp_handle_map;
     std::unordered_map<uint64, scv_tr_handle> nbtx_last_resp_handle_map;
     //! dmi transaction recording stream handle
-    scv_tr_stream* dmi_streamHandle;
+    scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions
-    scv_tr_generator<scv4tlm::tlm_gp_data, scv4tlm::tlm_dmi_data>* dmi_trGetHandle;
-    scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle;
+    scv_tr_generator<scv4tlm::tlm_gp_data, scv4tlm::tlm_dmi_data>* dmi_trGetHandle{nullptr};
+    scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle{nullptr};
 
     const std::string fixed_basename;
 
@@ -325,7 +279,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
-    tlm_recording_payload* req;
+    tlm_recording_payload* req{nullptr};
     if(!isRecordingEnabled()) {
         get_fw_if()->b_transport(trans, delay);
         return;
@@ -347,7 +301,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
      * do the timed notification
      *************************************************************************/
     if(enableTimed.value) {
-        req = mm->allocate();
+        req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
@@ -361,7 +315,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
     scv4tlm::tlm_recording_extension* preExt = NULL;
 
     trans.get_extension(preExt);
-    if(preExt == NULL) { // we are the first recording this transaction
+    if(preExt == nullptr) { // we are the first recording this transaction
         preExt = new scv4tlm::tlm_recording_extension(h, this);
         trans.set_extension(preExt);
     } else {
@@ -375,8 +329,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
     trans.get_extension(preExt);
     if(preExt->get_creator() == this) {
         // clean-up the extension if this is the original creator
-        delete preExt;
-        trans.set_extension((scv4tlm::tlm_recording_extension*)NULL);
+        delete trans.set_extension(static_cast<scv4tlm::tlm_recording_extension*>(nullptr));
     } else {
         preExt->txHandle = preTx;
     }
@@ -397,7 +350,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
 }
 
 template <typename TYPES> void ace_recorder<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
-    tlm_recording_payload* req;
+    tlm_recording_payload* req{nullptr};
     if(!isRecordingEnabled()) {
         get_fw_if()->b_transport(trans, delay);
         return;
@@ -419,7 +372,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_snoop(typename TYPES::tlm_
      * do the timed notification
      *************************************************************************/
     if(enableTimed.value) {
-        req = mm->allocate();
+        req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
@@ -447,8 +400,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_snoop(typename TYPES::tlm_
     trans.get_extension(preExt);
     if(preExt->get_creator() == this) {
         // clean-up the extension if this is the original creator
-        delete preExt;
-        trans.set_extension((scv4tlm::tlm_recording_extension*)NULL);
+        delete trans.set_extension(static_cast<scv4tlm::tlm_recording_extension*>(nullptr));
     } else {
         preExt->txHandle = preTx;
     }
@@ -541,7 +493,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
      * do the timed notification
      *************************************************************************/
     if(enableTimed.value) {
-        tlm_recording_payload* req = mm->allocate();
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
@@ -556,6 +508,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
      * handle recording
      *************************************************************************/
     tgd.response_status = trans.get_response_status();
+    h.record_attribute("trans.uid", reinterpret_cast<uintptr_t>(&trans));
     h.record_attribute("trans", tgd);
     if(tgd.data_length < 8) {
         uint64_t buf = 0;
@@ -575,19 +528,20 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
         trans.get_extension(preExt);
         if(preExt && preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete preExt;
-            trans.set_extension((scv4tlm::tlm_recording_extension*)NULL);
+            delete trans.set_extension(static_cast<scv4tlm::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
          *************************************************************************/
-        tlm_recording_payload* req = mm->allocate();
+        if(enableTimed.value) {
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
         nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase, delay);
-    } else if(status == tlm::TLM_UPDATED) {
-        tlm_recording_payload* req = mm->allocate();
+        }
+    } else if(enableTimed.value && status == tlm::TLM_UPDATED) {
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
@@ -636,7 +590,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
      * do the timed notification
      *************************************************************************/
     if(enableTimed.value) {
-        tlm_recording_payload* req = mm->allocate();
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
@@ -651,6 +605,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
      * handle recording
      *************************************************************************/
     tgd.response_status = trans.get_response_status();
+    h.record_attribute("trans.uid", reinterpret_cast<uintptr_t>(&trans));
     h.record_attribute("trans", tgd);
     if(tgd.data_length < 8) {
         uint64_t buf = 0;
@@ -670,19 +625,20 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
         trans.get_extension(preExt);
         if(preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete preExt;
-            trans.set_extension((scv4tlm::tlm_recording_extension*)NULL);
+            delete trans.set_extension(static_cast<scv4tlm::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
          *************************************************************************/
-        tlm_recording_payload* req = mm->allocate();
+        if(enableTimed.value) {
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
         nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase, delay);
-    } else if(status == tlm::TLM_UPDATED) {
-        tlm_recording_payload* req = mm->allocate();
+        }
+    } else if(enableTimed.value && status == tlm::TLM_UPDATED) {
+        tlm_recording_payload* req = mm::get().allocate();
         req->acquire();
         (*req) = trans;
         req->parent = h;
