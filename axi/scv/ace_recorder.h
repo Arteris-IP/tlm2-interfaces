@@ -20,7 +20,7 @@
 #include <axi/axi_tlm.h>
 #include <regex>
 #include <scv.h>
-#include <scv4tlm/tlm2_recorder.h>
+#include <scv4tlm/tlm_recorder.h>
 #include <scv4tlm/tlm_recording_extension.h>
 #include <string>
 #include <tlm_utils/peq_with_cb_and_phase.h>
@@ -309,7 +309,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
         b_timed_peq.notify(*req, tlm::BEGIN_REQ, delay);
     }
 
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
     scv4tlm::tlm_recording_extension* preExt = NULL;
@@ -338,7 +338,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_transport(typename TYPES::
     h.record_attribute("trans", tgd);
     if(trans.get_command() == tlm::TLM_READ_COMMAND && tgd.data_length < 8)
         h.record_attribute("trans.data_value", tgd.get_data_value());
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     // End the transaction
@@ -380,7 +380,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_snoop(typename TYPES::tlm_
         b_timed_peq.notify(*req, tlm::BEGIN_REQ, delay);
     }
 
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
     scv4tlm::tlm_recording_extension* preExt = NULL;
@@ -409,7 +409,7 @@ template <typename TYPES> void ace_recorder<TYPES>::b_snoop(typename TYPES::tlm_
     h.record_attribute("trans", tgd);
     if(trans.get_command() == tlm::TLM_READ_COMMAND && tgd.data_length < 8)
         h.record_attribute("trans.data_value", tgd.get_data_value());
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     // End the transaction
@@ -485,7 +485,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
     // update the extension
     preExt->txHandle = h;
     h.record_attribute("delay", delay.to_string());
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
     scv4tlm::tlm_gp_data tgd(trans);
@@ -517,7 +517,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
             buf += (*tgd.data) << i * 8;
         h.record_attribute("trans.data_value", buf);
     }
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     h.record_attribute("tlm_phase[return_path]", phase2string(phase));
@@ -582,7 +582,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
     // and set the extension handle to this transaction
     preExt->txHandle = h;
     h.record_attribute("delay", delay.to_string());
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
     scv4tlm::tlm_gp_data tgd(trans);
@@ -614,7 +614,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
             buf += (*tgd.data) << i * 8;
         h.record_attribute("trans.data_value", buf);
     }
-    for(auto& ext : scv4tlm::tlm2_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     h.record_attribute("tlm_phase[return_path]", phase2string(phase));
