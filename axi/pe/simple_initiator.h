@@ -15,10 +15,12 @@
  */
 
 #pragma once
+
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
 #include <axi/fsm/base.h>
+#include <tlm/pe/intor_if.h>
 #include <deque>
 #include <scc/ordered_semaphore.h>
 #include <sysc/kernel/sc_attribute.h>
@@ -30,7 +32,7 @@ namespace pe {
 /**
  * the initiator protocol engine base class
  */
-class simple_initiator_b : public sc_core::sc_module, protected axi::fsm::base {
+class simple_initiator_b : public sc_core::sc_module, public tlm::pe::intor_fw, protected axi::fsm::base {
 public:
     SC_HAS_PROCESS(simple_initiator_b);
 
@@ -38,6 +40,10 @@ public:
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
+
+    sc_core::sc_export<tlm::pe::intor_fw> drv_i{"drv_i"};
+
+    sc_core::sc_port<tlm::pe::intor_bw, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
     /**
      * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to WVALID)
      */
