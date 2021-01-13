@@ -53,7 +53,9 @@ public:
         tsckt.bind(*this);
         isckt.bind(*this);
         add_attribute(BASE::enableTracing);
-        add_attribute(BASE::enableTimed);
+        add_attribute(BASE::enableTimedTracing);
+        add_attribute(BASE::enableDmiTracing);
+        add_attribute(BASE::enableTrDbgTracing);
     }
 
     ~axitlm_recorder_module() {}

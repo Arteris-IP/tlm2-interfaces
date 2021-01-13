@@ -51,7 +51,7 @@ public:
         tsckt.bind(*this);
         isckt.bind(*this);
         add_attribute(BASE::enableTracing);
-        add_attribute(BASE::enableTimed);
+        add_attribute(BASE::enableTimedTracing);
     }
 
     virtual ~chitlm_recorder_module() {}
