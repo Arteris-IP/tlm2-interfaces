@@ -636,6 +636,13 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
             h = it->second;
             nbtx_resp_handle_map.erase(it);
             h.end_transaction();
+        } else {
+            it = nbtx_req_handle_map.find(rec_parts.id);
+            if(it != nbtx_req_handle_map.end()) {
+                h = it->second;
+                nbtx_req_handle_map.erase(it);
+                h.end_transaction();
+            }
         }
     } else if(phase == chi::BEGIN_DATA || phase == chi::BEGIN_PARTIAL_DATA) {
         it = nbtx_req_handle_map.find(rec_parts.id);
