@@ -86,7 +86,7 @@ public:
     //
     virtual void bind(bw_interface_type& ifs) { (this->get_base_export())(ifs); }
 
-    void setExtensionRecording(scv4tlm::tlm2_extensions_recording_if<TYPES>* extensionRecording) {
+    void setExtensionRecording(scv4tlm::tlm_extensions_recording_if<TYPES>* extensionRecording) {
         recorder.setExtensionRecording(extensionRecording);
     }
 
@@ -159,7 +159,7 @@ public:
     //
     bw_interface_type* operator->() { return &recorder; }
 
-    void setExtensionRecording(scv4tlm::tlm2_extensions_recording_if<TYPES>* extensionRecording) {
+    void setExtensionRecording(scv4tlm::tlm_extensions_recording_if<TYPES>* extensionRecording) {
         recorder.setExtensionRecording(extensionRecording);
     }
 
