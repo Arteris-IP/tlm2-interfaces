@@ -749,8 +749,6 @@ struct chi_protocol_types {
 /**
  * definition of the additional protocol phases
  */
-DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_RESP);
-DECLARE_EXTENDED_PHASE(END_PARTIAL_RESP);
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(END_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(BEGIN_DATA);
@@ -760,8 +758,28 @@ DECLARE_EXTENDED_PHASE(LINK_INIT);
 
 //! alias declaration for the forward interface
 template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
-//! alias declaration for the backward interface:
-template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+////! alias declaration for the backward interface:
+//template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+
+/**
+ * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
+ */
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+public:
+    /**
+     * @brief snoop access to a snooped master
+     * @param trans the payload
+     * @param t annotated delay
+     */
+    virtual void b_snoop(TRANS& trans, sc_core::sc_time& t) = 0;
+};
+
+/**
+ *  The CHI backward interface which combines the TLM2.0 backward interface and the @see bw_blocking_transport_if
+ */
+template <typename TYPES = chi::chi_protocol_types>
+class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
+                            public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
 /**
  * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)

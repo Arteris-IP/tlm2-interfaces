@@ -899,7 +899,7 @@ DECLARE_EXTENDED_PHASE(ACK);
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload> class ace_bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -915,11 +915,11 @@ template <typename TYPES = tlm::tlm_base_protocol_types> using axi_bw_transport_
 //! alias declaration for the ACE forward interface
 template <typename TYPES = tlm::tlm_base_protocol_types> using ace_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
 /**
- *  The ACE backward interface which combines the TLM2.0 backward interface and the @see ace_bw_blocking_transport_if
+ *  The ACE backward interface which combines the TLM2.0 backward interface and the @see bw_blocking_transport_if
  */
 template <typename TYPES = tlm::tlm_base_protocol_types>
 class ace_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
-                            public virtual ace_bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
+                            public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 /**
  * AXI initiator socket class using payloads carrying AXI3 or AXi4 extensions
  */
