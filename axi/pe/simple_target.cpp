@@ -169,7 +169,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 }
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay){
-    auto e = axi::get_burst_lenght(trans)==0 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
+    auto e = axi::get_burst_lenght(trans)==1 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
     if(clk_delay)
         schedule(e, &trans, clk_delay);
     else
