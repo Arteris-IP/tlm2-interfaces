@@ -168,6 +168,38 @@ When the profile keyword is seen, it sets all parameters back to the default val
 |  timing:|Override the default timings specified in Traffic Profile Spec (see section \ref{ATP}) Table 3-1|
 |  signals:|Set the value of a protocol signal, overriding the default value specified in the AMBA spec (see section \ref{ACE}).|
 
+The following types of transactions are supported:
+
+* READ
+* WRITE
+* ReadNoSnp
+* ReadOnce
+* ReadOnceCleanInvalid
+* ReadOnceMakeInvalid
+* ReadClean
+* ReadNotSharedDirty
+* ReadShared
+* ReadUnique
+* WriteNoSnpFull
+* WriteUniqueFull
+* WriteLineUniqueFull
+* WriteBackFull
+* WriteClean
+* WriteEvict
+* Evict
+* CleanShared
+* CleanInvalid
+* CleanSharedPersist
+* MakeInvalid
+* CleanUnique
+* MakeUnique
+* StashOnceUnique
+* StashOnceShared
+* WriteUniqueFullStash
+* WriteUniquePtlStash
+
+Those types map to the respective AMBA ACE snoop types.
+
 ###  Section `generator`
 
 The generator keyword is used to set the value of a generator parameter, overriding any default value specified in the Traffic Profile Spec (see section \ref{ATP}) Table 4-1. The supported generator commands are:
@@ -229,13 +261,61 @@ The timing keyword is used to override the default timings specified in Traffic 
 |------|-----------------|
 | &lt;timing&nbsp;name>:&nbsp;&lt;value> | optional, *timing name* denotes a timing name according to the ATP spec, *value*  may be a single type or a inline formatted list denoting the number of cycles|
 
+The following timing names are supported:
+
+* ARTV
+* ARR
+* RIV
+* RBV
+* RBR
+* RLA
+* AWTV
+* AWV
+* AWR
+* WIV
+* WBR
+* WBV
+* BV
+* BR
+* BA
+* ACTV
+* ACR
+* CRV
+* CRR
+* CDIV
+* CDBR
+* CDBV
+
 ###  Section `signals`
 
 The signal keyword is used to set the value of a protocol signals, overriding the default value specified in AMBA Spec (see section \ref{ACE}).
 
 |Syntax|Comment
 |------|-----------------|
-|&lt;signal&nbsp;name>:&nbsp;&lt;value>|optional, *timing name* denotes a signal name according to the AMBA spec (see section \ref{ACE}),  *value*  may be a single value or a inline formatted list denoting the value of the signal.| 
+|&lt;signal&nbsp;name>:&nbsp;&lt;value>|optional, *signal name* denotes a signal name according to the AMBA spec (see section \ref{ACE}),  *value*  may be a single value or a inline formatted list denoting the value of the signal.| 
+
+The following signal names are supported:
+
+* AxADDR,
+* AxBURST,
+* AxCACHE,
+* AxID,
+* AxLEN,
+* AxLOCK,
+* AxPROT,
+* AxQOS,
+* AxREGION,
+* AxSIZE,
+* BRESP,
+* RDATA,
+* RRESP,
+* WDATA,
+* WSTRB,
+* AWATOP,
+* AWSTASHNID,
+* AWSTASHLPID,
+
+Those signals map to the respective AMBA AXI/ACE channel signals.
 
 # Appendix
 
