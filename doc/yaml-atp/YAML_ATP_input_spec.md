@@ -218,7 +218,7 @@ The trans_id keyword specifies the pattern of ids to use. In AXI, the correspond
 
 |Syntax|Comment
 |------|-----------------|
-|type: cycle|unique|defines the kind of generation the transaction id|
+|type: cycle\|unique|defines the kind of generation the transaction id|
 |range: [&lt;lower>,&lt;upper>]|*lower* and *upper* are the bounds on the trans_id.|
 
 For type=*cycle*, the id used for each transaction will increment starting with the *lower* to the *upper* and starting over.
