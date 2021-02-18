@@ -296,24 +296,24 @@ The signal keyword is used to set the value of a protocol signals, overriding th
 
 The following signal names are supported:
 
-* AxADDR,
-* AxBURST,
-* AxCACHE,
-* AxID,
-* AxLEN,
-* AxLOCK,
-* AxPROT,
-* AxQOS,
-* AxREGION,
-* AxSIZE,
-* BRESP,
-* RDATA,
-* RRESP,
-* WDATA,
-* WSTRB,
-* AWATOP,
-* AWSTASHNID,
-* AWSTASHLPID,
+* AxADDR
+* AxBURST
+* AxCACHE
+* AxID
+* AxLEN
+* AxLOCK
+* AxPROT
+* AxQOS
+* AxREGION
+* AxSIZE
+* BRESP
+* RDATA
+* RRESP
+* WDATA
+* WSTRB
+* AWATOP
+* AWSTASHNID
+* AWSTASHLPID
 
 Those signals map to the respective AMBA AXI/ACE channel signals.
 
