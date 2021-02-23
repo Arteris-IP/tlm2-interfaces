@@ -1152,6 +1152,18 @@ inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type& 
  * @return the burst size in bytes
  */
 inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_size(*trans); }
+
+inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& trans) {
+    if(auto e = trans.get_extension<axi::ace_extension>())
+        return e->get_burst();
+    if(auto e = trans.get_extension<axi::axi4_extension>())
+        return e->get_burst();
+    if(auto e = trans.get_extension<axi::axi3_extension>())
+        return e->get_burst();
+    sc_assert(false && "transaction is not an axi or ace transaction");
+    return burst_e::FIXED;
+}
+inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_type(*trans); }
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
