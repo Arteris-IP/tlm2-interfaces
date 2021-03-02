@@ -38,6 +38,7 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_
 : sc_module(nm)
 , base(transfer_width)
 , socket_bw(port) {
+    add_attribute(max_outstanding_tx);
     add_attribute(rd_data_interleaving);
     add_attribute(wr_data_accept_delay);
     add_attribute(rd_addr_accept_delay);
@@ -91,24 +92,40 @@ unsigned int axi_target_pe_b::transport_dbg(payload_type& trans) { return 0; }
 fsm_handle* axi_target_pe_b::create_fsm_handle() { return new fsm_handle(); }
 
 void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
-    fsm_hndl->fsm->cb[RequestPhaseBeg] = [this, fsm_hndl]() -> void { fsm_hndl->beat_count = 0; };
+    fsm_hndl->fsm->cb[RequestPhaseBeg] = [this, fsm_hndl]() -> void {
+        fsm_hndl->beat_count = 0;
+        outstanding_cnt[fsm_hndl->trans->get_command()]++;
+    };
     fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
-        if(wr_data_accept_delay.value)
-            schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value-1);
-        else
-            schedule(EndPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+        if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
+        } else {// accepted, schedule response
+            outstanding_tx[fsm_hndl->trans->get_command()]++;
+            if(wr_data_accept_delay.value)
+                schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value-1);
+            else
+                schedule(EndPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+        }
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = axi::END_PARTIAL_REQ;
         sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
+        fsm_hndl->beat_count++;
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
-        auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
-        if(latency)
-            schedule(EndReqE, fsm_hndl->trans, latency-1);
-        else
-            schedule(EndReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+        if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
+        } else { // accepted, schedule response
+            if(!fsm_hndl->beat_count) outstanding_tx[fsm_hndl->trans->get_command()]++;
+            auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
+            if(latency)
+                schedule(EndReqE, fsm_hndl->trans, latency-1);
+            else
+                schedule(EndReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+        }
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = tlm::END_REQ;
@@ -164,6 +181,20 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         if(!rd_data_interleaving.value && rd_resp.get_value()<rd_resp.get_capacity()){
             SCCTRACE(SCMOD)<<"finishing exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
             rd_resp.post();
+        }
+        auto cmd = fsm_hndl->trans->get_command();
+        outstanding_cnt[cmd]--;
+        outstanding_tx[cmd]--;
+        if(stalled_tx[cmd]){
+            auto* trans = stalled_tx[cmd];
+            auto latency = trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
+            if(latency)
+                schedule(stalled_tp[cmd], trans, latency-1);
+            else
+                schedule(stalled_tp[cmd], trans, sc_core::SC_ZERO_TIME);
+            outstanding_tx[cmd]++;
+            stalled_tx[cmd] = nullptr;
+            stalled_tp[cmd] = CB_CNT;
         }
     };
 }

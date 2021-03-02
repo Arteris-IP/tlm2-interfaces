@@ -39,6 +39,10 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
     /**
+     * @brief the number of supported outstanding transactions. If this limit is reached the target starts to do back-pressure
+     */
+    sc_core::sc_attribute<unsigned> max_outstanding_tx{"max_outstanding_tx", 0};
+    /**
      * @brief enable data interleaving on read responses
      */
     sc_core::sc_attribute<bool> rd_data_interleaving{"rd_data_interleaving", true};
@@ -162,6 +166,12 @@ protected:
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
     void start_of_simulation() override;
+    std::array<unsigned, 3> outstanding_cnt{{0,0,0}};
+    std::array<unsigned, 3>  outstanding_tx{{0,0,0}};
+    scc::sc_variable_t<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
+    scc::sc_variable_t<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
+    std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};
+    std::array<axi::fsm::protocol_time_point_e, 3> stalled_tp{{axi::fsm::CB_CNT,axi::fsm::CB_CNT,axi::fsm::CB_CNT}};
 };
 
 /**
