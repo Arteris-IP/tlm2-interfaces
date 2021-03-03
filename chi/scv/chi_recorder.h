@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <vector>
 
+//! SCV components for CHI
 namespace scv4chi {
 
 bool register_extensions();

@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <vector>
 
+//! SCV components for AXI/ACE
 namespace scv4axi {
 
 bool register_extensions();
