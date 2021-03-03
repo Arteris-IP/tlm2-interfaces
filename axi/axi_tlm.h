@@ -21,6 +21,7 @@
 #include <tlm>
 #include <type_traits>
 
+//! TLM2.0 components modeling AXI/ACE
 namespace axi {
 /**
  * helper function to allow SFINAE

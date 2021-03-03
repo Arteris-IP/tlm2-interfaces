@@ -25,7 +25,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+//! TLM2.0 components modeling AXI/ACE
 namespace axi {
+//! protocol engine implementations
 namespace pe {
 /**
  * the initiator protocol engine base class

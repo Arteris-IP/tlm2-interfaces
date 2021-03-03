@@ -21,6 +21,7 @@
 #include <tlm>
 #include <type_traits>
 
+//! TLM2.0 components modeling CHI
 namespace chi {
 /**
  * helper function to allow SFINAE
