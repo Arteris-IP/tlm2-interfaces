@@ -132,13 +132,49 @@ A _profile-list_ consist of a list of key-value pairs where the following keys a
 
     create a message print at the simulation output
 
-* include - string
+* include - string or list
   
     include the content of the denoted file at this point of the file
 
 * profile_list - list
   
     a nested profile list.
+
+###  Section `include`
+
+The include key allows to include other YAML files containg profile settings. There are 2 forms availabl
+
+|Syntax|Comment
+|------|-----------------|
+|- include:&nbsp;&lt;name>| simply include the given file at this point |
+|- include: | simply include the given file at this point |
+|  variables:| a dictionary of variable names and values or a list of variable name and value pairs|
+|  filename:&nbsp;&lt;name>| ethe name of the file to be included|
+
+The following example shows the various variants:
+
+```yaml
+- profile_list:
+  - parallel_execution: false
+  # variant 1
+  - include: file1.yprf
+  # variant 2
+  - include:
+    variables:
+      var1: val1
+      var2: val2
+    filename: file2.yprf
+  # variant 3
+  - include:
+    variables:
+      - var1: val1
+      - var2: val2
+    filename: file2.yprf
+    
+```
+
+Variables are expanded in the included files similar to shell variables, `${var1}` from the example above expands to `val1`.
+Variable expansion happens before the file is parsed as YAML.
 
 ###  Section `wait`
 
