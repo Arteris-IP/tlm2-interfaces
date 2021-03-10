@@ -48,7 +48,7 @@ public:
      */
     axitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true, scv_tr_db* tr_db = scv_tr_db::get_default_db())
     : sc_module(name)
-    , BASE(sc_core::sc_object::name(), recording_enabled, tr_db) {
+    , BASE(this->name(), recording_enabled, tr_db) {
         // bind the sockets to the module
         tsckt.bind(*this);
         isckt.bind(*this);
@@ -63,6 +63,11 @@ public:
     tlm::tlm_fw_transport_if<TYPES>* get_fw_if() { return isckt.get_base_port().operator->(); }
 
     tlm::tlm_bw_transport_if<TYPES>* get_bw_if() { return tsckt.get_base_port().operator->(); }
+
+private:
+    void start_of_simulation() override {
+    	BASE::initialize_streams();
+    }
 };
 
 template <unsigned int BUSWIDTH = 32>

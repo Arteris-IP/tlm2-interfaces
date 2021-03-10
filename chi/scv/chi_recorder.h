@@ -124,9 +124,7 @@ public:
     , m_db(tr_db)
     , fixed_basename(name) {
         register_extensions();
-        sc_core::sc_spawn_options opts;
-        opts.spawn_method();
-        sc_core::sc_spawn(sc_core::sc_bind(&chi_trx_recorder::initialize_tracing, this), "initialize_tracing", &opts);
+        register_simulation_phase_callback(sc_core::sc_status::SC_START_OF_SIMULATION);
     }
 
     virtual ~chi_trx_recorder() override {
@@ -268,9 +266,9 @@ private:
     //! transaction generator handle for DMI transactions
     scv_tr_generator<scv4tlm::tlm_gp_data, scv4tlm::tlm_dmi_data>* dmi_trGetHandle{nullptr};
     scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle{nullptr};
-    bool initialized{false};
-    void initialize_tracing(){
-        if(isRecordingEnabled() && !initialized){
+protected:
+    void initialize_streams() override {
+        if(isRecordingEnabled()){
             b_streamHandle = new scv_tr_stream((fixed_basename + "_bl").c_str(), "[TLM][chi][b]", m_db);
             b_trHandle[tlm::TLM_READ_COMMAND] =
                     new scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("read", *b_streamHandle, "start_delay", "end_delay");
@@ -304,9 +302,8 @@ private:
                 dmi_trInvalidateHandle = new scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("invalidate", *dmi_streamHandle, "start_addr", "end_addr");
             }
         }
-        initialized=true;
     }
-
+private:
     const std::string fixed_basename;
 
     inline std::string phase2string(const tlm::tlm_phase& p) {
@@ -326,7 +323,6 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_transport(typename TYP
         get_fw_if()->b_transport(trans, delay);
         return;
     }
-    if(!initialized) initialize_tracing();
     // Get a handle for the new transaction
     scv_tr_handle h = b_trHandle[trans.get_command()]->begin_transaction(delay.value(), sc_time_stamp());
     scv4tlm::tlm_gp_data tgd(trans);
@@ -476,7 +472,6 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
                                                             sc_core::sc_time& delay) {
     if(!isRecordingEnabled())
         return get_fw_if()->nb_transport_fw(trans, phase, delay);
-    if(!initialized) initialize_tracing();
    /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -572,7 +567,6 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
                                                             sc_core::sc_time& delay) {
     if(!isRecordingEnabled())
         return get_bw_if()->nb_transport_bw(trans, phase, delay);
-    if(!initialized) initialize_tracing();
     /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -763,7 +757,6 @@ bool chi_trx_recorder<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_typ
     if(!(m_db && enableDmiTracing.value)) {
         return get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
     }
-    if(!initialized) initialize_tracing();
     scv_tr_handle h = dmi_trGetHandle->begin_transaction(scv4tlm::tlm_gp_data(trans));
     bool status = get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
     dmi_trGetHandle->end_transaction(h, scv4tlm::tlm_dmi_data(dmi_data));
@@ -780,7 +773,6 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::invalidate_direct_mem_pt
         get_bw_if()->invalidate_direct_mem_ptr(start_addr, end_addr);
         return;
     }
-    if(!initialized) initialize_tracing();
     scv_tr_handle h = dmi_trInvalidateHandle->begin_transaction(start_addr);
     get_bw_if()->invalidate_direct_mem_ptr(start_addr, end_addr);
     dmi_trInvalidateHandle->end_transaction(h, end_addr);

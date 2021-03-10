@@ -59,7 +59,10 @@ public:
     tlm::tlm_fw_transport_if<TYPES>* get_fw_if() { return isckt.get_base_port().operator->(); }
 
     tlm::tlm_bw_transport_if<TYPES>* get_bw_if() { return tsckt.get_base_port().operator->(); }
-
+private:
+    void start_of_simulation() override {
+    	BASE::initialize_streams();
+    }
 };
 
 template <unsigned int BUSWIDTH = 32>
