@@ -124,7 +124,6 @@ public:
     , m_db(tr_db)
     , fixed_basename(name) {
         register_extensions();
-        register_simulation_phase_callback(sc_core::sc_status::SC_START_OF_SIMULATION);
     }
 
     virtual ~chi_trx_recorder() override {
