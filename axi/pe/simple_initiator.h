@@ -32,7 +32,7 @@ namespace pe {
 /**
  * the initiator protocol engine base class
  */
-class simple_initiator_b : public sc_core::sc_module, public tlm::pe::intor_fw, protected axi::fsm::base {
+class simple_initiator_b : public sc_core::sc_module, public tlm::pe::intor_fw_b, protected axi::fsm::base {
 public:
     SC_HAS_PROCESS(simple_initiator_b);
 
@@ -41,9 +41,9 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    sc_core::sc_export<tlm::pe::intor_fw> drv_i{"drv_i"};
+    sc_core::sc_export<tlm::pe::intor_fw_b> drv_i{"drv_i"};
 
-    sc_core::sc_port<tlm::pe::intor_bw, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
+    sc_core::sc_port<tlm::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
     /**
      * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to WVALID)
      */

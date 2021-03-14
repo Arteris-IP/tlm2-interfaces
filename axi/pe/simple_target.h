@@ -19,6 +19,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
+#include <tlm/pe/intor_if.h>
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>
@@ -31,6 +32,7 @@ namespace pe {
  * the target protocol engine base class
  */
 class axi_target_pe_b : public sc_core::sc_module, protected axi::fsm::base, public axi::axi_fw_transport_if<axi::axi_protocol_types> {
+    struct bw_intor_impl;
 public:
     SC_HAS_PROCESS(axi_target_pe_b);
 
@@ -38,6 +40,11 @@ public:
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
+
+    sc_core::sc_port<tlm::pe::intor_fw_nb> fw_o{"fw_o"};
+
+    sc_core::sc_export<tlm::pe::intor_bw_nb> bw_i{"bw_o"};
+
     /**
      * @brief enable data interleaving on read responses
      */
@@ -126,6 +133,8 @@ protected:
 
     axi_target_pe_b(axi_target_pe_b&&) = delete;
 
+    ~axi_target_pe_b();
+
     axi_target_pe_b& operator=(axi_target_pe_b const&) = delete;
 
     axi_target_pe_b& operator=(axi_target_pe_b&&) = delete;
@@ -162,6 +171,7 @@ protected:
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
     void start_of_simulation() override;
+    std::unique_ptr<bw_intor_impl> bw_intor;
 };
 
 /**

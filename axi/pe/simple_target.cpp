@@ -32,12 +32,23 @@ using namespace axi::pe;
 /******************************************************************************
  * target
  ******************************************************************************/
+struct axi_target_pe_b::bw_intor_impl: public tlm::pe::intor_bw_nb {
+    axi_target_pe_b*const that;
+    bw_intor_impl(axi_target_pe_b* that): that(that){}
+    unsigned transport(tlm::tlm_generic_payload& payload) override {
+        that->operation_resp(payload);
+        return 0;
+    }
+};
 
 axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_port_b<axi::axi_bw_transport_if<axi_protocol_types>>& port,
-                                 size_t transfer_width)
+        size_t transfer_width)
 : sc_module(nm)
 , base(transfer_width)
-, socket_bw(port) {
+, socket_bw(port)
+, bw_intor(new bw_intor_impl(this))
+{
+    bw_i.bind(*bw_intor);
     add_attribute(rd_data_interleaving);
     add_attribute(wr_data_accept_delay);
     add_attribute(rd_addr_accept_delay);
@@ -54,7 +65,7 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_
     SC_THREAD(send_rd_resp_thread);
     SC_THREAD(rd_resp_thread);
 }
-
+axi_target_pe_b::~axi_target_pe_b(){}
 void axi_target_pe_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
 }
@@ -124,8 +135,10 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         } else
             sc_assert(false && "No valid AXITLM extension found!");
         auto latency =
-            operation_cb ? operation_cb(*fsm_hndl->trans) : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
-        if(latency < std::numeric_limits<unsigned>::max()) {
+                operation_cb ? operation_cb(*fsm_hndl->trans) : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
+        if(fw_o.get_interface())
+            fw_o->transport(*(fsm_hndl->trans));
+        else if(latency < std::numeric_limits<unsigned>::max()) {
             auto size = get_burst_lenght(fsm_hndl->trans) - 1;
             schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans, latency);
         }
