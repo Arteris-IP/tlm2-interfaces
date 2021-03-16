@@ -41,7 +41,7 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    sc_core::sc_port<tlm::pe::intor_fw_nb> fw_o{"fw_o"};
+    sc_core::sc_port<tlm::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
 
     sc_core::sc_export<tlm::pe::intor_bw_nb> bw_i{"bw_o"};
 
