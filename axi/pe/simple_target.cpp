@@ -220,6 +220,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
             tlm::tlm_phase phase{tp == BegPartRespE ? axi::BEGIN_PARTIAL_RESP : tlm::tlm_phase(tlm::BEGIN_RESP)};
             // wait to get ownership of the response channel
             rd_resp_ch.wait();
+            wait(clk_i.posedge_event());
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
                 schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
             }
