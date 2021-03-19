@@ -18,8 +18,8 @@
 
 namespace axi {
 
-std::string to_read_string(snoop_e snoop) {
-    switch(snoop) {
+template <> const char* to_char<snoop_e>(snoop_e v) {
+    switch(v) {
     case snoop_e::READ_ONCE:
         return "READ_ONCE"; //= 0
     case snoop_e::READ_SHARED:
@@ -46,13 +46,6 @@ std::string to_read_string(snoop_e snoop) {
         return "DVM_COMPLETE"; // = 0xe,
     case snoop_e::DVM_MESSAGE:
         return "DVM_MESSAGE"; // = 0xf
-    default:
-        return "reserved";
-    };
-}
-
-std::string to_write_string(snoop_e snoop) {
-    switch(snoop) {
     case snoop_e::WRITE_UNIQUE:
         return "WRITE_UNIQUE"; //= 0
     case snoop_e::WRITE_LINE_UNIQUE:
@@ -78,45 +71,6 @@ std::string to_write_string(snoop_e snoop) {
     default:
         return "reserved";
     };
-}
-
-template <> const char* to_char<snoop_e>(snoop_e v) {
-    switch(to_int(v)) {
-    case 0:
-        return "READ_ONCE/WRITE_UNIQUE";
-    case 1:
-        return "READ_SHARED/WRITE_LINE_UNIQUE";
-    case 2:
-        return "READ_CLEAN/WRITE_CLEAN";
-    case 3:
-        return "READ_NOT_SHARED_DIRTY/WRITE_BACK";
-    case 4:
-        return "EVICT";
-    case 5:
-        return "WRITE_EVICT";
-    case 6:
-        return "READ_ONCE/CMO_ON_WRITE";
-    case 7:
-        return "READ_UNIQUE";
-    case 8:
-        return "CLEAN_SHARED/WRITE_UNIQUE_PTL_STASH";
-    case 9:
-        return "CLEAN_INVALID/WRITE_UNIQUE_FULL_STASH";
-    case 11:
-        return "CLEAN_UNIQUE";
-    case 12:
-        return "MAKE_UNIQUE/STASH_ONCE_SHARED";
-    case 13:
-        return "MAKE_INVALID/STASH_ONCE_UNIQUE";
-    case 14:
-        return "DVM_COMPLETE/STASH_TRANSLATION";
-    case 15:
-        return "DVM_MESSAGE";
-    case 0xc0:
-        return "STASH_ONCE_SHARED";
-    default:
-        return "reserved";
-    }
 }
 
 template <> const char* to_char<burst_e>(burst_e v) {
@@ -279,8 +233,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
             handle.record_attribute("trans.ace.qos", ext4->get_qos());
             handle.record_attribute("trans.ace.region", ext4->get_region());
             handle.record_attribute("trans.ace.domain", std::string(to_char(ext4->get_domain())));
-            handle.record_attribute("trans.ace.snoop",
-                                    trans.is_write() ? to_write_string(ext4->get_snoop()) : to_read_string(ext4->get_snoop()));
+            handle.record_attribute("trans.ace.snoop", std::string(to_char(ext4->get_snoop())));
             handle.record_attribute("trans.ace.barrier", std::string(to_char(ext4->get_barrier())));
             handle.record_attribute("trans.ace.unique", ext4->get_unique());
         }
