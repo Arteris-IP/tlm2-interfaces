@@ -20,7 +20,7 @@
 
 #include <array>
 #include <axi/fsm/base.h>
-#include <tlm/pe/intor_if.h>
+#include <scc/tlm/pe/intor_if.h>
 #include <deque>
 #include <scc/ordered_semaphore.h>
 #include <sysc/kernel/sc_attribute.h>

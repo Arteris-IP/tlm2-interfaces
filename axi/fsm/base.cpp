@@ -20,8 +20,8 @@
 #include "protocol_fsm.h"
 #include <scc/report.h>
 #include <systemc>
-#include <tlm/tlm_id.h>
-#include <tlm/tlm_mm.h>
+#include <scc/tlm/tlm_id.h>
+#include <scc/tlm/tlm_mm.h>
 
 using namespace sc_core;
 using namespace tlm;

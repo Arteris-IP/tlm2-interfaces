@@ -19,7 +19,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
-#include <tlm/pe/intor_if.h>
+#include <scc/tlm/pe/intor_if.h>
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>

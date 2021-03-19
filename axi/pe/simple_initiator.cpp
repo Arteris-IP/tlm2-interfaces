@@ -21,7 +21,7 @@
 #include <axi/fsm/types.h>
 #include <scc/report.h>
 #include <systemc>
-#include <tlm/tlm_id.h>
+#include <scc/tlm/tlm_id.h>
 
 using namespace sc_core;
 using namespace tlm;
