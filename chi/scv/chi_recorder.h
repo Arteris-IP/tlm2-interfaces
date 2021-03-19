@@ -124,7 +124,6 @@ public:
     , m_db(tr_db)
     , fixed_basename(name) {
         register_extensions();
-        register_simulation_phase_callback(sc_core::sc_status::SC_START_OF_SIMULATION);
     }
 
     virtual ~chi_trx_recorder() override {
@@ -267,7 +266,7 @@ private:
     scv_tr_generator<scv4tlm::tlm_gp_data, scv4tlm::tlm_dmi_data>* dmi_trGetHandle{nullptr};
     scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle{nullptr};
 protected:
-    void initialize_streams() override {
+    void initialize_streams() {
         if(isRecordingEnabled()){
             b_streamHandle = new scv_tr_stream((fixed_basename + "_bl").c_str(), "[TLM][chi][b]", m_db);
             b_trHandle[tlm::TLM_READ_COMMAND] =
