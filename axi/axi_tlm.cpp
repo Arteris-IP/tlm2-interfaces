@@ -143,6 +143,73 @@ template <> const char* to_char<resp_e>(resp_e v) {
         return "UNKNOWN";
     }
 }
+
+namespace {
+    const std::array<std::array<bool, 4>, 16> rd_valid{{
+            {true, true, true, true},       // ReadNoSnoop/ReadOnce
+            {false, true, true, false},     // ReadShared
+            {false, true, true, false},     // ReadClean
+            {false, true, true, false},     // ReadNotSharedDirty
+            {false, true, true, false},     // ReadOnceCleanInvalid (ACE5)
+            {false, true, true, false},     // ReadOnceMakeInvalid (ACE5)
+            {false, false, false, false},   //
+            {false, true, true, false},     // ReadUnique
+            {true, true, true, false},      // CleanShared
+            {true, true, true, false},      // CleanInvalid
+            {false, true, true, false},     // CleanSharedPersist (ACE5)
+            {false, true, true, false},     // CleanUnique
+            {false, true, true, false},     // MakeUnique
+            {true, true, true, false},      // MakeInvalid
+            {false, true, true, false},     // DVM Complete
+            {false, true, true, false}      // DVM Message
+    }};
+    const std::array<std::array<bool, 4>, 16> wr_valid{{
+            {true, true, true, true},       // WriteNoSnoop/WriteUnique
+            {false, true, true, false},     // WriteLineUnique
+            {true, true, true, false},      // WriteClean
+            {true, true, true, false},      // WriteBack
+            {false, true, true, false},     // Evict
+            {true, true, true, false},      // WriteEvict
+            {false, false, false, false},   // CmoOnWrite (ACE5L)
+            {false, false, false, false},   //
+            {true, true, true, false},      // WriteUniquePtlStash (ACE5L)
+            {true, true, true, false},      // CleanInvalid
+            {false, true, true, false},     // WriteUniqueFullStash (ACE5L)
+            {false, false, false, false},   //
+            {false, false, false, false},   //
+            {true, true, true, false},      // StashOnceShared (ACE5L)
+            {false, true, true, false},     // StashOnceUnique (ACE5L)
+            {false, true, true, false}      // StashTranslation (ACE5L)
+    }};
+}
+template<>
+bool is_valid<axi::ace_extension>(axi::ace_extension* ext){
+    auto offset = to_int(ext->get_snoop());
+    if(offset<32){ // a read access
+        if(!rd_valid[offset&0xf][to_int(ext->get_domain())])
+            return false;
+    } else {
+        if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
+        return false;
+    }
+    if((ext->get_snoop()==snoop_e::READ_NO_SNOOP || ext->get_snoop()==snoop_e::WRITE_NO_SNOOP) &&
+            ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
+        return false;
+    }
+    if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::MEMORY_BARRIER) && (offset&0xf)!=0)
+        return false;
+    return true;
+}
+
+template<>
+bool is_valid<axi::axi4_extension>(axi::axi4_extension* ext){
+    return true;
+}
+
+template<>
+bool is_valid<axi::axi3_extension>(axi::axi3_extension* ext){
+    return true;
+}
 } // namespace axi
 #ifdef WITH_SCV
 #include <scv4tlm/tlm_recorder.h>

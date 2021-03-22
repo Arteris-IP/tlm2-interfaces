@@ -1040,6 +1040,13 @@ struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_t
 /*****************************************************************************
  * free function easing handling of transactions and extensions
  *****************************************************************************/
+
+template<typename EXT>
+bool is_valid(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+bool is_valid(EXT* ext);
+
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
         return e->get_id();
