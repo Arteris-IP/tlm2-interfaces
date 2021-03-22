@@ -19,7 +19,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
-#include <scc/tlm/pe/intor_if.h>
+#include <tlm/scc/pe/intor_if.h>
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>
@@ -41,9 +41,9 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    sc_core::sc_port<tlm::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
+    sc_core::sc_port<tlm::scc::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
 
-    sc_core::sc_export<tlm::pe::intor_bw_nb> bw_i{"bw_o"};
+    sc_core::sc_export<tlm::scc::pe::intor_bw_nb> bw_i{"bw_o"};
 
     /**
      * @brief enable data interleaving on read responses

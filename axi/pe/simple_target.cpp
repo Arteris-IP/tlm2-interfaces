@@ -32,7 +32,7 @@ using namespace axi::pe;
 /******************************************************************************
  * target
  ******************************************************************************/
-struct axi_target_pe_b::bw_intor_impl: public tlm::pe::intor_bw_nb {
+struct axi_target_pe_b::bw_intor_impl: public tlm::scc::pe::intor_bw_nb {
     axi_target_pe_b*const that;
     bw_intor_impl(axi_target_pe_b* that): that(that){}
     unsigned transport(tlm::tlm_generic_payload& payload) override {

@@ -20,8 +20,8 @@
 #include "protocol_fsm.h"
 #include <scc/report.h>
 #include <systemc>
-#include <scc/tlm/tlm_id.h>
-#include <scc/tlm/tlm_mm.h>
+#include <tlm/scc/tlm_id.h>
+#include <tlm/scc/tlm_mm.h>
 
 using namespace sc_core;
 using namespace tlm;
@@ -79,7 +79,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp != nullptr) {
             fsm_hndl->trans = gp;
         } else {
-            fsm_hndl->trans = ace ? tlm::tlm_mm<>::get().allocate<ace_extension>() : tlm::tlm_mm<>::get().allocate<axi4_extension>();
+            fsm_hndl->trans = ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>() : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
             payload_type& gp = *(fsm_hndl->trans);
         }
         fsm_hndl->trans->acquire();

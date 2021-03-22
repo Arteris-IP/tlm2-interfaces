@@ -49,7 +49,7 @@ public:
     using target_socket_type = axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>;
 
     using recording_types = scv4tlm::impl::tlm_recording_types<TYPES>;
-    using mm = tlm::tlm_mm<recording_types>;
+    using mm = tlm::scc::tlm_mm<recording_types>;
     using tlm_recording_payload = scv4tlm::impl::tlm_recording_payload<TYPES>;
 
     SC_HAS_PROCESS(axi_recorder<TYPES>); // NOLINT

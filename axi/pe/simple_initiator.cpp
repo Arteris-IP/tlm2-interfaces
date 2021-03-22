@@ -21,7 +21,7 @@
 #include <axi/fsm/types.h>
 #include <scc/report.h>
 #include <systemc>
-#include <scc/tlm/tlm_id.h>
+#include <tlm/scc/tlm_id.h>
 
 using namespace sc_core;
 using namespace tlm;
@@ -91,12 +91,12 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count++;
         if(fsm_hndl->beat_count < (get_burst_lenght(fsm_hndl->trans) - 1))
-            if(scc::get_value(wr_data_beat_delay) > 0)
-                schedule(BegPartReqE, fsm_hndl->trans, scc::get_value(wr_data_beat_delay) - 1);
+            if(::scc::get_value(wr_data_beat_delay) > 0)
+                schedule(BegPartReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
             else
                 schedule_imm(BegPartReqE, fsm_hndl->trans);
-        else if(scc::get_value(wr_data_beat_delay) > 0)
-            schedule(BegReqE, fsm_hndl->trans, scc::get_value(wr_data_beat_delay) - 1);
+        else if(::scc::get_value(wr_data_beat_delay) > 0)
+            schedule(BegReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
         else
             schedule_imm(BegReqE, fsm_hndl->trans);
         if(protocol_cb[EndPartReqE])
@@ -153,8 +153,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             sc_time t;
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
         } else {
-            if(scc::get_value(rd_data_accept_delay))
-                schedule(EndPartRespE, fsm_hndl->trans, scc::get_value(rd_data_accept_delay));
+            if(::scc::get_value(rd_data_accept_delay))
+                schedule(EndPartRespE, fsm_hndl->trans, ::scc::get_value(rd_data_accept_delay));
             else
                 schedule_imm(EndPartRespE, fsm_hndl->trans);
         }
@@ -181,7 +181,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             sc_time t;
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
         } else {
-            auto del = fsm_hndl->trans->is_read() ? scc::get_value(rd_data_accept_delay) : scc::get_value(wr_resp_accept_delay);
+            auto del = fsm_hndl->trans->is_read() ? ::scc::get_value(rd_data_accept_delay) : ::scc::get_value(wr_resp_accept_delay);
             if(del)
                 schedule(EndRespE, fsm_hndl->trans, del);
             else

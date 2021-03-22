@@ -80,7 +80,7 @@ public:
     using target_socket_type = axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>;
 
     using recording_types = impl::ace_recording_types<TYPES>;
-    using mm = tlm::tlm_mm<recording_types>;
+    using mm = tlm::scc::tlm_mm<recording_types>;
     using tlm_recording_payload = impl::ace_recording_payload<TYPES>;
 
     SC_HAS_PROCESS(ace_recorder<TYPES>); // NOLINT
