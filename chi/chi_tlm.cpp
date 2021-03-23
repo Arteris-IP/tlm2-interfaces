@@ -290,7 +290,7 @@ template <> const char* to_char<rsp_resptype_e>(rsp_resptype_e v) {
 }
 } // namespace chi
 #ifdef WITH_SCV
-#include <scv4tlm/tlm_recorder.h>
+#include <tlm/scc/scv4tlm/tlm_recorder.h>
 namespace chi {
 using namespace scv4tlm;
 

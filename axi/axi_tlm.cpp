@@ -191,7 +191,7 @@ template <> const char* to_char<resp_e>(resp_e v) {
 }
 } // namespace axi
 #ifdef WITH_SCV
-#include <scv4tlm/tlm_recorder.h>
+#include <tlm/scc/scv4tlm/tlm_recorder.h>
 namespace axi {
 
 using namespace scv4tlm;

@@ -20,8 +20,8 @@
 #include <axi/axi_tlm.h>
 #include <regex>
 #include <scv.h>
-#include <scv4tlm/tlm_recorder.h>
-#include <scv4tlm/tlm_recording_extension.h>
+#include <tlm/scc/scv4tlm/tlm_recorder.h>
+#include <tlm/scc/scv4tlm/tlm_recording_extension.h>
 #include <string>
 #include <tlm_utils/peq_with_cb_and_phase.h>
 #include <unordered_map>
