@@ -66,10 +66,6 @@ public:
     /** @defgroup config Initiator configuration interface
      *  @{
      */
-    void set_fast_req(bool val) { fast_req = val; }
-
-    void set_fast_resp(bool val) { fast_resp = val; }
-
     void set_clock_period(sc_core::sc_time clk_period) { this->clk_period = clk_period; }
 
     size_t get_transferwith_in_bytes() const { return transfer_width_in_bytes; }
@@ -156,10 +152,8 @@ protected:
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
     std::deque<fsm::fsm_handle*> idle_proc;
     scc::ordered_semaphore rd{1}, wr{1};
-    bool fast_resp = false;
-    bool fast_req = false;
     // TODO: remove hard coded value
-    sc_core::sc_time clk_period{10, sc_core::SC_NS};
+    sc_core::sc_time clk_period{1, sc_core::SC_NS};
     std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
 };

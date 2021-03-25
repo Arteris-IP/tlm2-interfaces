@@ -61,7 +61,7 @@ void axi_target_pe_b::end_of_elaboration() {
 }
 
 void axi::pe::axi_target_pe_b::start_of_simulation() {
-    if(!rd_data_interleaving.value && !operation_cb) {
+    if((!rd_data_interleaving.value || rd_data_beat_delay.value==0) && !operation_cb) {
         operation_cb=[this](payload_type& trans)-> unsigned {
             if(trans.is_write()) return wr_resp_delay.value;
             rd_resp_queue.push_back(std::make_tuple(&trans, rd_resp_delay.value));
@@ -181,7 +181,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
-        if(!rd_data_interleaving.value && rd_resp.get_value()<rd_resp.get_capacity()){
+        if(rd_resp.get_value()<rd_resp.get_capacity()){
             SCCTRACE(SCMOD)<<"finishing exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
             rd_resp.post();
         }
@@ -204,10 +204,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay){
     auto e = axi::get_burst_lenght(trans)==0 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
-    if(clk_delay)
-        schedule(e, &trans, clk_delay);
-    else
-        schedule(e, &trans, SC_ZERO_TIME);
+	schedule(e, &trans, clk_delay);
 }
 
 void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
@@ -222,8 +219,9 @@ void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
             sc_time t;
             tlm::tlm_phase phase{tp == BegPartRespE ? axi::BEGIN_PARTIAL_RESP : tlm::tlm_phase(tlm::BEGIN_RESP)};
             // wait to get ownership of the response channel
+            while(!rd_resp_ch.get_value())
+            	wait(clk_i.posedge_event());
             rd_resp_ch.wait();
-            wait(clk_i.posedge_event());
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
                 schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
             }
@@ -269,6 +267,8 @@ void axi::pe::axi_target_pe_b::rd_resp_thread() {
         auto trans = rd_resp_fifo.read();
         rd_resp.wait();
         SCCTRACE(SCMOD)<<"starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
-        operation_resp(*trans, rd_data_beat_delay.value);
+        auto e = axi::get_burst_lenght(trans)==0 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
+    	schedule(e, trans, 0);
+
     }
 }

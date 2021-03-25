@@ -84,10 +84,6 @@ public:
     /** @defgroup config Initiator configuration interface
      *  @{
      */
-    void set_fast_req(bool val) { fast_req = val; }
-
-    void set_fast_resp(bool val) { fast_resp = val; }
-
     /**
      * @brief Set the operation callback function
      *
@@ -158,8 +154,6 @@ protected:
     sc_core::sc_port_b<axi::axi_bw_transport_if<axi_protocol_types>>& socket_bw;
     sc_core::sc_semaphore sn_sem{1};
     sc_core::sc_mutex wr, rd, sn;
-    bool fast_resp{false};
-    bool fast_req{false};
     std::function<unsigned(payload_type& trans)> operation_cb;
     sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> send_wr_resp_fifo{128}, send_rd_resp_fifo{128};
     sc_core::sc_fifo<payload_type*> rd_resp_fifo{128};
