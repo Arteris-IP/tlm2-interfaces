@@ -23,6 +23,7 @@
 #include <functional>
 #include <scc/ordered_semaphore.h>
 #include <unordered_set>
+#include <tlm_utils/peq_with_cb_and_phase.h>
 
 
 //! TLM2.0 components modeling AXI/ACE
@@ -174,6 +175,11 @@ protected:
     scc::sc_variable_t<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
     std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};
     std::array<axi::fsm::protocol_time_point_e, 3> stalled_tp{{axi::fsm::CB_CNT,axi::fsm::CB_CNT,axi::fsm::CB_CNT}};
+    void nb_fw(payload_type& trans, const phase_type& phase) {
+        auto delay=sc_core::SC_ZERO_TIME;
+        base::nb_fw(trans, phase, delay);
+    }
+    tlm_utils::peq_with_cb_and_phase<axi_target_pe_b> fw_peq{this, &axi_target_pe_b::nb_fw};
 };
 
 /**

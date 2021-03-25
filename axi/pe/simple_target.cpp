@@ -80,7 +80,10 @@ void axi_target_pe_b::b_transport(payload_type& trans, sc_time& t) {
     }
 }
 
-tlm_sync_enum axi_target_pe_b::nb_transport_fw(payload_type& trans, phase_type& phase, sc_time& t) { return nb_fw(trans, phase, t); }
+tlm_sync_enum axi_target_pe_b::nb_transport_fw(payload_type& trans, phase_type& phase, sc_time& t) {
+    fw_peq.notify(trans, phase, t);
+    return tlm::TLM_ACCEPTED;
+}
 
 bool axi_target_pe_b::get_direct_mem_ptr(payload_type& trans, tlm_dmi& dmi_data) {
     trans.set_dmi_allowed(false);
