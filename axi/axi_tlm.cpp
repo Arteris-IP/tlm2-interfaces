@@ -194,7 +194,7 @@ template <> const char* to_char<resp_e>(resp_e v) {
 #include <tlm/scc/scv4tlm/tlm_recorder.h>
 namespace axi {
 
-using namespace scv4tlm;
+using namespace tlm::scc::scv4tlm;
 
 class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
@@ -302,11 +302,11 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
 namespace scv4axi {
 __attribute__((constructor)) bool register_extensions() {
     axi::axi3_extension ext3; // NOLINT
-    scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
     axi::axi4_extension ext4; // NOLINT
-    scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
     axi::ace_extension extace; // NOLINT
-    scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
     return true; // NOLINT
 }
 bool registered = register_extensions();

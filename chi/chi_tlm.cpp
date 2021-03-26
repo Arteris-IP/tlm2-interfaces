@@ -292,7 +292,7 @@ template <> const char* to_char<rsp_resptype_e>(rsp_resptype_e v) {
 #ifdef WITH_SCV
 #include <tlm/scc/scv4tlm/tlm_recorder.h>
 namespace chi {
-using namespace scv4tlm;
+using namespace tlm::scc::scv4tlm;
 
 class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
@@ -418,19 +418,19 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
 namespace scv4chi {
 __attribute__((constructor)) bool register_extensions() {
     chi::chi_ctrl_extension extchi_req; // NOLINT
-    scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_req.ID,
         new chi::chi_ctrl_ext_recording()); // NOLINT
     chi::chi_data_extension extchi_data;    // NOLINT
-    scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_data.ID,
         new chi::chi_data_ext_recording()); // NOLINT
     chi::chi_snp_extension extchi_snp;      // NOLINT
-    scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_snp.ID,
         new chi::chi_snp_ext_recording());   // NOLINT
     chi::chi_credit_extension extchi_credit; // NOLINT
-    scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+    tlm::scc::scv4tlm::tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_credit.ID,
         new chi::chi_credit_ext_recording()); // NOLINT
     return true;                              // NOLINT
