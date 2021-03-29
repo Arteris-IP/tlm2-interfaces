@@ -207,6 +207,18 @@ void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_
 	schedule(e, &trans, clk_delay);
 }
 
+void axi::pe::axi_target_pe_b::rd_resp_thread() {
+    while(true){
+        auto trans = rd_resp_fifo.read();
+        while(!rd_resp.get_value())
+        	wait(clk_i.posedge_event());
+        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
+        auto e = axi::get_burst_lenght(trans)==0 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
+    	schedule(e, trans, SC_ZERO_TIME);
+
+    }
+}
+
 void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
     std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
     while(true) {
@@ -222,8 +234,9 @@ void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
             while(!rd_resp_ch.get_value())
             	wait(clk_i.posedge_event());
             rd_resp_ch.wait();
+            SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
-                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
+                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans);
             }
         }
     }
@@ -252,6 +265,7 @@ void axi::pe::axi_target_pe_b::send_wr_resp_thread() {
 void axi::pe::axi_target_pe_b::process_rd_resp_queue() {
     while (rd_resp_queue.avail()) {
         auto& entry = rd_resp_queue.front();
+        SCCTRACE(SCMOD)<<__FUNCTION__<<" processing read response for address 0x"<<std::hex<<std::get<0>(entry)->get_address();
         if (std::get<1>(entry) == 0) {
             rd_resp_fifo.write(std::get<0>(entry));
         } else {
@@ -262,13 +276,3 @@ void axi::pe::axi_target_pe_b::process_rd_resp_queue() {
     }
 }
 
-void axi::pe::axi_target_pe_b::rd_resp_thread() {
-    while(true){
-        auto trans = rd_resp_fifo.read();
-        rd_resp.wait();
-        SCCTRACE(SCMOD)<<"starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
-        auto e = axi::get_burst_lenght(trans)==0 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
-    	schedule(e, trans, 0);
-
-    }
-}
