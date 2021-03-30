@@ -212,9 +212,13 @@ void axi::pe::axi_target_pe_b::rd_resp_thread() {
         auto trans = rd_resp_fifo.read();
         while(!rd_resp.get_value())
         	wait(clk_i.posedge_event());
+        rd_resp.wait();
         SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
         auto e = axi::get_burst_lenght(trans)==0 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
-    	schedule(e, trans, SC_ZERO_TIME);
+        if(rd_data_beat_delay.value)
+            schedule(e, trans, rd_data_beat_delay.value-1);
+        else
+            schedule(e, trans, SC_ZERO_TIME);
 
     }
 }

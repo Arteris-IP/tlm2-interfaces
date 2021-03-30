@@ -176,10 +176,10 @@ namespace {
             {true, true, true, false},      // CleanInvalid
             {false, true, true, false},     // WriteUniqueFullStash (ACE5L)
             {false, false, false, false},   //
-            {false, false, false, false},   //
             {true, true, true, false},      // StashOnceShared (ACE5L)
             {false, true, true, false},     // StashOnceUnique (ACE5L)
-            {false, true, true, false}      // StashTranslation (ACE5L)
+            {false, true, true, false},     // StashTranslation (ACE5L)
+            {false, false, false, false}    //
     }};
 }
 template<>
