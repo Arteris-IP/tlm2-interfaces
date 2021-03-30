@@ -20,8 +20,8 @@
 #include <chi/chi_tlm.h>
 #include <regex>
 #include <scv.h>
-#include <scv4tlm/tlm_recorder.h>
-#include <scv4tlm/tlm_recording_extension.h>
+#include <tlm/scc/scv/tlm_recorder.h>
+#include <tlm/scc/scv/tlm_recording_extension.h>
 #include <string>
 #include <tlm_utils/peq_with_cb_and_phase.h>
 #include <unordered_map>
@@ -274,7 +274,7 @@ private:
     //! dmi transaction recording stream handle
     scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions
-    scv_tr_generator<tlm::scc::scv4tlm::tlm_gp_data, tlm::scc::scv4tlm::tlm_dmi_data>* dmi_trGetHandle{nullptr};
+    scv_tr_generator<tlm::scc::scv::tlm_gp_data, tlm::scc::scv::tlm_dmi_data>* dmi_trGetHandle{nullptr};
     scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle{nullptr};
 
     const std::string fixed_basename;
@@ -307,7 +307,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_transport(typename TYP
     }
     // Get a handle for the new transaction
     scv_tr_handle h = b_trHandle[trans.get_command()]->begin_transaction(delay.value(), sc_time_stamp());
-    tlm::scc::scv4tlm::tlm_gp_data tgd(trans);
+    tlm::scc::scv::tlm_gp_data tgd(trans);
 
     /*************************************************************************
      * do the timed notification
@@ -321,17 +321,17 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_transport(typename TYP
         b_timed_peq.notify(*req, tlm::BEGIN_REQ, delay);
     }
 
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
-    tlm::scc::scv4tlm::tlm_recording_extension* preExt = nullptr;
+    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
 
     trans.get_extension(preExt);
     if(preExt == nullptr) { // we are the first recording this transaction
-        preExt = new tlm::scc::scv4tlm::tlm_recording_extension(h, this);
+        preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
         trans.set_extension(preExt);
     } else {
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), preExt->txHandle);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
     }
     scv_tr_handle preTx(preExt->txHandle);
     preExt->txHandle = h;
@@ -341,7 +341,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_transport(typename TYP
     trans.get_extension(preExt);
     if(preExt->get_creator() == this) {
         // clean-up the extension if this is the original creator
-        delete trans.set_extension(static_cast<tlm::scc::scv4tlm::tlm_recording_extension*>(nullptr));
+        delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
     } else {
         preExt->txHandle = preTx;
     }
@@ -350,7 +350,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_transport(typename TYP
     h.record_attribute("trans", tgd);
     if(trans.get_command() == tlm::TLM_READ_COMMAND && tgd.data_length < 8)
         h.record_attribute("trans.data_value", tgd.get_data_value());
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     // End the transaction
@@ -373,10 +373,10 @@ void chi_trx_recorder<TYPES>::btx_cb(tlm_recording_payload& rec_parts, const typ
     // Now process outstanding recordings
     switch(phase) {
     case tlm::BEGIN_REQ: {
-        tlm::scc::scv4tlm::tlm_gp_data tgd(rec_parts);
+        tlm::scc::scv::tlm_gp_data tgd(rec_parts);
         h = b_trTimedHandle[rec_parts.get_command()]->begin_transaction(rec_parts.get_command());
         h.record_attribute("trans", tgd);
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PARENT_CHILD), rec_parts.parent);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
         btx_handle_map[rec_parts.id] = h;
     } break;
     case tlm::END_RESP: {
@@ -416,24 +416,24 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
         h = nb_fw_trHandle[SNOOP]->begin_transaction(phase2string(phase));
     else
         h = nb_fw_trHandle[trans.get_command()]->begin_transaction(phase2string(phase));
-    tlm::scc::scv4tlm::tlm_recording_extension* preExt = nullptr;
+    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if(phase == tlm::BEGIN_REQ && preExt == nullptr) { // we are the first recording this transaction
-        preExt = new tlm::scc::scv4tlm::tlm_recording_extension(h, this);
+        preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
         trans.set_extension(preExt);
     } else if(preExt != nullptr) {
         // link handle if we have a predecessor
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), preExt->txHandle);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
     } else {
         sc_assert(preExt != nullptr && "ERROR on forward path in phase other than tlm::BEGIN_REQ");
     }
     // update the extension
     preExt->txHandle = h;
     h.record_attribute("delay", delay.to_string());
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
-    tlm::scc::scv4tlm::tlm_gp_data tgd(trans);
+    tlm::scc::scv::tlm_gp_data tgd(trans);
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
@@ -465,7 +465,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
             buf += (*tgd.data) << i * 8;
         h.record_attribute("trans.data_value", buf);
     }
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     h.record_attribute("tlm_phase[return_path]", phase2string(phase));
@@ -476,7 +476,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
         trans.get_extension(preExt);
         if(preExt && preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete trans.set_extension(static_cast<tlm::scc::scv4tlm::tlm_recording_extension*>(nullptr));
+            delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
@@ -522,24 +522,24 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
         h = nb_bw_trHandle[SNOOP]->begin_transaction(phase2string(phase));
     else
         h = nb_bw_trHandle[trans.get_command()]->begin_transaction(phase2string(phase));
-    tlm::scc::scv4tlm::tlm_recording_extension* preExt = nullptr;
+    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if((phase == tlm::BEGIN_REQ || phase == chi::LINK_INIT) && preExt == nullptr) { // we are the first recording this transaction
-        preExt = new tlm::scc::scv4tlm::tlm_recording_extension(h, this);
+        preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
         trans.set_extension(preExt);
     } else if(preExt != nullptr) {
         // link handle if we have a predecessor
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), preExt->txHandle);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
     } else {
         sc_assert(preExt != nullptr && "ERROR on backward path in phase other than tlm::BEGIN_REQ");
     }
     // and set the extension handle to this transaction
     preExt->txHandle = h;
     h.record_attribute("delay", delay.to_string());
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
-    tlm::scc::scv4tlm::tlm_gp_data tgd(trans);
+    tlm::scc::scv::tlm_gp_data tgd(trans);
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
@@ -569,7 +569,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
             buf += (*tgd.data) << i * 8;
         h.record_attribute("trans.data_value", buf);
     }
-    for(auto& ext : tlm::scc::scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     h.record_attribute("tlm_phase[return_path]", phase2string(phase));
@@ -580,7 +580,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
         trans.get_extension(preExt);
         if(preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete trans.set_extension(static_cast<tlm::scc::scv4tlm::tlm_recording_extension*>(nullptr));
+            delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
@@ -627,12 +627,12 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
         nb_txRespHandle[4] = new scv_tr_generator<>("ack",   *nb_streamHandleTimed[BW]);
         nb_txDataHandle[tlm::TLM_READ_COMMAND] = new scv_tr_generator<>("read_data", *nb_streamHandleTimed[BW]);
     }
-    tlm::scc::scv4tlm::tlm_gp_data tgd(rec_parts);
+    tlm::scc::scv::tlm_gp_data tgd(rec_parts);
     // Now process outstanding recordings
     if(phase == tlm::BEGIN_REQ) {
         h = nb_txReqHandle[rec_parts.is_snoop ? 3 : rec_parts.get_command()]->begin_transaction();
         h.record_attribute("trans", tgd);
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PARENT_CHILD), rec_parts.parent);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
         nbtx_req_handle_map[rec_parts.id] = h;
         nbtx_last_req_handle_map[rec_parts.id] = h;
     } else if(phase == tlm::END_REQ) {
@@ -649,19 +649,19 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
         }
         h = nb_txRespHandle[rec_parts.is_snoop ? 3 : rec_parts.get_command()]->begin_transaction();
         h.record_attribute("trans", tgd);
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PARENT_CHILD), rec_parts.parent);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
         nbtx_resp_handle_map[rec_parts.id] = h;
         it = nbtx_last_req_handle_map.find(rec_parts.id);
         if(it != nbtx_last_req_handle_map.end()) {
             scv_tr_handle pred = it->second;
             nbtx_last_req_handle_map.erase(it);
-            h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), pred);
+            h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), pred);
         } else {
             it = nbtx_last_resp_handle_map.find(rec_parts.id);
             if(it != nbtx_last_resp_handle_map.end()) {
                 scv_tr_handle pred = it->second;
                 nbtx_last_resp_handle_map.erase(it);
-                h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), pred);
+                h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), pred);
             }
         }
     } else if(phase == tlm::END_RESP || phase == chi::END_PARTIAL_RESP) {
@@ -680,13 +680,13 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
         }
         h = nb_txDataHandle.at(rec_parts.get_command())->begin_transaction();
         h.record_attribute("trans", tgd);
-        h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PARENT_CHILD), rec_parts.parent);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
         nbtx_data_handle_map[rec_parts.id] = h;
         it = nbtx_last_data_handle_map.find(rec_parts.id);
         if(it != nbtx_last_data_handle_map.end()) {
             scv_tr_handle pred = it->second;
             nbtx_last_data_handle_map.erase(it);
-            h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PREDECESSOR_SUCCESSOR), pred);
+            h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), pred);
         }
     } else if(phase == chi::END_DATA || phase == chi::END_PARTIAL_DATA) {
         it = nbtx_data_handle_map.find(rec_parts.id);
@@ -700,7 +700,7 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
         if(it == nbtx_ack_handle_map.end()) {
             auto h =  (rec_parts.is_snoop? nb_txReqHandle[4]:nb_txRespHandle[4])->begin_transaction();
             nbtx_ack_handle_map[rec_parts.id] = h;
-            h.add_relation(tlm::scc::scv4tlm::rel_str(tlm::scc::scv4tlm::PARENT_CHILD), rec_parts.parent);
+            h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
         } else {
             (rec_parts.is_snoop? nb_txReqHandle[4]:nb_txRespHandle[4])->end_transaction(it->second);
             nbtx_ack_handle_map.erase(it);
@@ -722,10 +722,10 @@ bool chi_trx_recorder<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_typ
         dmi_streamHandle = new scv_tr_stream((fixed_basename + "_dmi").c_str(), "TRANSACTOR", m_db);
     if(!dmi_trGetHandle)
         dmi_trGetHandle =
-                new scv_tr_generator<tlm::scc::scv4tlm::tlm_gp_data, tlm::scc::scv4tlm::tlm_dmi_data>("get_dmi_ptr", *dmi_streamHandle, "trans", "dmi_data");
-    scv_tr_handle h = dmi_trGetHandle->begin_transaction(tlm::scc::scv4tlm::tlm_gp_data(trans));
+                new scv_tr_generator<tlm::scc::scv::tlm_gp_data, tlm::scc::scv::tlm_dmi_data>("get_dmi_ptr", *dmi_streamHandle, "trans", "dmi_data");
+    scv_tr_handle h = dmi_trGetHandle->begin_transaction(tlm::scc::scv::tlm_gp_data(trans));
     bool status = get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
-    dmi_trGetHandle->end_transaction(h, tlm::scc::scv4tlm::tlm_dmi_data(dmi_data));
+    dmi_trGetHandle->end_transaction(h, tlm::scc::scv::tlm_dmi_data(dmi_data));
     return status;
 }
 /*! \brief The direct memory interface backward function
