@@ -198,16 +198,43 @@ bool is_valid<axi::ace_extension>(axi::ace_extension* ext){
     }
     if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::MEMORY_BARRIER) && (offset&0xf)!=0)
         return false;
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return false;
+    }
     return true;
 }
 
 template<>
 bool is_valid<axi::axi4_extension>(axi::axi4_extension* ext){
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return false;
+    }
     return true;
 }
 
 template<>
 bool is_valid<axi::axi3_extension>(axi::axi3_extension* ext){
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return false;
+    }
     return true;
 }
 } // namespace axi
