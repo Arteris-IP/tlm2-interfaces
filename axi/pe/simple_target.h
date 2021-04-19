@@ -46,6 +46,14 @@ public:
      */
     sc_core::sc_attribute<unsigned> max_outstanding_tx{"max_outstanding_tx", 0};
     /**
+     * @brief the bandwidth limit for read accesses
+     */
+    sc_core::sc_attribute<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
+    /**
+     * @brief the bandwidth limit for write accesses
+     */
+    sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
+    /**
      * @brief enable data interleaving on read responses
      */
     sc_core::sc_attribute<bool> rd_data_interleaving{"rd_data_interleaving", true};
@@ -143,28 +151,26 @@ protected:
      */
     void setup_callbacks(fsm::fsm_handle*) override;
 
-    void send_wr_resp_thread();
-
-    void send_rd_resp_thread();
-
-    void rd_resp_thread();
-
     unsigned operations_callback(payload_type& trans);
 
     sc_core::sc_port_b<axi::axi_bw_transport_if<axi_protocol_types>>& socket_bw;
-    sc_core::sc_semaphore sn_sem{1};
-    sc_core::sc_mutex wr, rd, sn;
     std::function<unsigned(payload_type& trans)> operation_cb;
-    sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> send_wr_resp_fifo{128}, send_rd_resp_fifo{128};
-    sc_core::sc_fifo<payload_type*> rd_resp_fifo{128};
+    scc::fifo_w_cb<std::tuple<payload_type*, unsigned>> rd_req2resp_fifo{"rd_req2resp_fifo"}, wr_req2resp_fifo{"wr_req2resp_fifo"};
+    void process_req2resp_fifos();
+    sc_core::sc_fifo<payload_type*> rd_resp_fifo{128},wr_resp_fifo{128};
+    sc_core::sc_time time_per_byte_rd, time_per_byte_wr;
+    void start_rd_resp_thread();
+    void start_wr_resp_thread();
+    sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> wr_resp_beat_fifo{128}, rd_resp_beat_fifo{128};
     scc::ordered_semaphore rd_resp{1}, wr_resp_ch{1}, rd_resp_ch{1};
-    scc::fifo_w_cb<std::tuple<payload_type*, unsigned>> rd_resp_queue;
-    void process_rd_resp_queue();
+    void send_wr_resp_beat_thread();
+    void send_rd_resp_beat_thread();
+
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
     void start_of_simulation() override;
-    std::array<unsigned, 3> outstanding_cnt{{0,0,0}};
-    std::array<unsigned, 3>  outstanding_tx{{0,0,0}};
+    std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
+    std::array<unsigned, 3>  outstanding_tx{{0,0,0}}; // just for tracing, always active
     scc::sc_variable_t<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
     scc::sc_variable_t<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
     std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};

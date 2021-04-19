@@ -849,6 +849,16 @@ struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_t
 #endif
 };
 /*****************************************************************************
+ * free function easing handling of transactions and extensions
+ *****************************************************************************/
+
+template<typename EXT>
+bool is_valid(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+bool is_valid(EXT* ext);
+
+/*****************************************************************************
  * Implementation details
  *****************************************************************************/
 template <> struct enable_for_enum<req_optype_e> { static const bool enable = true; };
