@@ -78,6 +78,8 @@ enum class req_optype_e : uint8_t {
     CleanUnique = 0x0B,
     MakeUnique = 0x0C,
     Evict = 0x0D,
+    EOBarrier=0x0E,
+    ECBarrier=0x0F,
     ReadNoSnpSep = 0x11,
     DVMOp = 0x14,
     WriteEvictFull = 0x15,
@@ -85,8 +87,6 @@ enum class req_optype_e : uint8_t {
     WriteUniquePtl = 0x18,
     WriteUniqueFull = 0x19,
     // mahi: discuss with suresh sir
-    // Reserved(EOBarrier)=0x0E
-    // Reserved(ECBarrier)=0x0F
     // Reserved=0x10
     // Reserved=0x12-0x13
     // Reserved (WriteCleanPtl)=0x16    // As per CHI issue-C
@@ -122,9 +122,9 @@ enum class req_optype_e : uint8_t {
     AtomicLoadUmin = 0x37,
     AtomicSwap = 0x38,
     AtomicCompare = 0x39,
-    PrefetchTgt = 0x3A
+    PrefetchTgt = 0x3A,
     // RESERVED        = 0x3B to 0x3F
-
+    ILLEGAL=0xFF
 };
 
 // the Snp_Req channel request type enumeration class acc. Table 12-17 SNP channel opcodes and Page No:321
