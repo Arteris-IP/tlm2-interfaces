@@ -183,21 +183,21 @@ namespace {
     }};
 }
 template<>
-bool is_valid<axi::ace_extension>(axi::ace_extension* ext){
+char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     auto offset = to_int(ext->get_snoop());
     if(offset<32){ // a read access
         if(!rd_valid[offset&0xf][to_int(ext->get_domain())])
-            return false;
+            return "illegal read snoop value";
     } else {
         if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
-        return false;
+        return "illegal write snoop value";
     }
     if((ext->get_snoop()==snoop_e::READ_NO_SNOOP || ext->get_snoop()==snoop_e::WRITE_NO_SNOOP) &&
             ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
-        return false;
+        return "illegal domain for no snoop access";
     }
-    if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::MEMORY_BARRIER) && (offset&0xf)!=0)
-        return false;
+    if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
+        return "illegal barrier/snoop value combination";
     switch(ext->get_cache()){
     case 4:
     case 5:
@@ -205,13 +205,13 @@ bool is_valid<axi::ace_extension>(axi::ace_extension* ext){
     case 9:
     case 12:
     case 13:
-        return false;
+        return "illegal cache value";
     }
-    return true;
+    return nullptr;
 }
 
 template<>
-bool is_valid<axi::axi4_extension>(axi::axi4_extension* ext){
+char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* ext){
     switch(ext->get_cache()){
     case 4:
     case 5:
@@ -219,13 +219,13 @@ bool is_valid<axi::axi4_extension>(axi::axi4_extension* ext){
     case 9:
     case 12:
     case 13:
-        return false;
+        return "illegal cache value";
     }
-    return true;
+    return nullptr;
 }
 
 template<>
-bool is_valid<axi::axi3_extension>(axi::axi3_extension* ext){
+char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
     switch(ext->get_cache()){
     case 4:
     case 5:
@@ -233,9 +233,9 @@ bool is_valid<axi::axi3_extension>(axi::axi3_extension* ext){
     case 9:
     case 12:
     case 13:
-        return false;
+        return "illegal cache value";
     }
-    return true;
+    return nullptr;
 }
 } // namespace axi
 #ifdef WITH_SCV

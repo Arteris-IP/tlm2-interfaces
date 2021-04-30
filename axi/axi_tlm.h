@@ -1045,7 +1045,13 @@ template<typename EXT>
 bool is_valid(EXT& ext){return is_valid(&ext);}
 
 template<typename EXT>
-bool is_valid(EXT* ext);
+bool is_valid(EXT* ext){ return is_valid_msg(ext)==nullptr;}
+
+template<typename EXT>
+char const* is_valid_msg(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+char const* is_valid_msg(EXT* ext);
 
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
