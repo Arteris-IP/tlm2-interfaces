@@ -583,7 +583,7 @@ template <typename TYPES> void axi_recorder<TYPES>::nbtx_cb(tlm_recording_payloa
             h = it->second;
             nbtx_resp_handle_map.erase(it);
             h.end_transaction();
-            if(phase == axi::END_PARTIAL_REQ) {
+            if(phase == axi::END_PARTIAL_RESP) {
                 nbtx_last_resp_handle_map[rec_parts.id] = h;
             }
         }
