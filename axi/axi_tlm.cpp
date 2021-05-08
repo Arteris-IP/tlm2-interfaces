@@ -18,8 +18,8 @@
 
 namespace axi {
 
-std::string to_read_string(snoop_e snoop) {
-    switch(snoop) {
+template <> const char* to_char<snoop_e>(snoop_e v) {
+    switch(v) {
     case snoop_e::READ_ONCE:
         return "READ_ONCE"; //= 0
     case snoop_e::READ_SHARED:
@@ -46,13 +46,6 @@ std::string to_read_string(snoop_e snoop) {
         return "DVM_COMPLETE"; // = 0xe,
     case snoop_e::DVM_MESSAGE:
         return "DVM_MESSAGE"; // = 0xf
-    default:
-        return "reserved";
-    };
-}
-
-std::string to_write_string(snoop_e snoop) {
-    switch(snoop) {
     case snoop_e::WRITE_UNIQUE:
         return "WRITE_UNIQUE"; //= 0
     case snoop_e::WRITE_LINE_UNIQUE:
@@ -78,45 +71,6 @@ std::string to_write_string(snoop_e snoop) {
     default:
         return "reserved";
     };
-}
-
-template <> const char* to_char<snoop_e>(snoop_e v) {
-    switch(to_int(v)) {
-    case 0:
-        return "READ_ONCE/WRITE_UNIQUE";
-    case 1:
-        return "READ_SHARED/WRITE_LINE_UNIQUE";
-    case 2:
-        return "READ_CLEAN/WRITE_CLEAN";
-    case 3:
-        return "READ_NOT_SHARED_DIRTY/WRITE_BACK";
-    case 4:
-        return "EVICT";
-    case 5:
-        return "WRITE_EVICT";
-    case 6:
-        return "READ_ONCE/CMO_ON_WRITE";
-    case 7:
-        return "READ_UNIQUE";
-    case 8:
-        return "CLEAN_SHARED/WRITE_UNIQUE_PTL_STASH";
-    case 9:
-        return "CLEAN_INVALID/WRITE_UNIQUE_FULL_STASH";
-    case 11:
-        return "CLEAN_UNIQUE";
-    case 12:
-        return "MAKE_UNIQUE/STASH_ONCE_SHARED";
-    case 13:
-        return "MAKE_INVALID/STASH_ONCE_UNIQUE";
-    case 14:
-        return "DVM_COMPLETE/STASH_TRANSLATION";
-    case 15:
-        return "DVM_MESSAGE";
-    case 0xc0:
-        return "STASH_ONCE_SHARED";
-    default:
-        return "reserved";
-    }
 }
 
 template <> const char* to_char<burst_e>(burst_e v) {
@@ -189,12 +143,106 @@ template <> const char* to_char<resp_e>(resp_e v) {
         return "UNKNOWN";
     }
 }
+
+namespace {
+    const std::array<std::array<bool, 4>, 16> rd_valid{{
+            {true, true, true, true},       // ReadNoSnoop/ReadOnce
+            {false, true, true, false},     // ReadShared
+            {false, true, true, false},     // ReadClean
+            {false, true, true, false},     // ReadNotSharedDirty
+            {false, true, true, false},     // ReadOnceCleanInvalid (ACE5)
+            {false, true, true, false},     // ReadOnceMakeInvalid (ACE5)
+            {false, false, false, false},   //
+            {false, true, true, false},     // ReadUnique
+            {true, true, true, false},      // CleanShared
+            {true, true, true, false},      // CleanInvalid
+            {false, true, true, false},     // CleanSharedPersist (ACE5)
+            {false, true, true, false},     // CleanUnique
+            {false, true, true, false},     // MakeUnique
+            {true, true, true, false},      // MakeInvalid
+            {false, true, true, false},     // DVM Complete
+            {false, true, true, false}      // DVM Message
+    }};
+    const std::array<std::array<bool, 4>, 16> wr_valid{{
+            {true, true, true, true},       // WriteNoSnoop/WriteUnique
+            {false, true, true, false},     // WriteLineUnique
+            {true, true, true, false},      // WriteClean
+            {true, true, true, false},      // WriteBack
+            {false, true, true, false},     // Evict
+            {true, true, true, false},      // WriteEvict
+            {false, false, false, false},   // CmoOnWrite (ACE5L)
+            {false, false, false, false},   //
+            {true, true, true, false},      // WriteUniquePtlStash (ACE5L)
+            {true, true, true, false},      // CleanInvalid
+            {false, true, true, false},     // WriteUniqueFullStash (ACE5L)
+            {false, false, false, false},   //
+            {true, true, true, false},      // StashOnceShared (ACE5L)
+            {false, true, true, false},     // StashOnceUnique (ACE5L)
+            {false, true, true, false},     // StashTranslation (ACE5L)
+            {false, false, false, false}    //
+    }};
+}
+template<>
+char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
+    auto offset = to_int(ext->get_snoop());
+    if(offset<32){ // a read access
+        if(!rd_valid[offset&0xf][to_int(ext->get_domain())])
+            return "illegal read snoop value";
+    } else {
+        if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
+        return "illegal write snoop value";
+    }
+    if((ext->get_snoop()==snoop_e::READ_NO_SNOOP || ext->get_snoop()==snoop_e::WRITE_NO_SNOOP) &&
+            ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
+        return "illegal domain for no snoop access";
+    }
+    if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
+        return "illegal barrier/snoop value combination";
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return "illegal cache value";
+    }
+    return nullptr;
+}
+
+template<>
+char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* ext){
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return "illegal cache value";
+    }
+    return nullptr;
+}
+
+template<>
+char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
+    switch(ext->get_cache()){
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 12:
+    case 13:
+        return "illegal cache value";
+    }
+    return nullptr;
+}
 } // namespace axi
 #ifdef WITH_SCV
-#include <tlm/scc/scv4tlm/tlm_recorder.h>
+#include <tlm/scc/scv/tlm_recorder.h>
 namespace axi {
 
-using namespace tlm::scc::scv4tlm;
+using namespace tlm::scc::scv;
 
 class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
@@ -279,8 +327,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
             handle.record_attribute("trans.ace.qos", ext4->get_qos());
             handle.record_attribute("trans.ace.region", ext4->get_region());
             handle.record_attribute("trans.ace.domain", std::string(to_char(ext4->get_domain())));
-            handle.record_attribute("trans.ace.snoop",
-                                    trans.is_write() ? to_write_string(ext4->get_snoop()) : to_read_string(ext4->get_snoop()));
+            handle.record_attribute("trans.ace.snoop", std::string(to_char(ext4->get_snoop())));
             handle.record_attribute("trans.ace.barrier", std::string(to_char(ext4->get_barrier())));
             handle.record_attribute("trans.ace.unique", ext4->get_unique());
         }
@@ -300,13 +347,14 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
 };
 } // namespace axi
 namespace scv4axi {
+using namespace tlm::scc::scv;
 __attribute__((constructor)) bool register_extensions() {
     axi::axi3_extension ext3; // NOLINT
-    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
     axi::axi4_extension ext4; // NOLINT
-    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
     axi::ace_extension extace; // NOLINT
-    tlm::scc::scv4tlm::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
     return true; // NOLINT
 }
 bool registered = register_extensions();

@@ -36,9 +36,10 @@ std::ostream& axi::fsm::operator<<(std::ostream& os, const tlm::tlm_generic_payl
     return os;
 }
 
-base::base(size_t transfer_width, protocol_time_point_e wr_start)
+base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
-, wr_start(wr_start) {
+, wr_start(wr_start)
+, coherent(coherent){
     assert(wr_start == RequestPhaseBeg || wr_start == WReadyE);
     idle_fsm.clear();
     active_fsm.clear();
@@ -162,12 +163,24 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         fsm_hndl->fsm->process_event(BegResp());
         return;
     case EndRespE:
-        fsm_hndl->fsm->process_event(EndResp());
-        SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
-        active_fsm.erase(trans);
-        fsm_hndl->trans = nullptr;
-        idle_fsm.push_back(fsm_hndl);
-        finish_evt.notify();
+        if(!coherent || fsm_hndl->is_snoop) {
+        	fsm_hndl->fsm->process_event(EndResp());
+        	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+        	active_fsm.erase(trans);
+        	fsm_hndl->trans = nullptr;
+        	idle_fsm.push_back(fsm_hndl);
+        	finish_evt.notify();
+        } else {
+            fsm_hndl->fsm->process_event(EndRespNoAck());
+        } 
+        return;
+    case Ack:
+    	fsm_hndl->fsm->process_event(AckRecv());
+    	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+    	active_fsm.erase(trans);
+    	fsm_hndl->trans = nullptr;
+    	idle_fsm.push_back(fsm_hndl);
+    	finish_evt.notify();
         return;
     default:
         	SCCFATAL(instance_name)<<"No valid protocol time point";
@@ -209,6 +222,11 @@ tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time&
             react(phase == BEGIN_RESP ? BegRespE : BegPartRespE, &trans);
         } else
             schedule(phase == BEGIN_RESP ? BegRespE : BegPartRespE, &trans, t);
+    } else if(phase == axi::ACK){
+        if(t == SC_ZERO_TIME) {
+            react(Ack, &trans);
+        } else
+            schedule(Ack, &trans, t);
     }
     return TLM_ACCEPTED;
 }

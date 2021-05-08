@@ -21,6 +21,7 @@
 #include <tlm>
 #include <type_traits>
 
+//! TLM2.0 components modeling AXI/ACE
 namespace axi {
 /**
  * helper function to allow SFINAE
@@ -83,46 +84,49 @@ enum class bar_e : uint8_t { RESPECT_BARRIER = 0x0, MEMORY_BARRIER = 0x1, IGNORE
 /**
  * the snoop type enumeration class. Since the interpretation depends of other setting there are double defined entries
  */
-enum class snoop_e : uint8_t { // non-snooping (domain==0 || domain==3, bar==0)
-    READ_NO_SNOOP = 0x0,
+enum class snoop_e : uint8_t {
+	// clang-format off
+	// non-snooping (domain==0 || domain==3, bar==0)
+    READ_NO_SNOOP 			= 0x10,
     // Coherent (domain==1 || domain==2, bar==0)
-    READ_ONCE = 0x0,
-    READ_SHARED = 0x1,
-    READ_CLEAN = 0x2,
-    READ_NOT_SHARED_DIRTY = 0x3,
-    READ_ONCE_CLEAN_INVALID=0x4, // ACE5
-    READ_ONCE_MAKE_INVALID=0x5, // ACE5
-    READ_UNIQUE = 0x7,
-    CLEAN_UNIQUE = 0xb,
-    MAKE_UNIQUE = 0xc,
+    READ_ONCE 				= 0x0,
+    READ_SHARED 			= 0x1,
+    READ_CLEAN 				= 0x2,
+    READ_NOT_SHARED_DIRTY 	= 0x3,
+    READ_ONCE_CLEAN_INVALID	= 0x4, // ACE5
+    READ_ONCE_MAKE_INVALID	= 0x5, // ACE5
+    READ_UNIQUE 			= 0x7,
+    CLEAN_UNIQUE 			= 0xb,
+    MAKE_UNIQUE 			= 0xc,
     // Cache maintenance (domain==0 || domain==1 || domain==2, bar==0)
-    CLEAN_SHARED = 0x8,
-    CLEAN_INVALID = 0x9,
-    CLEAN_SHARED_PERSIST = 0xa, // ACE5
-    MAKE_INVALID = 0xd,
+    CLEAN_SHARED 			= 0x8,
+    CLEAN_INVALID 			= 0x9,
+    CLEAN_SHARED_PERSIST 	= 0xa, // ACE5
+    MAKE_INVALID 			= 0xd,
     // Barrier (bar==1)
-    BARRIER = 0x0,
+    BARRIER 				= 0x0,
     // DVM (domain==1 || domain==2, bar==0)
-    DVM_COMPLETE = 0xe,
-    DVM_MESSAGE = 0xf,
+    DVM_COMPLETE 			= 0xe,
+    DVM_MESSAGE 			= 0xf,
     // non-snooping (domain==0 || domain==3, bar==0)
-    WRITE_NO_SNOOP = 0x0,
+    WRITE_NO_SNOOP 			= 0x30,
     // Coherent (domain==1 || domain==2, bar==0)
-    WRITE_UNIQUE = 0x0,
-    WRITE_LINE_UNIQUE = 0x1,
+    WRITE_UNIQUE 			= 0x20,
+    WRITE_LINE_UNIQUE 		= 0x21,
     // Memory update (domain==0 || domain==1 || domain==2, bar==0)
-    WRITE_CLEAN = 0x2,
-    WRITE_BACK = 0x3,
+    WRITE_CLEAN 			= 0x22,
+    WRITE_BACK 				= 0x23,
     // (domain==1 || domain==2)
-    EVICT = 0x4,
-    WRITE_EVICT = 0x5,
-    CMO_ON_WRITE = 0x6, // ACE5Lite
+    EVICT 					= 0x24,
+    WRITE_EVICT 			= 0x25,
+    CMO_ON_WRITE 			= 0x26, // ACE5Lite
     // Cache Stash Transactions, ACE5Lite
-    WRITE_UNIQUE_PTL_STASH = 0x8,
-    WRITE_UNIQUE_FULL_STASH = 0x9,
-    STASH_ONCE_SHARED = 0xc,
-    STASH_ONCE_UNIQUE = 0xd,
-    STASH_TRANSLATION = 0xe
+    WRITE_UNIQUE_PTL_STASH 	= 0x28,
+    WRITE_UNIQUE_FULL_STASH = 0x29,
+    STASH_ONCE_SHARED 		= 0x2c,
+    STASH_ONCE_UNIQUE 		= 0x2d,
+    STASH_TRANSLATION 		= 0x2e
+	// clang-format on
 };
 
 enum class atop_low_e { ADD = 0x0, CLR = 0x1, EOR = 0x2, SET = 0x3, SMAX = 0x4, SMIN = 0x5, UMAX = 0x6, UMIN = 0x7 };
@@ -138,20 +142,6 @@ enum class atop_enc_e {
  * the response type enumeration class
  */
 enum class resp_e : uint8_t { OKAY = 0x0, EXOKAY = 0x1, SLVERR = 0x2, DECERR = 0x3 };
-/**
- * convert snoop type to textual representation for read accesses
- *
- * @param the snoop type
- * @return a string representation of the snoop type for reading
- */
-std::string to_read_string(snoop_e);
-/**
- * convert snoop type to textual representation for write accesses
- *
- * @param the snoop type
- * @return a string representation of the snoop type for writing
- */
-std::string to_write_string(snoop_e);
 /**
  * the variable part of all requests containing AxID and AxUSER
  */
@@ -899,7 +889,7 @@ DECLARE_EXTENDED_PHASE(ACK);
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload> class ace_bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -915,11 +905,11 @@ template <typename TYPES = tlm::tlm_base_protocol_types> using axi_bw_transport_
 //! alias declaration for the ACE forward interface
 template <typename TYPES = tlm::tlm_base_protocol_types> using ace_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
 /**
- *  The ACE backward interface which combines the TLM2.0 backward interface and the @see ace_bw_blocking_transport_if
+ *  The ACE backward interface which combines the TLM2.0 backward interface and the @see bw_blocking_transport_if
  */
 template <typename TYPES = tlm::tlm_base_protocol_types>
 class ace_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
-                            public virtual ace_bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
+                            public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 /**
  * AXI initiator socket class using payloads carrying AXI3 or AXi4 extensions
  */
@@ -1050,6 +1040,19 @@ struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_t
 /*****************************************************************************
  * free function easing handling of transactions and extensions
  *****************************************************************************/
+
+template<typename EXT>
+bool is_valid(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+bool is_valid(EXT* ext){ return is_valid_msg(ext)==nullptr;}
+
+template<typename EXT>
+char const* is_valid_msg(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+char const* is_valid_msg(EXT* ext);
+
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
         return e->get_id();
@@ -1152,6 +1155,18 @@ inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type& 
  * @return the burst size in bytes
  */
 inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_size(*trans); }
+
+inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& trans) {
+    if(auto e = trans.get_extension<axi::ace_extension>())
+        return e->get_burst();
+    if(auto e = trans.get_extension<axi::axi4_extension>())
+        return e->get_burst();
+    if(auto e = trans.get_extension<axi::axi3_extension>())
+        return e->get_burst();
+    sc_assert(false && "transaction is not an axi or ace transaction");
+    return burst_e::FIXED;
+}
+inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_type(*trans); }
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
@@ -1187,8 +1202,8 @@ template <> inline bar_e into<bar_e>(typename std::underlying_type<bar_e>::type 
 }
 
 template <> inline snoop_e into<snoop_e>(typename std::underlying_type<snoop_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<snoop_e>::type>(snoop_e::READ_NO_SNOOP) &&
-                    t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::DVM_MESSAGE));
+    assert(t >= static_cast<typename std::underlying_type<snoop_e>::type>(snoop_e::READ_ONCE) &&
+                    t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::WRITE_NO_SNOOP));
     return static_cast<snoop_e>(t);
 }
 

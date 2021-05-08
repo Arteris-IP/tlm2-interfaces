@@ -32,20 +32,25 @@ using namespace axi::pe;
 /******************************************************************************
  * initiator
  ******************************************************************************/
+SC_HAS_PROCESS(simple_initiator_b);
 
 simple_initiator_b::simple_initiator_b(const sc_core::sc_module_name& nm,
-                                       sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port, size_t transfer_width)
+                                       sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port, size_t transfer_width, bool ack_phase)
 : sc_module(nm)
-, base(transfer_width)
+, base(transfer_width, ack_phase)
 , socket_fw(port) {
     add_attribute(wr_data_beat_delay);
     add_attribute(rd_data_accept_delay);
     add_attribute(wr_resp_accept_delay);
+    add_attribute(ack_resp_delay);
     drv_i.bind(*this);
-
     SC_METHOD(fsm_clk_method);
     dont_initialize();
     sensitive << clk_i.pos();
+}
+
+void simple_initiator_b::end_of_elaboration() {
+    clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
 }
 
 // bool simple_initiator_b::operation(bool write, uint64_t addr, unsigned len, const uint8_t* data, bool blocking) {
@@ -119,7 +124,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
             tlm::tlm_phase phase = tlm::END_REQ;
-            sc_time t;
+            sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
             auto ext = fsm_hndl->trans->get_extension<ace_extension>();
             sc_assert(ext && "No ACE extension found for snoop access");
@@ -167,7 +172,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             fsm_hndl->beat_count++;
             schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, SC_ZERO_TIME);
         } else {
-            sc_time t;
+            sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
             tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
             fsm_hndl->beat_count++;
@@ -192,13 +197,24 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->is_snoop) {
-            sc_time t;
+            sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
             tlm::tlm_phase phase = tlm::END_RESP;
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
-            fsm_hndl->finish.notify();
+            if(coherent){
+            	schedule(Ack, fsm_hndl->trans, ::scc::get_value(ack_resp_delay));
+            }else
+            	fsm_hndl->finish.notify();
         }
         if(protocol_cb[EndRespE])
             protocol_cb[EndRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+    };
+    fsm_hndl->fsm->cb[Ack] = [this, fsm_hndl]() -> void {
+    	sc_time t;
+    	tlm::tlm_phase phase = axi::ACK;
+    	auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
+    	fsm_hndl->finish.notify();
+        if(protocol_cb[Ack])
+            protocol_cb[Ack](*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
 }
 

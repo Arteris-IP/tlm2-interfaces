@@ -27,15 +27,15 @@
 #include <unordered_map>
 #include <unordered_set>
 
+//! TLM2.0 components modeling AXI/ACE
 namespace axi {
+//! protocol engine implementations
 namespace pe {
 /**
  * the initiator protocol engine base class
  */
 class simple_initiator_b : public sc_core::sc_module, public tlm::scc::pe::intor_fw_b, protected axi::fsm::base {
 public:
-    SC_HAS_PROCESS(simple_initiator_b);
-
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
@@ -56,6 +56,10 @@ public:
      * @brief the latency between between BEGIN_RESP and END_RESP (BVALID to BREADY)
      */
     sc_core::sc_attribute<unsigned> wr_resp_accept_delay{"wr_resp_accept_delay", 0};
+    /**
+     * @brief the latency between between BEGIN_RESP and END_RESP (BVALID to BREADY)
+     */
+    sc_core::sc_attribute<unsigned> ack_resp_delay{"ack_resp_delay", 0};
 
     /** @defgroup bw_if Initiator backward interface
      *  @{
@@ -70,10 +74,6 @@ public:
     /** @defgroup config Initiator configuration interface
      *  @{
      */
-    void set_fast_req(bool val) { fast_req = val; }
-
-    void set_fast_resp(bool val) { fast_resp = val; }
-
     void set_clock_period(sc_core::sc_time clk_period) { this->clk_period = clk_period; }
 
     size_t get_transferwith_in_bytes() const { return transfer_width_in_bytes; }
@@ -135,7 +135,7 @@ protected:
      * @param transfer_width
      */
     explicit simple_initiator_b(const sc_core::sc_module_name& nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
-                                size_t transfer_width);
+                                size_t transfer_width, bool coherent=false);
 
     simple_initiator_b() = delete;
 
@@ -160,12 +160,12 @@ protected:
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
     std::deque<fsm::fsm_handle*> idle_proc;
     scc::ordered_semaphore rd{1}, wr{1};
-    bool fast_resp = false;
-    bool fast_req = false;
     // TODO: remove hard coded value
-    sc_core::sc_time clk_period{10, sc_core::SC_NS};
+    sc_core::sc_time clk_period{1, sc_core::SC_NS};
     std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
+    sc_core::sc_clock* clk_if{nullptr};
+    void end_of_elaboration() override;
 };
 /**
  * the AXI initiator socket protocol engine adapted to a particular initiator socket configuration
@@ -238,7 +238,7 @@ public:
      */
 
     simple_ace_initiator(const sc_core::sc_module_name& nm, axi::ace_initiator_socket<BUSWIDTH, TYPES, N, POL>& socket)
-    : simple_initiator_b(nm, socket.get_base_port(), BUSWIDTH)
+    : simple_initiator_b(nm, socket.get_base_port(), BUSWIDTH, true)
     , socket(socket) {
         socket(*this);
         this->instance_name = socket.name();

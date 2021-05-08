@@ -21,6 +21,7 @@
 #include <tlm>
 #include <type_traits>
 
+//! TLM2.0 components modeling CHI
 namespace chi {
 /**
  * helper function to allow SFINAE
@@ -77,6 +78,8 @@ enum class req_optype_e : uint8_t {
     CleanUnique = 0x0B,
     MakeUnique = 0x0C,
     Evict = 0x0D,
+    EOBarrier=0x0E,
+    ECBarrier=0x0F,
     ReadNoSnpSep = 0x11,
     DVMOp = 0x14,
     WriteEvictFull = 0x15,
@@ -84,8 +87,6 @@ enum class req_optype_e : uint8_t {
     WriteUniquePtl = 0x18,
     WriteUniqueFull = 0x19,
     // mahi: discuss with suresh sir
-    // Reserved(EOBarrier)=0x0E
-    // Reserved(ECBarrier)=0x0F
     // Reserved=0x10
     // Reserved=0x12-0x13
     // Reserved (WriteCleanPtl)=0x16    // As per CHI issue-C
@@ -121,9 +122,9 @@ enum class req_optype_e : uint8_t {
     AtomicLoadUmin = 0x37,
     AtomicSwap = 0x38,
     AtomicCompare = 0x39,
-    PrefetchTgt = 0x3A
+    PrefetchTgt = 0x3A,
     // RESERVED        = 0x3B to 0x3F
-
+    ILLEGAL=0xFF
 };
 
 // the Snp_Req channel request type enumeration class acc. Table 12-17 SNP channel opcodes and Page No:321
@@ -749,8 +750,6 @@ struct chi_protocol_types {
 /**
  * definition of the additional protocol phases
  */
-DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_RESP);
-DECLARE_EXTENDED_PHASE(END_PARTIAL_RESP);
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(END_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(BEGIN_DATA);
@@ -760,8 +759,28 @@ DECLARE_EXTENDED_PHASE(LINK_INIT);
 
 //! alias declaration for the forward interface
 template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
-//! alias declaration for the backward interface:
-template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+////! alias declaration for the backward interface:
+//template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+
+/**
+ * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
+ */
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+public:
+    /**
+     * @brief snoop access to a snooped master
+     * @param trans the payload
+     * @param t annotated delay
+     */
+    virtual void b_snoop(TRANS& trans, sc_core::sc_time& t) = 0;
+};
+
+/**
+ *  The CHI backward interface which combines the TLM2.0 backward interface and the @see bw_blocking_transport_if
+ */
+template <typename TYPES = chi::chi_protocol_types>
+class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
+                            public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
 /**
  * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
@@ -829,6 +848,16 @@ struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_t
     sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
+/*****************************************************************************
+ * free function easing handling of transactions and extensions
+ *****************************************************************************/
+
+template<typename EXT>
+bool is_valid(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+bool is_valid(EXT* ext);
+
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
