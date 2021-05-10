@@ -129,6 +129,8 @@ public:
      */
     const sc_core::sc_event& tx_finish_event() { return finish_evt; }
 
+    ~axi_target_pe_b();
+
 protected:
     /**
      * the constructor. Protected as it should only be called by derived classes
@@ -143,8 +145,6 @@ protected:
     axi_target_pe_b(axi_target_pe_b const&) = delete;
 
     axi_target_pe_b(axi_target_pe_b&&) = delete;
-
-    ~axi_target_pe_b();
 
     axi_target_pe_b& operator=(axi_target_pe_b const&) = delete;
 

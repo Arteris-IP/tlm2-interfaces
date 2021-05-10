@@ -71,7 +71,9 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_
     SC_THREAD(send_wr_resp_beat_thread);
     SC_THREAD(send_rd_resp_beat_thread);
 }
+
 axi_target_pe_b::~axi_target_pe_b(){}
+
 void axi_target_pe_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
     if(rd_bw_limit_byte_per_sec.value>0.0){

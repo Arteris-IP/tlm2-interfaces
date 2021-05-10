@@ -297,7 +297,7 @@ protected:
             }
             if(enableDmiTracing.value) {
                 dmi_streamHandle = new scv_tr_stream((fixed_basename + "_dmi").c_str(), "[TLM][ace][dmi]", m_db);
-                dmi_trGetHandle = new scv_tr_generator<scv4tlm::tlm_gp_data, scv4tlm::tlm_dmi_data>("get", *dmi_streamHandle, "trans", "dmi_data");
+                dmi_trGetHandle = new scv_tr_generator<tlm::scc::scv::tlm_gp_data, tlm::scc::scv::tlm_dmi_data>("get", *dmi_streamHandle, "trans", "dmi_data");
                 dmi_trInvalidateHandle = new scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("invalidate", *dmi_streamHandle, "start_addr", "end_addr");
             }
         }
@@ -386,7 +386,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_snoop(typename TYPES::
     }
     // Get a handle for the new transaction
     scv_tr_handle h = b_trHandle[trans.get_command()]->begin_transaction(delay.value(), sc_time_stamp());
-    scv4tlm::tlm_gp_data tgd(trans);
+    tlm::scc::scv::tlm_gp_data tgd(trans);
 
     /*************************************************************************
      * do the timed notification
@@ -400,17 +400,17 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_snoop(typename TYPES::
         b_timed_peq.notify(*req, tlm::BEGIN_REQ, delay);
     }
 
-    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordBeginTx(h, trans);
-    scv4tlm::tlm_recording_extension* preExt = NULL;
+    tlm::scc::scv::tlm_recording_extension* preExt = NULL;
 
     trans.get_extension(preExt);
     if(preExt == NULL) { // we are the first recording this transaction
-        preExt = new scv4tlm::tlm_recording_extension(h, this);
+        preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
         trans.set_extension(preExt);
     } else {
-        h.add_relation(scv4tlm::rel_str(scv4tlm::PREDECESSOR_SUCCESSOR), preExt->txHandle);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
     }
     scv_tr_handle preTx(preExt->txHandle);
     preExt->txHandle = h;
@@ -420,7 +420,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_snoop(typename TYPES::
     trans.get_extension(preExt);
     if(preExt->get_creator() == this) {
         // clean-up the extension if this is the original creator
-        delete trans.set_extension(static_cast<scv4tlm::tlm_recording_extension*>(nullptr));
+        delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
     } else {
         preExt->txHandle = preTx;
     }
@@ -429,7 +429,7 @@ template <typename TYPES> void chi_trx_recorder<TYPES>::b_snoop(typename TYPES::
     h.record_attribute("trans", tgd);
     if(trans.get_command() == tlm::TLM_READ_COMMAND && tgd.data_length < 8)
         h.record_attribute("trans.data_value", tgd.get_data_value());
-    for(auto& ext : scv4tlm::tlm_extension_recording_registry<TYPES>::inst().get())
+    for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
         if(ext)
             ext->recordEndTx(h, trans);
     // End the transaction
@@ -475,19 +475,9 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
      * prepare recording
      *************************************************************************/
     // Get a handle for the new transaction
-<<<<<<< HEAD
-    scv_tr_handle h;
-    bool is_snoop{false};
-    if(is_snoop = (trans.template get_extension<chi::chi_snp_extension>()!=nullptr)) // @suppress("Assignment in condition")
-        h = nb_fw_trHandle[SNOOP]->begin_transaction(phase2string(phase));
-    else
-        h = nb_fw_trHandle[trans.get_command()]->begin_transaction(phase2string(phase));
-    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
-=======
     bool is_snoop= (trans.template get_extension<chi::chi_snp_extension>()!=nullptr);
     scv_tr_handle h = nb_trHandle[FW]->begin_transaction(phase2string(phase));
-    scv4tlm::tlm_recording_extension* preExt = nullptr;
->>>>>>> refs/remotes/origin/master
+    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if(phase == tlm::BEGIN_REQ && preExt == nullptr) { // we are the first recording this transaction
         preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
@@ -580,19 +570,9 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
      * prepare recording
      *************************************************************************/
     // Get a handle for the new transaction
-<<<<<<< HEAD
-    scv_tr_handle h;
-    bool is_snoop{false};
-    if(is_snoop = (trans.template get_extension<chi::chi_snp_extension>()!=nullptr)) // @suppress("Assignment in condition")
-        h = nb_bw_trHandle[SNOOP]->begin_transaction(phase2string(phase));
-    else
-        h = nb_bw_trHandle[trans.get_command()]->begin_transaction(phase2string(phase));
-    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
-=======
     bool is_snoop= (trans.template get_extension<chi::chi_snp_extension>()!=nullptr);
     scv_tr_handle h = nb_trHandle[BW]->begin_transaction(phase2string(phase));
-    scv4tlm::tlm_recording_extension* preExt = nullptr;
->>>>>>> refs/remotes/origin/master
+    tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if((phase == tlm::BEGIN_REQ || phase == chi::LINK_INIT) && preExt == nullptr) { // we are the first recording this transaction
         preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
@@ -678,30 +658,7 @@ template <typename TYPES>
 void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const typename TYPES::tlm_phase_type& phase) {
     scv_tr_handle h;
     std::unordered_map<uint64, scv_tr_handle>::iterator it;
-<<<<<<< HEAD
-    if(nb_streamHandleTimed[FW] == nullptr) {
-        nb_streamHandleTimed[FW] = new scv_tr_stream((fixed_basename + "_nb_req").c_str(), "TRANSACTOR", m_db);
-        nb_txReqHandle[0] = new scv_tr_generator<>("read",  *nb_streamHandleTimed[FW]);
-        nb_txReqHandle[1] = new scv_tr_generator<>("write", *nb_streamHandleTimed[FW]);
-        nb_txReqHandle[2] = new scv_tr_generator<>("other", *nb_streamHandleTimed[FW]);
-        nb_txReqHandle[3] = new scv_tr_generator<>("snoop", *nb_streamHandleTimed[FW]);
-        nb_txReqHandle[4] = new scv_tr_generator<>("ack",   *nb_streamHandleTimed[FW]);
-        nb_txDataHandle[tlm::TLM_IGNORE_COMMAND] = new scv_tr_generator<>("snoop_data", *nb_streamHandleTimed[FW]);
-        nb_txDataHandle[tlm::TLM_WRITE_COMMAND] = new scv_tr_generator<>("write_data", *nb_streamHandleTimed[FW]);
-    }
-    if(nb_streamHandleTimed[BW] == nullptr) {
-        nb_streamHandleTimed[BW] = new scv_tr_stream((fixed_basename + "_nb_resp").c_str(), "TRANSACTOR", m_db);
-        nb_txRespHandle[0] = new scv_tr_generator<>("read",  *nb_streamHandleTimed[BW]);
-        nb_txRespHandle[1] = new scv_tr_generator<>("write", *nb_streamHandleTimed[BW]);
-        nb_txRespHandle[2] = new scv_tr_generator<>("other", *nb_streamHandleTimed[BW]);
-        nb_txRespHandle[3] = new scv_tr_generator<>("snoop", *nb_streamHandleTimed[BW]);
-        nb_txRespHandle[4] = new scv_tr_generator<>("ack",   *nb_streamHandleTimed[BW]);
-        nb_txDataHandle[tlm::TLM_READ_COMMAND] = new scv_tr_generator<>("read_data", *nb_streamHandleTimed[BW]);
-    }
     tlm::scc::scv::tlm_gp_data tgd(rec_parts);
-=======
-    scv4tlm::tlm_gp_data tgd(rec_parts);
->>>>>>> refs/remotes/origin/master
     // Now process outstanding recordings
     if(phase == tlm::BEGIN_REQ) {
         h = nb_trTimedHandle[REQ]->begin_transaction();
@@ -799,16 +756,7 @@ bool chi_trx_recorder<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_typ
     if(!(m_db && enableDmiTracing.value)) {
         return get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
     }
-<<<<<<< HEAD
-    if(!dmi_streamHandle)
-        dmi_streamHandle = new scv_tr_stream((fixed_basename + "_dmi").c_str(), "TRANSACTOR", m_db);
-    if(!dmi_trGetHandle)
-        dmi_trGetHandle =
-                new scv_tr_generator<tlm::scc::scv::tlm_gp_data, tlm::scc::scv::tlm_dmi_data>("get_dmi_ptr", *dmi_streamHandle, "trans", "dmi_data");
     scv_tr_handle h = dmi_trGetHandle->begin_transaction(tlm::scc::scv::tlm_gp_data(trans));
-=======
-    scv_tr_handle h = dmi_trGetHandle->begin_transaction(scv4tlm::tlm_gp_data(trans));
->>>>>>> refs/remotes/origin/master
     bool status = get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
     dmi_trGetHandle->end_transaction(h, tlm::scc::scv::tlm_dmi_data(dmi_data));
     return status;
