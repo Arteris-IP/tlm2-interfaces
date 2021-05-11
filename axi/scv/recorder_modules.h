@@ -19,7 +19,8 @@
 #include "ace_recorder.h"
 #include "axi_recorder.h"
 
-namespace scv4axi {
+namespace axi {
+namespace scv {
 /*! \brief The TLM2 transaction recorder
  *
  * This module records all TLM transaction to a SCV transaction stream for
@@ -76,4 +77,5 @@ using axi_recorder_module = axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_t
 template <unsigned int BUSWIDTH = 32>
 using ace_recorder_module = axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_types, ace_recorder<axi::axi_protocol_types>>;
 
-} // namespace scv4axi
+} // namespace scv
+} // namespace axi

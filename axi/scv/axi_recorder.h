@@ -32,7 +32,8 @@
 #include <vector>
 
 //! SCV components for AXI/ACE
-namespace scv4axi {
+namespace axi {
+namespace scv {
 
 bool register_extensions();
 
@@ -627,6 +628,7 @@ template <typename TYPES> unsigned int axi_recorder<TYPES>::transport_dbg(typena
     unsigned int count = get_fw_if()->transport_dbg(trans);
     return count;
 }
-} // namespace scv4axi
+} // namespace scv
+} // namespace axi
 #endif // AXI_RECORDER_H_
 

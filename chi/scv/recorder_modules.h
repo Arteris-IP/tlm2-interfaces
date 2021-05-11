@@ -18,7 +18,8 @@
 
 #include <chi/scv/chi_recorder.h>
 
-namespace scv4chi {
+namespace chi {
+namespace scv {
 /*! \brief The TLM2 transaction recorder
  *
  * This module records all TLM transaction to a SCV transaction stream for
@@ -68,4 +69,5 @@ private:
 template <unsigned int BUSWIDTH = 32>
 using chi_trx_recorder_module = chitlm_recorder_module<BUSWIDTH, chi::chi_protocol_types, chi_trx_recorder<chi::chi_protocol_types>>;
 
-} // namespace scv4chi
+} // namespace scv
+} // namespace chi

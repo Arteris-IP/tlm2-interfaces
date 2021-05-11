@@ -345,8 +345,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
         }
     }
 };
-} // namespace axi
-namespace scv4axi {
+namespace scv {
 using namespace tlm::scc::scv;
 __attribute__((constructor)) bool register_extensions() {
     axi::axi3_extension ext3; // NOLINT
@@ -358,5 +357,6 @@ __attribute__((constructor)) bool register_extensions() {
     return true; // NOLINT
 }
 bool registered = register_extensions();
-} // namespace scv4axi
+} // namespace scv
+} // namespace axi
 #endif

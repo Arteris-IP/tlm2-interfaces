@@ -32,7 +32,8 @@
 #include <vector>
 
 //! SCV components for CHI
-namespace scv4chi {
+namespace chi {
+namespace scv {
 
 bool register_extensions();
 
@@ -787,5 +788,6 @@ template <typename TYPES> unsigned int chi_trx_recorder<TYPES>::transport_dbg(ty
     unsigned int count = get_fw_if()->transport_dbg(trans);
     return count;
 }
-} // namespace scv4chi
+} // namespace scv
+} // namespace chi
 #endif // CHI_RECORDER_H_

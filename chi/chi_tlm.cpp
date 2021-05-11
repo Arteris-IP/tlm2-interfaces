@@ -422,8 +422,7 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
 
     void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
-} // namespace chi
-namespace scv4chi {
+namespace scv {
 using namespace tlm::scc::scv;
 __attribute__((constructor)) bool register_extensions() {
     chi::chi_ctrl_extension extchi_req; // NOLINT
@@ -445,5 +444,6 @@ __attribute__((constructor)) bool register_extensions() {
     return true;                              // NOLINT
 }
 bool registered = register_extensions();
-} // namespace scv4chi
+} // namespace scv
+} // namespace chi
 #endif

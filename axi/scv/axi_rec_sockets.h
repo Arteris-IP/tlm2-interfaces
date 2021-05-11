@@ -91,7 +91,7 @@ public:
     }
 
 protected:
-    scv4axi::axi_recorder<TYPES> recorder;
+    axi::scv::axi_recorder<TYPES> recorder;
 };
 
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
@@ -164,6 +164,6 @@ public:
     }
 
 protected:
-    scv4axi::axi_recorder<TYPES> recorder;
+    axi::scv::axi_recorder<TYPES> recorder;
 };
 } // namespace scv4axi

@@ -31,7 +31,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace scv4axi {
+namespace axi {
+namespace scv {
 
 bool register_extensions();
 
@@ -737,6 +738,7 @@ template <typename TYPES> unsigned int ace_recorder<TYPES>::transport_dbg(typena
     unsigned int count = get_fw_if()->transport_dbg(trans);
     return count;
 }
-} // namespace scv4axi
+} // namespace scv
+} // namespace axi
 #endif // ACE_RECORDER_H_
 

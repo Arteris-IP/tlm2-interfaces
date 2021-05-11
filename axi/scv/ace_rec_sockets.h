@@ -91,7 +91,7 @@ public:
     }
 
 protected:
-    scv4axi::ace_recorder<TYPES> recorder;
+    axi::scv::ace_recorder<TYPES> recorder;
 };
 
 } // namespace scv4axi
