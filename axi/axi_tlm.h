@@ -1048,7 +1048,7 @@ template<typename EXT>
 bool is_valid(EXT* ext){ return is_valid_msg(ext)==nullptr;}
 
 template<typename EXT>
-char const* is_valid_msg(EXT& ext){return is_valid(&ext);}
+char const* is_valid_msg(EXT& ext){return is_valid_msg(&ext);}
 
 template<typename EXT>
 char const* is_valid_msg(EXT* ext);
