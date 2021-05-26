@@ -14,30 +14,46 @@
 
 cmake_minimum_required(VERSION 3.13)
 if(POLICY CMP0048)
-	cmake_policy(SET CMP0048 NEW)
+    cmake_policy(SET CMP0048 NEW)
 endif()
 
 project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
 
 if(TARGET scc)
-	add_library(tlm-interfaces chi/chi_tlm.cpp axi/axi_tlm.cpp axi/fsm/base.cpp axi/pe/simple_initiator.cpp axi/pe/simple_target.cpp)
-	target_include_directories (tlm-interfaces PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-	target_link_libraries(tlm-interfaces PUBLIC scc-sysc)
+    add_library(${PROJECT_NAME} 
+       chi/chi_tlm.cpp
+       chi/pe/chi_rn_initiator.cpp
+       axi/axi_tlm.cpp
+       axi/fsm/base.cpp
+       axi/pe/simple_initiator.cpp
+       axi/pe/simple_target.cpp
+       axi/pe/axi_initiator.cpp
+    )
+    target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
 else()
-	add_library(tlm-interfaces INTERFACE) 
-	target_include_directories(tlm-interfaces INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}) 
-	target_link_libraries(tlm-interfaces SystemC::systemc)
+    add_library(${PROJECT_NAME} INTERFACE) 
+    target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}) 
+    target_link_libraries(${PROJECT_NAME} SystemC::systemc)
 endif()
 
-set_target_properties(tlm-interfaces PROPERTIES
-	  VERSION ${PROJECT_VERSION}
-	  FRAMEWORK FALSE
+set_target_properties(${PROJECT_NAME} PROPERTIES
+      VERSION ${PROJECT_VERSION}
+      FRAMEWORK FALSE
 )
 
-install(TARGETS tlm-interfaces
+install(TARGETS ${PROJECT_NAME}
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}/static
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(
+    DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/atp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h")
+install(
+    DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/cache
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h")
 install(
     DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/axi
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

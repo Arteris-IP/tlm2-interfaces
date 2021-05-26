@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*
  * Copyright 2020, 2021 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *******************************************************************************/
+ */
 
-#ifndef AXI_RECORDER_H_
-#define AXI_RECORDER_H_
+#pragma once
+
 #ifndef SC_INCLUDE_DYNAMIC_PROCESSES
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 #endif
@@ -630,5 +630,4 @@ template <typename TYPES> unsigned int axi_recorder<TYPES>::transport_dbg(typena
 }
 } // namespace scv
 } // namespace axi
-#endif // AXI_RECORDER_H_
 
