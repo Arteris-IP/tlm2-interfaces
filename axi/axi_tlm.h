@@ -103,11 +103,11 @@ enum class snoop_e : uint8_t {
     CLEAN_INVALID 			= 0x9,
     CLEAN_SHARED_PERSIST 	= 0xa, // ACE5
     MAKE_INVALID 			= 0xd,
-    // Barrier (bar==1)
-    BARRIER 				= 0x0,
     // DVM (domain==1 || domain==2, bar==0)
     DVM_COMPLETE 			= 0xe,
     DVM_MESSAGE 			= 0xf,
+    // Barrier (bar==1)
+    BARRIER                 = 0x40,
     // non-snooping (domain==0 || domain==3, bar==0)
     WRITE_NO_SNOOP 			= 0x30,
     // Coherent (domain==1 || domain==2, bar==0)

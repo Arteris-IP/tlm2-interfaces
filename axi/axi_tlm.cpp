@@ -20,6 +20,8 @@ namespace axi {
 
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
+    case snoop_e::READ_NO_SNOOP:
+        return "READ_NO_SNOOP"; //= 0x10
     case snoop_e::READ_ONCE:
         return "READ_ONCE"; //= 0
     case snoop_e::READ_SHARED:
@@ -46,28 +48,34 @@ template <> const char* to_char<snoop_e>(snoop_e v) {
         return "DVM_COMPLETE"; // = 0xe,
     case snoop_e::DVM_MESSAGE:
         return "DVM_MESSAGE"; // = 0xf
+    case snoop_e::BARRIER:
+        return "BARRIER"; // = 0x40,
+    case snoop_e::WRITE_NO_SNOOP:
+        return "WRITE_NO_SNOOP"; //= 0x30
     case snoop_e::WRITE_UNIQUE:
-        return "WRITE_UNIQUE"; //= 0
+        return "WRITE_UNIQUE"; //= 0x20
     case snoop_e::WRITE_LINE_UNIQUE:
-        return "WRITE_LINE_UNIQUE"; // = 1,
+        return "WRITE_LINE_UNIQUE"; // = 0x21,
     case snoop_e::WRITE_CLEAN:
-        return "WRITE_CLEAN"; // = 2,
+        return "WRITE_CLEAN"; // = 0x22,
     case snoop_e::WRITE_BACK:
-        return "WRITE_BACK"; // = 0x3,
+        return "WRITE_BACK"; // = 0x23,
     case snoop_e::EVICT:
-        return "EVICT"; // = 0x4,
+        return "EVICT"; // = 0x24,
     case snoop_e::WRITE_EVICT:
-        return "WRITE_EVICT"; // = 0x5,
+        return "WRITE_EVICT"; // = 0x25,
+    case snoop_e::CMO_ON_WRITE:
+        return "CMO_ON_WRITE"; // = 0x26,
     case snoop_e::WRITE_UNIQUE_PTL_STASH:
-        return "WRITE_UNIQUE_PTL_STASH"; // = 0x8,
+        return "WRITE_UNIQUE_PTL_STASH"; // = 0x28,
     case snoop_e::WRITE_UNIQUE_FULL_STASH:
-        return "WRITE_UNIQUE_FULL_STASH"; // = 0x9,
+        return "WRITE_UNIQUE_FULL_STASH"; // = 0x29,
     case snoop_e::STASH_ONCE_SHARED:
-        return "STASH_ONCE_SHARED"; // = 0xc,
+        return "STASH_ONCE_SHARED"; // = 0x2c,
     case snoop_e::STASH_ONCE_UNIQUE:
-        return "STASH_ONCE_UNIQUE"; // = 0xd,
+        return "STASH_ONCE_UNIQUE"; // = 0x2d,
     case snoop_e::STASH_TRANSLATION:
-        return "STASH_TRANSLATION"; // = 0xe,
+        return "STASH_TRANSLATION"; // = 0x2e,
     default:
         return "reserved";
     };
