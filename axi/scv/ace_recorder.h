@@ -465,6 +465,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
    /*************************************************************************
      * prepare recording
      *************************************************************************/
+    auto begin_phase = phase;
     // Get a handle for the new transaction
     scv_tr_handle h = nb_trHandle[FW]->begin_transaction(phase2string(phase));
     scv4tlm::tlm_recording_extension* preExt = nullptr;
@@ -693,7 +694,7 @@ template <typename TYPES> void ace_recorder<TYPES>::nbtx_cb(tlm_recording_payloa
     } else if(phase == axi::ACK) {
         h = nb_trTimedHandle[ACK]->begin_transaction();
         h.record_attribute("trans", tgd);
-        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
+        h.add_relation(scv4tlm::rel_str(scv4tlm::PARENT_CHILD), rec_parts.parent);
         h.end_transaction();
     } else
         sc_assert(!"phase not supported!");

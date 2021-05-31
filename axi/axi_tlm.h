@@ -899,15 +899,15 @@ public:
     virtual void b_snoop(TRANS& trans, sc_core::sc_time& t) = 0;
 };
 //! alias declaration for the forward interface
-template <typename TYPES = tlm::tlm_base_protocol_types> using axi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
+template <typename TYPES = axi_protocol_types> using axi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
 //! alias declaration for the backward interface:
-template <typename TYPES = tlm::tlm_base_protocol_types> using axi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+template <typename TYPES = axi_protocol_types> using axi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
 //! alias declaration for the ACE forward interface
-template <typename TYPES = tlm::tlm_base_protocol_types> using ace_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
+template <typename TYPES = axi_protocol_types> using ace_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
 /**
  *  The ACE backward interface which combines the TLM2.0 backward interface and the @see bw_blocking_transport_if
  */
-template <typename TYPES = tlm::tlm_base_protocol_types>
+template <typename TYPES = axi_protocol_types>
 class ace_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
                             public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 /**
@@ -1045,7 +1045,13 @@ template<typename EXT>
 bool is_valid(EXT& ext){return is_valid(&ext);}
 
 template<typename EXT>
-bool is_valid(EXT* ext);
+bool is_valid(EXT* ext){ return is_valid_msg(ext)==nullptr;}
+
+template<typename EXT>
+char const* is_valid_msg(EXT& ext){return is_valid(&ext);}
+
+template<typename EXT>
+char const* is_valid_msg(EXT* ext);
 
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())

@@ -39,6 +39,8 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_
 , base(transfer_width)
 , socket_bw(port) {
     add_attribute(max_outstanding_tx);
+    add_attribute(rd_bw_limit_byte_per_sec);
+    add_attribute(wr_bw_limit_byte_per_sec);
     add_attribute(rd_data_interleaving);
     add_attribute(wr_data_accept_delay);
     add_attribute(rd_addr_accept_delay);
@@ -48,23 +50,34 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm, sc_core::sc_
     SC_METHOD(fsm_clk_method);
     dont_initialize();
     sensitive << clk_i.pos();
-    SC_METHOD(process_rd_resp_queue);
+    SC_METHOD(process_req2resp_fifos);
     dont_initialize();
     sensitive << clk_i.pos();
-    SC_THREAD(send_wr_resp_thread);
-    SC_THREAD(send_rd_resp_thread);
-    SC_THREAD(rd_resp_thread);
+    SC_THREAD(start_wr_resp_thread);
+    SC_THREAD(start_rd_resp_thread);
+    SC_THREAD(send_wr_resp_beat_thread);
+    SC_THREAD(send_rd_resp_beat_thread);
 }
 
 void axi_target_pe_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
+    if(rd_bw_limit_byte_per_sec.value>0.0){
+        time_per_byte_rd=sc_core::sc_time(1.0/rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+    }
+    if(wr_bw_limit_byte_per_sec.value>0.0){
+        time_per_byte_wr=sc_core::sc_time(1.0/wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+    }
 }
 
 void axi::pe::axi_target_pe_b::start_of_simulation() {
-    if((!rd_data_interleaving.value || rd_data_beat_delay.value==0) && !operation_cb) {
+    if(!operation_cb) {
         operation_cb=[this](payload_type& trans)-> unsigned {
-            if(trans.is_write()) return wr_resp_delay.value;
-            rd_resp_queue.push_back(std::make_tuple(&trans, rd_resp_delay.value));
+            if(trans.is_write())
+                wr_req2resp_fifo.push_back(std::make_tuple(&trans, wr_resp_delay.value));
+            else if(trans.is_read())
+                rd_req2resp_fifo.push_back(std::make_tuple(&trans, rd_resp_delay.value));
+            else
+                return 0;
             return std::numeric_limits<unsigned>::max();
         };
     }
@@ -153,10 +166,10 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
         // scheduling the response
         if(fsm_hndl->trans->is_read()){
-            if(!send_rd_resp_fifo.nb_write(std::make_tuple(fsm_hndl, BegPartRespE)))
+            if(!rd_resp_beat_fifo.nb_write(std::make_tuple(fsm_hndl, BegPartRespE)))
                 SCCERR(SCMOD)<<"too many outstanding transactions";
         } else if(fsm_hndl->trans->is_write()){
-            if(!send_wr_resp_fifo.nb_write(std::make_tuple(fsm_hndl, BegPartRespE)))
+            if(!wr_resp_beat_fifo.nb_write(std::make_tuple(fsm_hndl, BegPartRespE)))
                 SCCERR(SCMOD)<<"too many outstanding transactions";
         }
     };
@@ -172,10 +185,10 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
         // scheduling the response
         if(fsm_hndl->trans->is_read()){
-            if(!send_rd_resp_fifo.nb_write(std::make_tuple(fsm_hndl, BegRespE)))
+            if(!rd_resp_beat_fifo.nb_write(std::make_tuple(fsm_hndl, BegRespE)))
                 SCCERR(SCMOD)<<"too many outstanding transactions";
         } else if(fsm_hndl->trans->is_write()){
-            if(!send_wr_resp_fifo.nb_write(std::make_tuple(fsm_hndl, BegRespE)))
+            if(!wr_resp_beat_fifo.nb_write(std::make_tuple(fsm_hndl, BegRespE)))
                 SCCERR(SCMOD)<<"too many outstanding transactions";
         }
     };
@@ -203,28 +216,82 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 }
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay){
-    auto e = axi::get_burst_lenght(trans)==0 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
+    auto e = axi::get_burst_lenght(trans)==1 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
 	schedule(e, &trans, clk_delay);
 }
 
-void axi::pe::axi_target_pe_b::rd_resp_thread() {
-    while(true){
-        auto trans = rd_resp_fifo.read();
-        while(!rd_resp.get_value())
-        	wait(clk_i.posedge_event());
-        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
-        auto e = axi::get_burst_lenght(trans)==0 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
-    	schedule(e, trans, SC_ZERO_TIME);
-
+void axi::pe::axi_target_pe_b::process_req2resp_fifos() {
+    while (rd_req2resp_fifo.avail()) {
+        auto& entry = rd_req2resp_fifo.front();
+        if (std::get<1>(entry) == 0) {
+            rd_resp_fifo.write(std::get<0>(entry));
+        } else {
+            std::get<1>(entry) -= 1;
+            rd_req2resp_fifo.push_back(entry);
+        }
+        rd_req2resp_fifo.pop_front();
+    }
+    while (wr_req2resp_fifo.avail()) {
+        auto& entry = wr_req2resp_fifo.front();
+        if (std::get<1>(entry) == 0) {
+            wr_resp_fifo.write(std::get<0>(entry));
+        } else {
+            std::get<1>(entry) -= 1;
+            wr_req2resp_fifo.push_back(entry);
+        }
+        wr_req2resp_fifo.pop_front();
     }
 }
 
-void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
+void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
+    auto residual_clocks = 0.0;
+    while(true){
+        auto* trans = rd_resp_fifo.read();
+        if(clk_if && time_per_byte_rd.value()){
+            auto clocks = trans->get_data_length()*time_per_byte_rd/clk_if->period()+residual_clocks;
+            auto delay = static_cast<unsigned>(clocks);
+            residual_clocks = clocks-delay;
+            while(delay){
+                wait(clk_i.posedge_event());
+                delay--;
+            }
+        }
+        if(!rd_data_interleaving.value || rd_data_beat_delay.value==0){
+            while(!rd_resp.get_value()) wait(clk_i.posedge_event());
+            rd_resp.wait();
+        }
+        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
+        auto e = axi::get_burst_lenght(trans)==1 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
+        if(rd_data_beat_delay.value)
+            schedule(e, trans, rd_data_beat_delay.value-1);
+        else
+            schedule(e, trans, SC_ZERO_TIME);
+    }
+}
+
+void axi::pe::axi_target_pe_b::start_wr_resp_thread() {
+    auto residual_clocks = 0.0;
+    while(true){
+        auto* trans = wr_resp_fifo.read();
+        if(clk_if && time_per_byte_wr.value()){
+            auto clocks = trans->get_data_length()*time_per_byte_wr/clk_if->period()+residual_clocks;
+            auto delay = static_cast<unsigned>(clocks);
+            residual_clocks = clocks-delay;
+            while(delay){
+                wait(clk_i.posedge_event());
+                delay--;
+            }
+        }
+        schedule(axi::fsm::BegRespE, trans, SC_ZERO_TIME);
+    }
+}
+
+void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
     std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
     while(true) {
         // waiting for responses to send
-        wait(send_rd_resp_fifo.data_written_event());
-        while(send_rd_resp_fifo.nb_read(entry)) {
+        wait(rd_resp_beat_fifo.data_written_event());
+        while(rd_resp_beat_fifo.nb_read(entry)) {
             // there is something to send
             auto fsm_hndl = std::get<0>(entry);
             auto tp = std::get<1>(entry);
@@ -242,12 +309,12 @@ void axi::pe::axi_target_pe_b::send_rd_resp_thread() {
     }
 }
 
-void axi::pe::axi_target_pe_b::send_wr_resp_thread() {
+void axi::pe::axi_target_pe_b::send_wr_resp_beat_thread() {
     std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
     while(true) {
         // waiting for responses to send
-        wait(send_wr_resp_fifo.data_written_event());
-        while(send_wr_resp_fifo.nb_read(entry)) {
+        wait(wr_resp_beat_fifo.data_written_event());
+        while(wr_resp_beat_fifo.nb_read(entry)) {
             // there is something to send
             auto fsm_hndl = std::get<0>(entry);
             auto tp = std::get<1>(entry);
@@ -261,18 +328,3 @@ void axi::pe::axi_target_pe_b::send_wr_resp_thread() {
         }
     }
 }
-
-void axi::pe::axi_target_pe_b::process_rd_resp_queue() {
-    while (rd_resp_queue.avail()) {
-        auto& entry = rd_resp_queue.front();
-        SCCTRACE(SCMOD)<<__FUNCTION__<<" processing read response for address 0x"<<std::hex<<std::get<0>(entry)->get_address();
-        if (std::get<1>(entry) == 0) {
-            rd_resp_fifo.write(std::get<0>(entry));
-        } else {
-            std::get<1>(entry) -= 1;
-            rd_resp_queue.push_back(entry);
-        }
-        rd_resp_queue.pop_front();
-    }
-}
-

@@ -45,7 +45,7 @@ struct base {
      * @param transfer_width the bus width in bytes
      * @param wr_start the phase to start a write access
      */
-    base(size_t transfer_width, axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
+    base(size_t transfer_width, bool coherent=false, axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
     /**
      * @brief the destructor
      */
@@ -131,6 +131,8 @@ struct base {
     size_t transfer_width_in_bytes;
 
     const axi::fsm::protocol_time_point_e wr_start;
+
+    const bool coherent;
 
     std::unordered_map<payload_type*, axi::fsm::fsm_handle*> active_fsm;
 

@@ -288,6 +288,14 @@ template <> const char* to_char<rsp_resptype_e>(rsp_resptype_e v) {
         return "UNKNOWN_rsp_resptype_e";
     }
 }
+
+template<>
+bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
+    auto sz = ext->req.get_size();
+    if(sz>6) return false;
+    return true;
+}
+
 } // namespace chi
 #ifdef WITH_SCV
 #include <scv4tlm/tlm_recorder.h>

@@ -34,8 +34,6 @@ namespace pe {
  */
 class simple_initiator_b : public sc_core::sc_module, protected axi::fsm::base {
 public:
-    SC_HAS_PROCESS(simple_initiator_b);
-
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
@@ -52,6 +50,10 @@ public:
      * @brief the latency between between BEGIN_RESP and END_RESP (BVALID to BREADY)
      */
     sc_core::sc_attribute<unsigned> wr_resp_accept_delay{"wr_resp_accept_delay", 0};
+    /**
+     * @brief the latency between between BEGIN_RESP and END_RESP (BVALID to BREADY)
+     */
+    sc_core::sc_attribute<unsigned> ack_resp_delay{"ack_resp_delay", 0};
 
     /** @defgroup bw_if Initiator backward interface
      *  @{
@@ -127,7 +129,7 @@ protected:
      * @param transfer_width
      */
     explicit simple_initiator_b(const sc_core::sc_module_name& nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
-                                size_t transfer_width);
+                                size_t transfer_width, bool coherent=false);
 
     simple_initiator_b() = delete;
 
@@ -156,6 +158,8 @@ protected:
     sc_core::sc_time clk_period{1, sc_core::SC_NS};
     std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
+    sc_core::sc_clock* clk_if{nullptr};
+    void end_of_elaboration() override;
 };
 /**
  * the AXI initiator socket protocol engine adapted to a particular initiator socket configuration
@@ -228,7 +232,7 @@ public:
      */
 
     simple_ace_initiator(const sc_core::sc_module_name& nm, axi::ace_initiator_socket<BUSWIDTH, TYPES, N, POL>& socket)
-    : simple_initiator_b(nm, socket.get_base_port(), BUSWIDTH)
+    : simple_initiator_b(nm, socket.get_base_port(), BUSWIDTH, true)
     , socket(socket) {
         socket(*this);
         this->instance_name = socket.name();
