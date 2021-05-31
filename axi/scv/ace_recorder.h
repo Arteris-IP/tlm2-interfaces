@@ -241,7 +241,7 @@ private:
     std::array<scv_tr_generator<tlm::tlm_command, tlm::tlm_response_status>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> btx_handle_map;
 
-    enum DIR { FW, BW, REQ=FW, RESP=BW};
+    enum DIR { FW, BW, REQ=FW, RESP=BW, ACK};
     //! non-blocking transaction recording stream handle
     scv_tr_stream* nb_streamHandle{nullptr};
     //! non-blocking transaction recording stream handle with timing
@@ -249,7 +249,7 @@ private:
     //! transaction generator handle for non-blocking transactions
     std::array<scv_tr_generator<std::string, std::string>*, 2> nb_trHandle{{nullptr, nullptr}};
     //! transaction generator handle for non-blocking transactions with annotated delays
-    std::array<scv_tr_generator<>*, 2> nb_trTimedHandle{{nullptr, nullptr}};
+    std::array<scv_tr_generator<>*, 3> nb_trTimedHandle{{nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> nbtx_req_handle_map;
     std::unordered_map<uint64, scv_tr_handle> nbtx_last_req_handle_map;
     std::unordered_map<uint64, scv_tr_handle> nbtx_resp_handle_map;
@@ -285,6 +285,7 @@ protected:
                 nb_streamHandleTimed = new scv_tr_stream((fixed_basename + "_nb_timed").c_str(), "[TLM][ace][nb][timed]", m_db);
                 nb_trTimedHandle[FW] = new scv_tr_generator<>("request", *nb_streamHandleTimed);
                 nb_trTimedHandle[BW] = new scv_tr_generator<>("response", *nb_streamHandleTimed);
+                nb_trTimedHandle[ACK] = new scv_tr_generator<>("ack", *nb_streamHandleTimed);
             }
             if(enableDmiTracing.value) {
                 dmi_streamHandle = new scv_tr_stream((fixed_basename + "_dmi").c_str(), "[TLM][ace][dmi]", m_db);
@@ -518,7 +519,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
         if(ext)
             ext->recordEndTx(h, trans);
     // get the extension and free the memory if it was mine
-    if(status == tlm::TLM_COMPLETED || (status == tlm::TLM_ACCEPTED && phase == tlm::END_RESP)) {
+    if(status == tlm::TLM_COMPLETED || (phase == axi::ACK)) {
         // the transaction is finished
         trans.get_extension(preExt);
         if(preExt && preExt->get_creator() == this) {
@@ -685,10 +686,15 @@ template <typename TYPES> void ace_recorder<TYPES>::nbtx_cb(tlm_recording_payloa
             h = it->second;
             nbtx_resp_handle_map.erase(it);
             h.end_transaction();
-            if(phase == axi::END_PARTIAL_REQ) {
+            if(phase == axi::END_PARTIAL_RESP) {
                 nbtx_last_resp_handle_map[rec_parts.id] = h;
             }
         }
+    } else if(phase == axi::ACK) {
+        h = nb_trTimedHandle[ACK]->begin_transaction();
+        h.record_attribute("trans", tgd);
+        h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
+        h.end_transaction();
     } else
         sc_assert(!"phase not supported!");
     rec_parts.release();
