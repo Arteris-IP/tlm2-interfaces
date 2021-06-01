@@ -465,7 +465,6 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
    /*************************************************************************
      * prepare recording
      *************************************************************************/
-    auto begin_phase = phase;
     // Get a handle for the new transaction
     scv_tr_handle h = nb_trHandle[FW]->begin_transaction(phase2string(phase));
     scv4tlm::tlm_recording_extension* preExt = nullptr;
@@ -611,7 +610,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
         if(ext)
             ext->recordEndTx(h, trans);
     // get the extension and free the memory if it was mine
-    if(status == tlm::TLM_COMPLETED || (status == tlm::TLM_UPDATED && phase == tlm::END_RESP)) {
+    if(status == tlm::TLM_COMPLETED || (status == tlm::TLM_UPDATED && phase == axi::ACK)) {
         // the transaction is finished
         trans.get_extension(preExt);
         if(preExt->get_creator() == this) {
