@@ -22,7 +22,7 @@
 #include <systemc>
 #include <tlm/tlm_id.h>
 #include <tlm/tlm_mm.h>
-
+#include <stdexcept>
 using namespace sc_core;
 using namespace tlm;
 using namespace axi;
@@ -128,8 +128,10 @@ void base::process_fsm_clk_queue() {
 void base::react(protocol_time_point_e event, payload_type* trans) {
 	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
     auto fsm_hndl = active_fsm[trans];
-    if(!fsm_hndl)
+    if(!fsm_hndl) {
     	SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
+    	throw std::runtime_error("No valid FSM found for trans");
+    }
     switch(event) {
     case WReadyE:
         fsm_hndl->fsm->process_event(WReq());
