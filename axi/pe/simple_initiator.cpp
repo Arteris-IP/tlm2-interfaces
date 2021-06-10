@@ -108,7 +108,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
-            schedule(EndReqE, fsm_hndl->trans);
+            schedule(EndReqE, fsm_hndl->trans, SC_ZERO_TIME);
         } else {
             sc_time t;
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
