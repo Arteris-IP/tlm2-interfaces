@@ -434,16 +434,6 @@ void setExpCompAck(chi::chi_ctrl_extension* const req_e) {
     }
 }
 
-bool is_dataless(const chi::chi_ctrl_extension* req_e) {
-    auto opcode = req_e->req.get_opcode();
-    if(opcode == chi::req_optype_e::CleanShared || opcode == chi::req_optype_e::CleanInvalid || opcode == chi::req_optype_e::MakeInvalid ||
-            opcode == chi::req_optype_e::CleanUnique || opcode == chi::req_optype_e::MakeUnique ||
-            opcode == chi::req_optype_e::CleanSharedPersist || opcode == chi::req_optype_e::Evict) {
-        return true;
-    }
-    return false;
-}
-
 bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcode) {
     if(auto* rsp_e = gp.get_extension<chi::chi_ctrl_extension>()){
         rsp_e->resp.set_opcode(rsp_opcode);

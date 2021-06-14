@@ -853,10 +853,22 @@ struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_t
  *****************************************************************************/
 
 template<typename EXT>
+inline
 bool is_valid(EXT& ext){return is_valid(&ext);}
 
 template<typename EXT>
 bool is_valid(EXT* ext);
+
+inline
+bool is_dataless(const chi::chi_ctrl_extension* req_e) {
+    auto opcode = req_e->req.get_opcode();
+    if(opcode == chi::req_optype_e::CleanShared || opcode == chi::req_optype_e::CleanInvalid || opcode == chi::req_optype_e::MakeInvalid ||
+            opcode == chi::req_optype_e::CleanUnique || opcode == chi::req_optype_e::MakeUnique ||
+            opcode == chi::req_optype_e::CleanSharedPersist || opcode == chi::req_optype_e::Evict) {
+        return true;
+    }
+    return false;
+}
 
 /*****************************************************************************
  * Implementation details
