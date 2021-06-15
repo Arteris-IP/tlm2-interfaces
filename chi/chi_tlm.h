@@ -760,7 +760,6 @@ DECLARE_EXTENDED_PHASE(END_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(BEGIN_DATA);
 DECLARE_EXTENDED_PHASE(END_DATA);
 DECLARE_EXTENDED_PHASE(ACK);
-DECLARE_EXTENDED_PHASE(LINK_INIT);
 
 //! alias declaration for the forward interface
 template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;

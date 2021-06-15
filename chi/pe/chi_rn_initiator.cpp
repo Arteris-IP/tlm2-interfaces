@@ -523,25 +523,22 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
             sc_assert(it != tx_state_by_trans.end());
             it->second->peq.notify(std::make_tuple(&trans, phase), t);
         }
-    } else if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
-        auto lcredits_limit=credit_ext->get_lcredits();
-        SCCDEBUG(SCMOD) << "Setting number of outstanding transactions to "<<lcredits_limit;
-        m_lcredits.set_capacity(lcredits_limit);
-        return tlm::TLM_COMPLETED;
     } else {
-        auto const* ext = trans.get_extension<chi_ctrl_extension>();
-        sc_assert(ext != nullptr);
-        if(phase == tlm::BEGIN_REQ && ext->req.get_opcode() == req_optype_e::ReqLCrdReturn) {
-            if(m_lcredits.get_value()<m_lcredits.get_capacity())
-                m_lcredits.post();
-            //else
-            //    SCCWARN(SCMOD)<<"More L-Credits returned than granted";
-            phase = tlm::END_RESP;
-            trans.set_response_status(tlm::TLM_OK_RESPONSE);
-            SCCTRACE(SCMOD) << "Claiming back a credit, now at " << m_lcredits.get_value();
-            if(clk_if)
-                t += clk_if->period() - 1_ps;
-            return tlm::TLM_COMPLETED;
+        if(phase == tlm::BEGIN_REQ ) {
+            if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
+                if(credit_ext->type==credit_type_e::REQ) {
+                    SCCDEBUG(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
+                    for(auto i=0U; i<credit_ext->count; ++i)
+                        req_credits.post();
+                }
+                phase = tlm::END_RESP;
+                trans.set_response_status(tlm::TLM_OK_RESPONSE);
+                if(clk_if)
+                    t += clk_if->period() - 1_ps;
+                return tlm::TLM_COMPLETED;
+            } else {
+                SCCFATAL(SCMOD)<<"Illegal transaction received from HN";
+            }
         } else {
             auto it = tx_state_by_trans.find(to_id(trans));
             sc_assert(it != tx_state_by_trans.end());
@@ -858,7 +855,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         auto const txn_id = req_ext->get_txn_id();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
         // Check if Link-credits are available for sending this transactionand wait if not
-        m_lcredits.wait();
+        req_credits.wait();
         SCCTRACE(SCMOD) << "starting transaction with txn_id="<<txn_id;
         setExpCompAck(req_ext);
 
@@ -891,6 +888,13 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                 sc_assert(std::get<0>(entry) == &trans && std::get<1>(entry) == tlm::END_REQ);
             }
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
+            if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
+                if(credit_ext->type==credit_type_e::REQ) {
+                    SCCDEBUG(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
+                    for(auto i=0U; i<credit_ext->count; ++i)
+                        req_credits.post();
+                }
+            }
         }
 
         if((req_optype_e::AtomicLoadAdd <= req_ext->req.get_opcode()) && (req_ext->req.get_opcode() <= req_optype_e::AtomicCompare))
