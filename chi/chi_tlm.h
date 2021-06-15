@@ -263,6 +263,12 @@ enum class rsp_resptype_e : uint8_t {
     Comp_SC = 0b001, // final state SC or I
 };
 
+enum class credit_type_e : uint8_t {
+    LINK,
+    REQ,  // RN->HN: snoop,  HN->RN: req
+    RESP, // RN->HN: cresp,  HN->RN: sresp
+    DATA, // RN->HN: rxdata, HN->RN: txdata
+};
 /**
  * common : This structure contains common fields for all the 4 structures of 'request', 'snp_request',
  *            'data' packet as well as 'response'
@@ -590,14 +596,11 @@ private:
     bool trace_tag{false};
 };
 
-struct lcredit {
-    lcredit() = default;
-    void set_lcredits(int ncredits) { lcredits = ncredits; }
-    void decrement_lcredits() { lcredits--; }
-    unsigned get_lcredits() { return lcredits; }
-
-private:
-    int lcredits{0};
+struct credit {
+    credit() = default;
+    credit(short unsigned count, chi::credit_type_e type):count(count), type(type){}
+    unsigned short count{1};
+    credit_type_e type{credit_type_e::LINK};
 };
 
 struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
@@ -713,11 +716,13 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     data dat{};
 };
 
-struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public lcredit {
+struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public credit {
     /**
      * @brief the default constructor
      */
     chi_credit_extension() = default;
+
+    chi_credit_extension(credit_type_e type, unsigned short count=1) : credit(count, type) {}
     /**
      * @brief the copy constructor
      * @param the extension to copy from
