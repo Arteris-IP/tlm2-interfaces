@@ -64,7 +64,6 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
     chi_req_ext->req.set_size(chi_size);
 
     uint8_t mem_attr = 0; // CHI request field MemAttr
-    uint8_t order = 0b10; // CHI request field Order
 
     // Set opcode based on snoop, bar and domain
     if(!is_ace) {
@@ -313,11 +312,9 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             switch(ace_ext->get_cache()) {
             case 0b0000:
                 mem_attr = 0b0010;
-                order = 0b11;
                 break;
             case 0b0001:
                 mem_attr = 0b0011;
-                order = 0b11;
                 break;
             case 0b0010:
                 mem_attr = 0b0000;
@@ -348,10 +345,42 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             auto device = !ace_ext->is_bufferable();
             auto ewa = cachable || !device;
             mem_attr = (allocate?8:0) + (cachable?4:0) + (device?2:0) + (ewa?1:0);
+            // ReadNoSnp., ReadNoSnpSep., ReadOnce*., WriteNoSnp., WriteNoSnp, CMO., WriteNoSnpZero., WriteUnique., WriteUnique, CMO., WriteUniqueZero., Atomic.
+            if(!device)
+            switch(opcode){
+            case chi::req_optype_e::ReadNoSnp:
+            case chi::req_optype_e::ReadNoSnpSep:
+            case chi::req_optype_e::ReadOnce:
+            case chi::req_optype_e::ReadOnceCleanInvalid:
+            case chi::req_optype_e::ReadOnceMakeInvalid:
+            case chi::req_optype_e::WriteNoSnpPtl:
+            case chi::req_optype_e::WriteNoSnpFull:
+            case chi::req_optype_e::WriteUniquePtl:
+            case chi::req_optype_e::WriteUniqueFull:
+            case chi::req_optype_e::AtomicStoreAdd:
+            case chi::req_optype_e::AtomicStoreClr:
+            case chi::req_optype_e::AtomicStoreEor:
+            case chi::req_optype_e::AtomicStoreSet:
+            case chi::req_optype_e::AtomicStoreSmax:
+            case chi::req_optype_e::AtomicStoreSmin:
+            case chi::req_optype_e::AtomicStoreUmax:
+            case chi::req_optype_e::AtomicStoreUmin:
+            case chi::req_optype_e::AtomicLoadAdd:
+            case chi::req_optype_e::AtomicLoadClr:
+            case chi::req_optype_e::AtomicLoadEor:
+            case chi::req_optype_e::AtomicLoadSet:
+            case chi::req_optype_e::AtomicLoadSmax:
+            case chi::req_optype_e::AtomicLoadSmin:
+            case chi::req_optype_e::AtomicLoadUmax:
+            case chi::req_optype_e::AtomicLoadUmin:
+            case chi::req_optype_e::AtomicSwap:
+            case chi::req_optype_e::AtomicCompare:
+                chi_req_ext->req.set_order(0b10);
+                break;
+            }
         }
     }
     chi_req_ext->req.set_mem_attr(mem_attr);
-    chi_req_ext->req.set_order(order);
 
     if(!chi::is_valid(chi_req_ext))
         SCCFATAL(__FUNCTION__)<<"Conversion created an invalid chi request, pls. check the AXI/ACE settings";
