@@ -64,6 +64,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
     chi_req_ext->req.set_size(chi_size);
 
     uint8_t mem_attr = 0; // CHI request field MemAttr
+    uint8_t order = 0b10; // CHI request field Order
 
     // Set opcode based on snoop, bar and domain
     if(!is_ace) {
@@ -312,9 +313,11 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             switch(ace_ext->get_cache()) {
             case 0b0000:
                 mem_attr = 0b0010;
+                order = 0b11;
                 break;
             case 0b0001:
                 mem_attr = 0b0011;
+                order = 0b11;
                 break;
             case 0b0010:
                 mem_attr = 0b0000;
@@ -348,6 +351,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
         }
     }
     chi_req_ext->req.set_mem_attr(mem_attr);
+    chi_req_ext->req.set_order(order);
 
     if(!chi::is_valid(chi_req_ext))
         SCCFATAL(__FUNCTION__)<<"Conversion created an invalid chi request, pls. check the AXI/ACE settings";
