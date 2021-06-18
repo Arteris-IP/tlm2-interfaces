@@ -480,7 +480,7 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
                 auto dat_e = gp.get_extension<chi::chi_data_extension>();
                 rsp_e->set_src_id(dat_e->get_src_id());
                 rsp_e->set_qos(dat_e->get_qos());
-                rsp_e->set_txn_id(dat_e->get_txn_id());
+                rsp_e->set_txn_id(dat_e->dat.get_db_id());
                 rsp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
                 rsp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
                 return true;
@@ -936,7 +936,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             exec_read_write_protocol(txn_id, trans, txs);
             bool is_atomic = req_ext->req.get_opcode() >= req_optype_e::AtomicStoreAdd && req_ext->req.get_opcode() <= req_optype_e::AtomicCompare;
             bool is_stash = req_ext->req.get_opcode() >= req_optype_e::WriteUniqueFullStash && req_ext->req.get_opcode() <= req_optype_e::StashOnceUnique;
-            if(!is_atomic && !is_stash && req_ext->req.is_exp_comp_ack())
+            if(!is_atomic && !is_stash && !trans.is_write() && req_ext->req.is_exp_comp_ack())
                 send_comp_ack(trans, txs);
         }
 
