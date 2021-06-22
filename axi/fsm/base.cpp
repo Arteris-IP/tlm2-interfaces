@@ -97,7 +97,7 @@ void base::process_fsm_event() {
     while(auto e = fsm_event_queue.get_next()) {
         auto entry = e.get();
         if(std::get<2>(entry))
-            schedule(std::get<0>(entry), std::get<1>(entry));
+            schedule(std::get<0>(entry), std::get<1>(entry), 0);
         else
             react(std::get<0>(entry), std::get<1>(entry));
     }

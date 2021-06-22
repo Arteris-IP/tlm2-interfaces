@@ -97,16 +97,9 @@ struct base {
     /**
      * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
      */
-    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles = 0) {
+    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles) {
     	SCCTRACE(instance_name)<<"pushing sync event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (sync:"<<cycles<<")";
         fsm_clk_queue.push_back(std::make_tuple(e, gp, cycles));
-    }
-    /**
-     * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
-     */
-    void schedule_imm(axi::fsm::protocol_time_point_e e, payload_type* gp, bool syncronize = false) {
-    	SCCTRACE(instance_name)<<"pushing event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (immediate)";
-        fsm_event_queue.notify(std::make_tuple(e, gp, syncronize));
     }
     /**
      * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
