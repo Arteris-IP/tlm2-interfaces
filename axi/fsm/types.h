@@ -43,7 +43,7 @@ enum protocol_time_point_e {
 
 inline const char* evt2str(unsigned evt) {
     static const char* lut[] = {"RequestPhaseBeg", "WReadyE",          "WValidE",      "BegPartReqE",  "EndPartReqE", "BegReqE",
-                                "EndReqE",         "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE"};
+                                "EndReqE",         "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",  "Ack"};
     return lut[evt];
 }
 //! alias for the callback function

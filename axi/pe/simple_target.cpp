@@ -320,7 +320,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
             rd_resp_ch.wait();
             SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
-                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans);
+                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
             }
         }
     }

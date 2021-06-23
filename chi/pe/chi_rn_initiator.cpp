@@ -471,7 +471,7 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
     if(auto* rsp_e = gp.get_extension<chi::chi_ctrl_extension>()){
         rsp_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
-            if(is_dataless(rsp_e)) {
+            if(is_dataless(rsp_e) || gp.is_write()) {
                 rsp_e->resp.set_tgt_id(rsp_e->req.get_tgt_id());
                 rsp_e->resp.set_trace_tag(rsp_e->req.is_trace_tag()); // XXX ??
                 rsp_e->cmn.set_txn_id(rsp_e->resp.get_db_id());
@@ -935,8 +935,22 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         else {
             exec_read_write_protocol(txn_id, trans, txs);
             bool is_atomic = req_ext->req.get_opcode() >= req_optype_e::AtomicStoreAdd && req_ext->req.get_opcode() <= req_optype_e::AtomicCompare;
-            bool is_stash = req_ext->req.get_opcode() >= req_optype_e::WriteUniqueFullStash && req_ext->req.get_opcode() <= req_optype_e::StashOnceUnique;
-            if(!is_atomic && !is_stash && !trans.is_write() && req_ext->req.is_exp_comp_ack())
+            bool compack_allowed=true;
+            switch(req_ext->req.get_opcode()) {
+            case req_optype_e::WriteUniqueFullStash:
+            case req_optype_e::WriteUniquePtlStash:
+            case req_optype_e::StashOnceShared:
+            case req_optype_e::StashOnceUnique:
+            case req_optype_e::WriteBackPtl:
+            case req_optype_e::WriteBackFull:
+            case req_optype_e::WriteCleanFull:
+            case req_optype_e::WriteEvictFull:
+            compack_allowed=false;
+            break;
+            default:
+            break;
+            }
+            if(!is_atomic && compack_allowed && req_ext->req.is_exp_comp_ack())
                 send_comp_ack(trans, txs);
         }
 
