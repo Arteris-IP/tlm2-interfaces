@@ -389,9 +389,11 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
         gp.set_auto_extension(chi_req_ext);
     else {
         gp.set_extension(chi_req_ext);
-        delete ace_ext;
-        delete axi4_ext;
     }
+    delete ace_ext; ace_ext=nullptr;
+    delete axi4_ext; axi4_ext = nullptr;
+    gp.set_extension(ace_ext);
+    gp.set_extension(axi4_ext);
 }
 
 void setExpCompAck(chi::chi_ctrl_extension* const req_e) {
@@ -750,7 +752,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                     resp_ext->resp.get_opcode() == chi::rsp_optype_e::CompDBIDResp)) {
                 send_wdata(trans, txs);
                 not_finish &= 0x2; // clear bit0
-            } else if(trans.get_command() == tlm::TLM_IGNORE_COMMAND && resp_ext->resp.get_opcode() == chi::rsp_optype_e::Comp &&
+            } else if(chi::is_dataless(resp_ext) && resp_ext->resp.get_opcode() == chi::rsp_optype_e::Comp &&
                     (resp_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
                             resp_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_UC ||
                             resp_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_SC)) { // Response to dataless makeUnique request
