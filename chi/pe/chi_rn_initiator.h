@@ -19,6 +19,7 @@
 #include <chi/chi_tlm.h>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
+#include <scc/sc_variable.h>
 #include <systemc>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
@@ -164,6 +165,11 @@ private:
 
     sc_core::sc_clock* clk_if{nullptr};
     uint64_t peq_cnt{0};
+
+    unsigned  tx_waiting{0};
+    scc::sc_variable_t<unsigned> tx_waiting_v { "TxWaiting", tx_waiting };
+    unsigned  tx_outstanding{0};
+    scc::sc_variable_t<unsigned> tx_outstanding_v { "TxOutstanding", tx_outstanding };
 };
 
 /**

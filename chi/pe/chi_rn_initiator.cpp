@@ -878,7 +878,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         req_ext->set_src_id(src_id.value);
         req_ext->req.set_tgt_id(home_node_id.value);
         req_ext->req.set_max_flit(calculate_beats(trans) - 1);
-
+        tx_waiting++;
         auto it = tx_state_by_trans.find(to_id(trans));
         if(it == tx_state_by_trans.end()) {
             bool success;
@@ -887,6 +887,8 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         auto& txs = it->second;
         auto const txn_id = req_ext->get_txn_id();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
+        tx_outstanding++;
+        tx_waiting--;
         // Check if Link-credits are available for sending this transactionand wait if not
         req_credits.wait();
         SCCTRACE(SCMOD) << "starting transaction with txn_id="<<txn_id;
@@ -959,6 +961,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         tx_state_by_trans.erase(to_id(trans));
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
         any_tx_finished.notify(SC_ZERO_TIME);
+        tx_outstanding--;
     }
 }
 
