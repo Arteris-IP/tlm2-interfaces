@@ -40,7 +40,7 @@ base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
 , wr_start(wr_start)
 , coherent(coherent){
-    assert(wr_start == RequestPhaseBeg || wr_start == WReadyE);
+    assert(wr_start == RequestPhaseBeg || wr_start == WValidE);
     idle_fsm.clear();
     active_fsm.clear();
     sc_core::sc_spawn_options opts;
@@ -133,10 +133,10 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
     	throw std::runtime_error("No valid FSM found for trans");
     }
     switch(event) {
-    case WReadyE:
+    case WValidE:
         fsm_hndl->fsm->process_event(WReq());
         return;
-    case WValidE:
+    case WReadyE:
     case RequestPhaseBeg:
         if(is_burst(trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
