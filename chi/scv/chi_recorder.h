@@ -243,7 +243,7 @@ private:
     std::array<scv_tr_generator<tlm::tlm_command, tlm::tlm_response_status>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
     std::unordered_map<uint64, scv_tr_handle> btx_handle_map;
 
-    enum DIR { FW, BW, DATA, ACK, LINK, REQ=FW, RESP=BW };
+    enum DIR { FW, BW, DATA, ACK, CREDIT, REQ=FW, RESP=BW };
     enum TYPE {READ = tlm::TLM_READ_COMMAND, WRITE = tlm::TLM_WRITE_COMMAND, OTHER=tlm::TLM_IGNORE_COMMAND, SNOOP, NO_OF_TYPES};
     //! non-blocking transaction recording stream handle
     scv_tr_stream* nb_streamHandle{nullptr};
@@ -293,7 +293,7 @@ protected:
                 nb_trTimedHandle[RESP] = new scv_tr_generator<>("response", *nb_streamHandleTimed);
                 nb_trTimedHandle[DATA] = new scv_tr_generator<>("data", *nb_streamHandleTimed);
                 nb_trTimedHandle[ACK] = new scv_tr_generator<>("ack", *nb_streamHandleTimed);
-                nb_trTimedHandle[LINK] = new scv_tr_generator<>("link", *nb_streamHandleTimed);
+                nb_trTimedHandle[CREDIT] = new scv_tr_generator<>("link", *nb_streamHandleTimed);
             }
             if(enableDmiTracing.value) {
                 dmi_streamHandle = new scv_tr_stream((fixed_basename + "_dmi").c_str(), "[TLM][ace][dmi]", m_db);
@@ -743,8 +743,8 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
             nb_trTimedHandle[ACK]->end_transaction(it->second);
             nbtx_ack_handle_map.erase(it);
         }
-    } else if(phase==chi::LINK_INIT) {
-        nb_trTimedHandle[LINK]->begin_transaction().end_transaction();
+//    } else if(phase==chi::LINK_INIT) {
+//        nb_trTimedHandle[CREDIT]->begin_transaction().end_transaction();
     } else
         sc_assert(!"phase not supported!");
     rec_parts.release();

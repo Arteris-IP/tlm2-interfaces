@@ -65,7 +65,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp)
             SCCTRACE(instance_name) << "creating fsm for trans " << *gp << ", ptr " << gp << std::dec;
         else
-            SCCTRACE(util::padded(instance_name, 24)) << "creating fsm for undefined transaction";
+            SCCTRACE(instance_name) << "creating fsm for undefined transaction";
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
             auto fsm = new AxiProtocolFsm();
@@ -138,7 +138,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         return;
     case WValidE:
     case RequestPhaseBeg:
-        if(is_burst(trans) && trans->is_write())
+        if(is_burst(trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());

@@ -263,6 +263,12 @@ enum class rsp_resptype_e : uint8_t {
     Comp_SC = 0b001, // final state SC or I
 };
 
+enum class credit_type_e : uint8_t {
+    LINK,
+    REQ,  // RN->HN: snoop,  HN->RN: req
+    RESP, // RN->HN: cresp,  HN->RN: sresp
+    DATA, // RN->HN: rxdata, HN->RN: txdata
+};
 /**
  * common : This structure contains common fields for all the 4 structures of 'request', 'snp_request',
  *            'data' packet as well as 'response'
@@ -590,14 +596,11 @@ private:
     bool trace_tag{false};
 };
 
-struct lcredit {
-    lcredit() = default;
-    void set_lcredits(int ncredits) { lcredits = ncredits; }
-    void decrement_lcredits() { lcredits--; }
-    unsigned get_lcredits() { return lcredits; }
-
-private:
-    int lcredits{0};
+struct credit {
+    credit() = default;
+    credit(short unsigned count, chi::credit_type_e type):count(count), type(type){}
+    unsigned short count{1};
+    credit_type_e type{credit_type_e::LINK};
 };
 
 struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
@@ -713,11 +716,13 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     data dat{};
 };
 
-struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public lcredit {
+struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public credit {
     /**
      * @brief the default constructor
      */
     chi_credit_extension() = default;
+
+    chi_credit_extension(credit_type_e type, unsigned short count=1) : credit(count, type) {}
     /**
      * @brief the copy constructor
      * @param the extension to copy from
@@ -755,7 +760,6 @@ DECLARE_EXTENDED_PHASE(END_PARTIAL_DATA);
 DECLARE_EXTENDED_PHASE(BEGIN_DATA);
 DECLARE_EXTENDED_PHASE(END_DATA);
 DECLARE_EXTENDED_PHASE(ACK);
-DECLARE_EXTENDED_PHASE(LINK_INIT);
 
 //! alias declaration for the forward interface
 template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
@@ -853,10 +857,22 @@ struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_t
  *****************************************************************************/
 
 template<typename EXT>
+inline
 bool is_valid(EXT& ext){return is_valid(&ext);}
 
 template<typename EXT>
 bool is_valid(EXT* ext);
+
+inline
+bool is_dataless(const chi::chi_ctrl_extension* req_e) {
+    auto opcode = req_e->req.get_opcode();
+    if(opcode == chi::req_optype_e::CleanShared || opcode == chi::req_optype_e::CleanInvalid || opcode == chi::req_optype_e::MakeInvalid ||
+            opcode == chi::req_optype_e::CleanUnique || opcode == chi::req_optype_e::MakeUnique ||
+            opcode == chi::req_optype_e::CleanSharedPersist || opcode == chi::req_optype_e::Evict) {
+        return true;
+    }
+    return false;
+}
 
 /*****************************************************************************
  * Implementation details

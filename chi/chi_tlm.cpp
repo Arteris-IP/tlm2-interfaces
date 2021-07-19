@@ -289,6 +289,21 @@ template <> const char* to_char<rsp_resptype_e>(rsp_resptype_e v) {
     }
 }
 
+template <> const char* to_char<credit_type_e>(credit_type_e v) {
+    switch(v) {
+    case credit_type_e::LINK:
+        return "LINK";
+    case credit_type_e::REQ:
+        return "REQ";
+    case credit_type_e::RESP:
+        return "RESP";
+    case credit_type_e::DATA:
+        return "DATA";
+    default:
+        return "credit_type_e";
+    }
+}
+
 template<>
 bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
     auto sz = ext->req.get_size();
@@ -416,7 +431,8 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
     void recordBeginTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
         auto ext = trans.get_extension<chi_credit_extension>();
         if(ext) {
-            handle.record_attribute("trans.chi_credit.lcredits", ext->get_lcredits());
+            handle.record_attribute("trans.chi_credit.type", std::string(to_char(ext->type)));
+            handle.record_attribute("trans.chi_credit.count", ext->count);
         }
     }
 

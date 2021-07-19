@@ -20,6 +20,8 @@ namespace axi {
 
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
+    case snoop_e::READ_NO_SNOOP:
+        return "READ_NO_SNOOP"; //= 0x10
     case snoop_e::READ_ONCE:
         return "READ_ONCE"; //= 0
     case snoop_e::READ_SHARED:
@@ -46,6 +48,10 @@ template <> const char* to_char<snoop_e>(snoop_e v) {
         return "DVM_COMPLETE"; // = 0xe,
     case snoop_e::DVM_MESSAGE:
         return "DVM_MESSAGE"; // = 0xf
+    case snoop_e::BARRIER:
+        return "BARRIER"; // = 0x40,
+    case snoop_e::WRITE_NO_SNOOP:
+        return "WRITE_NO_SNOOP"; //= 0x30
     case snoop_e::WRITE_UNIQUE:
         return "WRITE_UNIQUE"; //= 0
     case snoop_e::WRITE_LINE_UNIQUE:
@@ -58,6 +64,8 @@ template <> const char* to_char<snoop_e>(snoop_e v) {
         return "EVICT"; // = 0x4,
     case snoop_e::WRITE_EVICT:
         return "WRITE_EVICT"; // = 0x5,
+    case snoop_e::CMO_ON_WRITE:
+        return "CMO_ON_WRITE"; // = 0x26,
     case snoop_e::WRITE_UNIQUE_PTL_STASH:
         return "WRITE_UNIQUE_PTL_STASH"; // = 0x8,
     case snoop_e::WRITE_UNIQUE_FULL_STASH:
