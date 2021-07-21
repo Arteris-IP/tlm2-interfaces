@@ -246,7 +246,6 @@ char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
     return nullptr;
 }
 } // namespace axi
-#ifdef WITH_SCV
 #include <tlm/scc/scv/tlm_recorder.h>
 namespace axi {
 
@@ -367,4 +366,3 @@ __attribute__((constructor)) bool register_extensions() {
 bool registered = register_extensions();
 } // namespace scv
 } // namespace axi
-#endif
