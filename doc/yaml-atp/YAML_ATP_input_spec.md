@@ -283,7 +283,7 @@ For more complex stepping, there is a two-dimensional command of the form:
 
 |Syntax|Comment
 |------|-----------------|
-|type:&nbsp;&lt;stepping>|stepping = sequential or random|
+|type:&nbsp;twodim| |
 |range:&nbsp;[&lt;base>,&lt;range>]|the starting address and range of generated addresses.	base + range-1 = the highest address|
 |alignment:&nbsp;&lt;alignment&nbsp;size>|If omitted the accesses are not aligned. A value of 0 indicates that accesses shall be align to the data bus width|
 |xrange:&nbsp;&lt;xrange>|
