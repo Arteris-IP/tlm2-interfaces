@@ -113,6 +113,8 @@ public:
     sc_core::sc_attribute<unsigned> ba{"ba", 0};
     //! Quirks enable
     sc_core::sc_attribute<bool> enable_id_serializing{"enable_id_serializing", false};
+    //! number of snoops which can be handled
+    sc_core::sc_attribute<unsigned> outstanding_snoops{"outstanding_snoops", 8};
 protected:
     unsigned calculate_beats(payload_type& p) {
         sc_assert(p.get_data_length() > 0);
@@ -152,7 +154,7 @@ protected:
 
 private:
     sc_core::sc_clock* clk_if{nullptr};
-    void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
+	void end_of_elaboration() override;
     void clk_counter() { m_clock_counter++; }
     unsigned get_clk_cnt() { return m_clock_counter; }
 

@@ -40,7 +40,7 @@ base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
 , wr_start(wr_start)
 , coherent(coherent){
-    assert(wr_start == RequestPhaseBeg || wr_start == WReadyE);
+    assert(wr_start == RequestPhaseBeg || wr_start == WValidE);
     idle_fsm.clear();
     active_fsm.clear();
     sc_core::sc_spawn_options opts;
@@ -65,7 +65,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp)
             SCCTRACE(instance_name) << "creating fsm for trans " << *gp << ", ptr " << gp << std::dec;
         else
-            SCCTRACE(util::padded(instance_name, 24)) << "creating fsm for undefined transaction";
+            SCCTRACE(instance_name) << "creating fsm for undefined transaction";
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
             auto fsm = new AxiProtocolFsm();
@@ -97,7 +97,7 @@ void base::process_fsm_event() {
     while(auto e = fsm_event_queue.get_next()) {
         auto entry = e.get();
         if(std::get<2>(entry))
-            schedule(std::get<0>(entry), std::get<1>(entry));
+            schedule(std::get<0>(entry), std::get<1>(entry), 0);
         else
             react(std::get<0>(entry), std::get<1>(entry));
     }
@@ -128,15 +128,17 @@ void base::process_fsm_clk_queue() {
 void base::react(protocol_time_point_e event, payload_type* trans) {
 	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
     auto fsm_hndl = active_fsm[trans];
-    if(!fsm_hndl)
+    if(!fsm_hndl) {
     	SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
+    	throw std::runtime_error("No valid FSM found for trans");
+    }
     switch(event) {
-    case WReadyE:
+    case WValidE:
         fsm_hndl->fsm->process_event(WReq());
         return;
-    case WValidE:
+    case WReadyE:
     case RequestPhaseBeg:
-        if(is_burst(trans) && trans->is_write())
+        if(is_burst(trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());

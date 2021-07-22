@@ -417,7 +417,7 @@ struct request {
     uint32_t get_rsvdc() const; // Reserved for customer use.
 
 private:
-    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0}, order{22};
+    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0}, order{0};
     bool endian{false}, trace_tag{false};
     uint16_t return_n_id{0}, stash_n_id{0};
     req_optype_e opcode{req_optype_e::ReqLCrdReturn};

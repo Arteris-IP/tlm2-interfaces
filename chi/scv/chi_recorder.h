@@ -46,6 +46,7 @@ public:
     uint64 id{0};
     bool is_snoop{false};
     bool is_data{false};
+    bool is_credit{false};
     chi_recording_payload& operator=(const typename TYPES::tlm_payload_type& x) {
         id = (uint64)&x;
         this->set_command(x.get_command());
@@ -505,9 +506,10 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
         (*req) = trans;
         req->parent = h;
         req->is_snoop = is_snoop;
-        chi::chi_data_extension* dext;
-        trans.get_extension(dext);
-        req->is_data = dext!=nullptr;
+        req->is_data = (phase == chi::BEGIN_DATA || chi::BEGIN_PARTIAL_DATA);
+        chi_credit_extension* ext;
+        trans.get_extension(ext);
+        req->is_credit = (phase==tlm::BEGIN_REQ && ext!=nullptr);
         nb_timed_peq.notify(*req, phase, delay);
     }
     /*************************************************************************
@@ -601,6 +603,9 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
         req->parent = h;
         req->is_snoop = is_snoop;
         req->is_data = (phase == chi::BEGIN_DATA || chi::BEGIN_PARTIAL_DATA);
+        chi_credit_extension* ext;
+        trans.get_extension(ext);
+        req->is_credit = (phase==tlm::BEGIN_REQ && ext!=nullptr);
         nb_timed_peq.notify(*req, phase, delay);
     }
     /*************************************************************************
@@ -661,7 +666,9 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
     std::unordered_map<uint64, scv_tr_handle>::iterator it;
     tlm::scc::scv::tlm_gp_data tgd(rec_parts);
     // Now process outstanding recordings
-    if(phase == tlm::BEGIN_REQ) {
+    if(rec_parts.is_credit) {
+        nb_trTimedHandle[CREDIT]->begin_transaction().end_transaction();
+    } else if(phase == tlm::BEGIN_REQ) {
         h = nb_trTimedHandle[REQ]->begin_transaction();
         h.record_attribute("trans", tgd);
         h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PARENT_CHILD), rec_parts.parent);
@@ -744,8 +751,6 @@ void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const ty
             nb_trTimedHandle[ACK]->end_transaction(it->second);
             nbtx_ack_handle_map.erase(it);
         }
-//    } else if(phase==chi::LINK_INIT) {
-//        nb_trTimedHandle[CREDIT]->begin_transaction().end_transaction();
     } else
         sc_assert(!"phase not supported!");
     rec_parts.release();

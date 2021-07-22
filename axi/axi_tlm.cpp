@@ -148,7 +148,7 @@ template <> const char* to_char<resp_e>(resp_e v) {
     case resp_e::DECERR:
         return "DECERR";
     default:
-        return "UNKNOWN";
+        return "OTHER";
     }
 }
 
@@ -266,10 +266,10 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
             handle.record_attribute("trans.axi3.prot", ext3->get_prot());
             handle.record_attribute("trans.axi3.exclusive", std::string(ext3->is_exclusive() ? "true" : "false"));
             handle.record_attribute("trans.axi3.cache", ext3->get_cache());
-            handle.record_attribute("trans.axi4.cache.bufferable", ext3->is_bufferable());
-            handle.record_attribute("trans.axi4.cache.cacheable", ext3->is_cacheable());
-            handle.record_attribute("trans.axi4.cache.read_alloc", ext3->is_read_allocate());
-            handle.record_attribute("trans.axi4.cache.write_alloc", ext3->is_write_allocate());
+            handle.record_attribute("trans.axi4.cache_bufferable", ext3->is_bufferable());
+            handle.record_attribute("trans.axi4.cache_cacheable", ext3->is_cacheable());
+            handle.record_attribute("trans.axi4.cache_read_alloc", ext3->is_read_allocate());
+            handle.record_attribute("trans.axi4.cache_write_alloc", ext3->is_write_allocate());
             handle.record_attribute("trans.axi3.qos", ext3->get_qos());
             handle.record_attribute("trans.axi3.region", ext3->get_region());
         }
@@ -297,10 +297,10 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
             handle.record_attribute("trans.axi4.prot", ext4->get_prot());
             handle.record_attribute("trans.axi4.exclusive", std::string(ext4->is_exclusive() ? "true" : "false"));
             handle.record_attribute("trans.axi4.cache", ext4->get_cache());
-            handle.record_attribute("trans.axi4.cache.bufferable", ext4->is_bufferable());
-            handle.record_attribute("trans.axi4.cache.modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.axi4.cache.write_other_alloc", ext4->is_write_other_allocate());
-            handle.record_attribute("trans.axi4.cache.read_other_alloc", ext4->is_read_other_allocate());
+            handle.record_attribute("trans.axi4.cache_bufferable", ext4->is_bufferable());
+            handle.record_attribute("trans.axi4.cache_modifiable", ext4->is_modifiable());
+            handle.record_attribute("trans.axi4.cache_write_other_alloc", ext4->is_write_other_allocate());
+            handle.record_attribute("trans.axi4.cache_read_other_alloc", ext4->is_read_other_allocate());
             handle.record_attribute("trans.axi4.qos", ext4->get_qos());
             handle.record_attribute("trans.axi4.region", ext4->get_region());
         }
@@ -327,10 +327,10 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
             handle.record_attribute("trans.ace.prot", ext4->get_prot());
             handle.record_attribute("trans.ace.exclusive", std::string(ext4->is_exclusive() ? "true" : "false"));
             handle.record_attribute("trans.ace.cache", ext4->get_cache());
-            handle.record_attribute("trans.ace.cache.bufferable", ext4->is_bufferable());
-            handle.record_attribute("trans.ace.cache.modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.ace.cache.write_other_alloc", ext4->is_write_other_allocate());
-            handle.record_attribute("trans.ace.cache.read_other_alloc", ext4->is_read_other_allocate());
+            handle.record_attribute("trans.ace.cache_bufferable", ext4->is_bufferable());
+            handle.record_attribute("trans.ace.cache_modifiable", ext4->is_modifiable());
+            handle.record_attribute("trans.ace.cache_write_other_alloc", ext4->is_write_other_allocate());
+            handle.record_attribute("trans.ace.cache_read_other_alloc", ext4->is_read_other_allocate());
             handle.record_attribute("trans.ace.qos", ext4->get_qos());
             handle.record_attribute("trans.ace.region", ext4->get_region());
             handle.record_attribute("trans.ace.domain", std::string(to_char(ext4->get_domain())));
@@ -344,11 +344,11 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
         auto ext4 = trans.get_extension<ace_extension>();
         if(ext4) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
-            handle.record_attribute("trans.ace.resp.PassDirty", ext4->is_pass_dirty());
-            handle.record_attribute("trans.ace.resp.IsShared", ext4->is_shared());
-            handle.record_attribute("trans.ace.resp.snoopDataTransfer", ext4->is_snoop_data_transfer());
-            handle.record_attribute("trans.ace.resp.snoopError", ext4->is_snoop_error());
-            handle.record_attribute("trans.ace.resp.snoopWasUnique", ext4->is_snoop_was_unique());
+            handle.record_attribute("trans.ace.cresp_PassDirty", ext4->is_pass_dirty());
+            handle.record_attribute("trans.ace.cresp_IsShared", ext4->is_shared());
+            handle.record_attribute("trans.ace.cresp_SnoopDataTransfer", ext4->is_snoop_data_transfer());
+            handle.record_attribute("trans.ace.cresp_SnoopError", ext4->is_snoop_error());
+            handle.record_attribute("trans.ace.cresp_SnoopWasUnique", ext4->is_snoop_was_unique());
         }
     }
 };

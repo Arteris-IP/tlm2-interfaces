@@ -1053,6 +1053,22 @@ char const* is_valid_msg(EXT& ext){return is_valid_msg(&ext);}
 template<typename EXT>
 char const* is_valid_msg(EXT* ext);
 
+inline bool is_dataless(axi::ace_extension const* ext){
+    if(!ext) return false;
+    auto snp = ext->get_snoop();
+    return
+            snp==snoop_e::CLEAN_UNIQUE  ||
+            snp==snoop_e::MAKE_UNIQUE   ||
+            snp==snoop_e::CLEAN_SHARED  ||
+            snp==snoop_e::CLEAN_INVALID ||
+            snp==snoop_e::MAKE_INVALID  ||
+            snp==snoop_e::EVICT ||
+            snp == snoop_e::STASH_ONCE_SHARED ||
+            snp == snoop_e::STASH_ONCE_UNIQUE;
+
+}
+
+
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
         return e->get_id();

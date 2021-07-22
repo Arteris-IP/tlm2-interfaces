@@ -93,12 +93,12 @@ struct Idle : bsc::state<Idle, AxiProtocolFsm> { // @suppress("Class has a virtu
 struct ATrans : bsc::state<ATrans, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     ATrans(my_context ctx)
     : my_base(ctx) {
-        if(context<AxiProtocolFsm>().cb.at(axi::fsm::WReadyE))
-            context<AxiProtocolFsm>().cb.at(axi::fsm::WReadyE)();
-    }
-    ~ATrans() {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::WValidE))
             context<AxiProtocolFsm>().cb.at(axi::fsm::WValidE)();
+    }
+    ~ATrans() {
+        if(context<AxiProtocolFsm>().cb.at(axi::fsm::WReadyE))
+            context<AxiProtocolFsm>().cb.at(axi::fsm::WReadyE)();
     }
     typedef mpl::list<bsc::transition<BegPartReq, PartialRequest>, bsc::transition<BegReq, Request>> reactions;
 };

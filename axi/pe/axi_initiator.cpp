@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#define SC_INCLUDE_DYNAMIC_PROCESSES
 #include <axi/axi_tlm.h>
 #include <axi/pe/axi_initiator.h>
 #include <atp/timing_params.h>
@@ -31,7 +31,7 @@ uint8_t log2n(uint8_t siz) { return ((siz > 1) ? 1 + log2n(siz >> 1) : 0); }
 
 SC_HAS_PROCESS(axi_initiator_b);
 
-axi::pe::axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
+axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
         sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
         size_t transfer_width, flavor_e flavor)
 : sc_module(nm)
@@ -55,12 +55,20 @@ axi::pe::axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
 
 }
 
-axi::pe::axi_initiator_b::~axi_initiator_b() {
+axi_initiator_b::~axi_initiator_b() {
     for(auto& e : tx_state_by_tx)
         delete e.second;
 }
 
-void axi::pe::axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
+void axi_initiator_b::end_of_elaboration() {
+	clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
+	for(auto i=0U; i<outstanding_snoops.value; ++i){
+		sc_spawn(sc_bind(&axi_initiator_b::snoop_thread, this));
+	}
+}
+
+
+void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
     if(snoop_cb) {
         auto latency = (*snoop_cb)(trans);
         if(latency < std::numeric_limits<unsigned>::max())
@@ -68,7 +76,7 @@ void axi::pe::axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t)
     }
 }
 
-tlm::tlm_sync_enum axi::pe::axi_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) {
+tlm::tlm_sync_enum axi_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) {
     if(phase == tlm::BEGIN_REQ) {
         snp_peq.notify(trans, t);
     } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) {
@@ -83,9 +91,9 @@ tlm::tlm_sync_enum axi::pe::axi_initiator_b::nb_transport_bw(payload_type& trans
     return tlm::TLM_ACCEPTED;
 }
 
-void axi::pe::axi_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
+void axi_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
 
-tlm::tlm_phase axi::pe::axi_initiator_b::send(payload_type& trans, axi::pe::axi_initiator_b::tx_state* txs, tlm::tlm_phase phase) {
+tlm::tlm_phase axi_initiator_b::send(payload_type& trans, axi_initiator_b::tx_state* txs, tlm::tlm_phase phase) {
     sc_core::sc_time delay;
     SCCTRACE(SCMOD) << "Send "<<phase;
     tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
@@ -99,7 +107,7 @@ tlm::tlm_phase axi::pe::axi_initiator_b::send(payload_type& trans, axi::pe::axi_
     }
 }
 
-void axi::pe::axi_initiator_b::transport(payload_type& trans, bool blocking) {
+void axi_initiator_b::transport(payload_type& trans, bool blocking) {
     auto axi_id = get_axi_id(trans);
     if(flavor==flavor_e::AXI) {
         if(!trans.get_extension<axi::axi4_extension>() && !trans.get_extension<axi::axi3_extension>()) {
@@ -186,7 +194,7 @@ void axi::pe::axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 wait(clk_i.posedge_event());
             SCCTRACE(SCMOD) << "starting read address phase of tx with id=" << axi_id;
             auto res = send(trans, txs, tlm::BEGIN_REQ);
-            if(res == axi::BEGIN_PARTIAL_RESP && res == tlm::BEGIN_RESP)
+            if(res == axi::BEGIN_PARTIAL_RESP || res == tlm::BEGIN_RESP)
                 next_phase=res;
             else if(res != tlm::END_REQ)
                 SCCERR(SCMOD)<<"target did not repsond with END_REQ to a BEGIN_REQ";
@@ -257,7 +265,7 @@ void axi::pe::axi_initiator_b::transport(payload_type& trans, bool blocking) {
 }
 
 // This process handles the SNOOP request received
-void axi::pe::axi_initiator_b::snoop_thread() {
+void axi_initiator_b::snoop_thread() {
     payload_type* trans{nullptr};
     while(true) {
         while(!(trans = snp_peq.get_next_transaction())) {
@@ -274,7 +282,7 @@ void axi::pe::axi_initiator_b::snoop_thread() {
         }
         auto* txs = it->second;
 
-        sc_time delay;
+        sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
         tlm::tlm_phase phase = tlm::END_REQ;
         socket_fw->nb_transport_fw(*trans, phase, delay);
         auto cycles = 0U;
@@ -282,14 +290,14 @@ void axi::pe::axi_initiator_b::snoop_thread() {
             cycles = (*snoop_cb)(*trans);
         if(cycles < std::numeric_limits<unsigned>::max()) {
             // we handle the snoop access ourselfs
-            for(size_t i = 0; i < cycles; ++i)
+            for(size_t i = 0; i <= cycles; ++i)
                 wait(clk_i.posedge_event());
             snoop_resp(*trans);
         }
     }
 }
 
-void axi::pe::axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
+void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto it = snp_state_by_id.find(&trans);
     sc_assert(it != snp_state_by_id.end());
     auto& txs = it->second;

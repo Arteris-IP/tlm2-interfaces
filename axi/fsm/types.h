@@ -26,8 +26,8 @@ namespace fsm {
 // fsm event enumerators
 enum protocol_time_point_e {
     RequestPhaseBeg = 0, // only for triggering the request phase
-    WReadyE,
     WValidE,
+    WReadyE,
     BegPartReqE,
     EndPartReqE,
     BegReqE,
@@ -42,8 +42,8 @@ enum protocol_time_point_e {
 };
 
 inline const char* evt2str(unsigned evt) {
-    static const char* lut[] = {"RequestPhaseBeg", "WReadyE",          "WValidE",      "BegPartReqE",  "EndPartReqE", "BegReqE",
-                                "EndReqE",         "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE"};
+    static const char* lut[] = {"RequestPhaseBeg", "WValidE",          "WReadyE",      "BegPartReqE",  "EndPartReqE", "BegReqE",
+                                "EndReqE",         "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",  "Ack"};
     return lut[evt];
 }
 //! alias for the callback function

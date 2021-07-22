@@ -157,9 +157,13 @@ protected:
      */
     void setup_callbacks(axi::fsm::fsm_handle*) override;
 
+    void process_snoop_resp();
+
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
     std::deque<fsm::fsm_handle*> idle_proc;
-    scc::ordered_semaphore rd{1}, wr{1};
+    scc::ordered_semaphore rd{1}, wr{1}, snp{1};
+    scc::fifo_w_cb<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, unsigned>> snp_resp_queue;
+    sc_core::sc_process_handle snp_resp_queue_hndl;
     // TODO: remove hard coded value
     sc_core::sc_time clk_period{1, sc_core::SC_NS};
     std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
