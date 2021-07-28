@@ -23,7 +23,6 @@
 #include <array>
 #include <axi/axi_tlm.h>
 #include <regex>
-#include <scv.h>
 #include <tlm/scc/scv/tlm_recorder.h>
 #include <tlm/scc/scv/tlm_recording_extension.h>
 #include <string>
@@ -33,6 +32,9 @@
 
 namespace axi {
 namespace scv {
+#ifndef WITH_SCV
+using namespace scv_tr;
+#endif
 
 bool register_extensions();
 

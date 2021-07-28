@@ -15,6 +15,7 @@
  */
 
 #include "chi_tlm.h"
+#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <iostream>
 
 namespace chi {
@@ -312,8 +313,6 @@ bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
 }
 
 } // namespace chi
-#ifdef WITH_SCV
-#include <tlm/scc/scv/tlm_recorder.h>
 namespace chi {
 using namespace tlm::scc::scv;
 
@@ -462,4 +461,3 @@ __attribute__((constructor)) bool register_extensions() {
 bool registered = register_extensions();
 } // namespace scv
 } // namespace chi
-#endif
