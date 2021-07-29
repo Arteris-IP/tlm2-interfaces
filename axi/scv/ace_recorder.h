@@ -128,6 +128,11 @@ public:
     }
 
     virtual ~ace_recorder() override {
+        btx_handle_map.clear();
+        nbtx_req_handle_map.clear();
+        nbtx_last_req_handle_map.clear();
+        nbtx_resp_handle_map.clear();
+        nbtx_last_resp_handle_map.clear();
         delete b_streamHandle;
         for(auto* p : b_trHandle)
             delete p; // NOLINT
