@@ -96,7 +96,7 @@ public:
     SC_HAS_PROCESS(chi_trx_recorder<TYPES>); // NOLINT
 
     //! \brief the attribute to selectively enable/disable recording
-    sc_core::sc_attribute<bool> enableTracing;
+    sc_core::sc_attribute<bool> enableTracing{"enableTracing", true};
 
     //! \brief the attribute to selectively enable/disable timed recording
     sc_core::sc_attribute<bool> enableTimedTracing{"enableTimedTracing", true};
