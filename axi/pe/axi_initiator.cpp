@@ -146,8 +146,6 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
         auto burst_length = get_burst_lenght(trans);
         tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
         if(!trans.is_read()) { // data less via write channel
-            auto delay_in_cycles = timing_e ? timing_e->wbv : wbv.value;
-            if(!delay_in_cycles) delay_in_cycles=1; // one cycle automatically consumed
             if(!data_interleaving.value) { // Note that AXI4 does not allow write data interleaving, and ncore3 only supports AXI4.
                 sem_lock lck(wr_chnl);
                 /// Timing
@@ -157,7 +155,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 for(unsigned i = 0; i < burst_length - 1; ++i) {
                     auto res = send(trans, txs, axi::BEGIN_PARTIAL_REQ);
                     sc_assert(axi::END_PARTIAL_REQ == res);
-                    for(unsigned i = 0; i < delay_in_cycles; ++i)
+                    for(unsigned i = 1; i < (timing_e ? timing_e->wbv : wbv.value); ++i)
                         wait(clk_i.posedge_event());
                 }
                 auto res = send(trans, txs, tlm::BEGIN_REQ);
@@ -176,7 +174,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                             wait(clk_i.posedge_event());
                     auto res = send(trans, txs, axi::BEGIN_PARTIAL_REQ);
                     sc_assert(axi::END_PARTIAL_REQ == res);
-                    for(unsigned i = 0; i < delay_in_cycles; ++i)
+                    for(unsigned i = 1; i < (timing_e ? timing_e->wbv : wbv.value); ++i)
                         wait(clk_i.posedge_event());
                 }
                 sem_lock lck(wr_chnl);
@@ -190,7 +188,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
         } else {
             sem_lock lck(rd_chnl);
             /// Timing
-            for(unsigned i = 0; i <  (timing_e ? timing_e->artv : artv.value); ++i)
+            for(unsigned i = 1; i <  (timing_e ? timing_e->artv : artv.value); ++i)
                 wait(clk_i.posedge_event());
             SCCTRACE(SCMOD) << "starting read address phase of tx with id=" << axi_id;
             auto res = send(trans, txs, tlm::BEGIN_REQ);
@@ -312,7 +310,7 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
         auto res = send(trans, txs, axi::BEGIN_PARTIAL_RESP);
         sc_assert(axi::END_PARTIAL_RESP == res);
         wait(clk_i.posedge_event());
-        for(unsigned i = 0; i < delay_in_cycles; ++i)
+        for(unsigned i = 1; i < delay_in_cycles; ++i)
             wait(clk_i.posedge_event());
     }
     auto res = send(trans, txs, tlm::BEGIN_RESP);
