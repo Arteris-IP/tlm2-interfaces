@@ -42,12 +42,12 @@ namespace impl {
 template <typename TYPES = chi::chi_protocol_types> class chi_recording_payload : public TYPES::tlm_payload_type {
 public:
     SCVNS scv_tr_handle parent;
-    uint64 id{0};
+    uint64_t id{0};
     bool is_snoop{false};
     bool is_data{false};
     bool is_credit{false};
     chi_recording_payload& operator=(const typename TYPES::tlm_payload_type& x) {
-        id = (uint64)&x;
+        id = (uint64_t)&x;
         this->set_command(x.get_command());
         this->set_address(x.get_address());
         this->set_data_ptr(nullptr);
@@ -251,7 +251,7 @@ private:
     //! transaction generator handle for blocking transactions with annotated
     //! delays
     std::array<SCVNS scv_tr_generator<>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> btx_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> btx_handle_map;
 
     enum DIR { FW, BW, DATA, ACK, CREDIT, REQ=FW, RESP=BW };
     enum TYPE {READ = tlm::TLM_READ_COMMAND, WRITE = tlm::TLM_WRITE_COMMAND, OTHER=tlm::TLM_IGNORE_COMMAND, SNOOP, NO_OF_TYPES};
@@ -263,13 +263,13 @@ private:
     std::array<SCVNS scv_tr_generator<std::string, std::string>*, 2> nb_trHandle{{nullptr, nullptr}};
     //! transaction generator handle for non-blocking transactions with annotated delays
     std::array<SCVNS scv_tr_generator<>*, 5> nb_trTimedHandle{{nullptr, nullptr, nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_resp_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_data_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_data_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_ack_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_data_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_data_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_ack_handle_map;
     //! dmi transaction recording stream handle
     SCVNS scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions
@@ -638,7 +638,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
 template <typename TYPES>
 void chi_trx_recorder<TYPES>::nbtx_cb(tlm_recording_payload& rec_parts, const typename TYPES::tlm_phase_type& phase) {
     SCVNS scv_tr_handle h;
-    std::unordered_map<uint64, SCVNS scv_tr_handle>::iterator it;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle>::iterator it;
     // Now process outstanding recordings
     if(rec_parts.is_credit) {
         nb_trTimedHandle[CREDIT]->begin_transaction().end_transaction();

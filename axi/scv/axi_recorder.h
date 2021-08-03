@@ -205,7 +205,7 @@ private:
     //! transaction generator handle for blocking transactions with annotated
     //! delays
     std::array<SCVNS scv_tr_generator<>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> btx_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> btx_handle_map;
 
     enum DIR { FW, BW, REQ=FW, RESP=BW};
     //! non-blocking transaction recording stream handle
@@ -216,10 +216,10 @@ private:
     std::array<SCVNS scv_tr_generator<std::string, std::string>*, 2> nb_trHandle{{nullptr, nullptr}};
     //! transaction generator handle for non-blocking transactions with annotated delays
     std::array<SCVNS scv_tr_generator<>*, 2> nb_trTimedHandle{{nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_resp_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
     //! dmi transaction recording stream handle
     SCVNS scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions

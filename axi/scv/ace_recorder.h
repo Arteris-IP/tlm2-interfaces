@@ -41,10 +41,10 @@ namespace impl {
 template <typename TYPES = axi::axi_protocol_types> class ace_recording_payload : public TYPES::tlm_payload_type {
 public:
     SCVNS scv_tr_handle parent;
-    uint64 id{0};
+    uint64_t id{0};
     bool is_snoop{false};
     ace_recording_payload& operator=(const typename TYPES::tlm_payload_type& x) {
-        id = (uint64)&x;
+        id = (uint64_t)&x;
         this->set_command(x.get_command());
         this->set_address(x.get_address());
         this->set_data_ptr(nullptr);
@@ -244,7 +244,7 @@ private:
     //! transaction generator handle for blocking transactions with annotated
     //! delays
     std::array<SCVNS scv_tr_generator<>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> btx_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> btx_handle_map;
 
     enum DIR { FW, BW, REQ=FW, RESP=BW, ACK};
     //! non-blocking transaction recording stream handle
@@ -255,10 +255,10 @@ private:
     std::array<SCVNS scv_tr_generator<std::string, std::string>*, 2> nb_trHandle{{nullptr, nullptr}};
     //! transaction generator handle for non-blocking transactions with annotated delays
     std::array<SCVNS scv_tr_generator<>*, 3> nb_trTimedHandle{{nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_resp_handle_map;
-    std::unordered_map<uint64, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_req_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_resp_handle_map;
+    std::unordered_map<uint64_t, SCVNS scv_tr_handle> nbtx_last_resp_handle_map;
     //! dmi transaction recording stream handle
     SCVNS scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions
