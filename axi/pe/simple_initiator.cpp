@@ -83,9 +83,13 @@ void simple_initiator_b::transport(payload_type& trans, bool blocking) {
 				wait(clk_i.posedge_event());
 			}
 		}
+		if(trans.has_mm())
+			trans.acquire();
 		react(RequestPhaseBeg, fsm->trans);
 		SCCTRACE(SCMOD) << "started non-blocking protocol";
 		sc_core::wait(fsm->finish);
+		if(trans.has_mm())
+			trans.release();
 		SCCTRACE(SCMOD) << "finished non-blocking protocol";
 	}
 }
