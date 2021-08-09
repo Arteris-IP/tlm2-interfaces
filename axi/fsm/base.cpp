@@ -166,8 +166,8 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         return;
     case EndRespE:
         if(!coherent || fsm_hndl->is_snoop) {
+            SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
         	fsm_hndl->fsm->process_event(EndResp());
-        	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
         	active_fsm.erase(trans);
         	fsm_hndl->trans = nullptr;
         	idle_fsm.push_back(fsm_hndl);
@@ -177,8 +177,8 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         } 
         return;
     case Ack:
+        SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
     	fsm_hndl->fsm->process_event(AckRecv());
-    	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
     	active_fsm.erase(trans);
     	fsm_hndl->trans = nullptr;
     	idle_fsm.push_back(fsm_hndl);
