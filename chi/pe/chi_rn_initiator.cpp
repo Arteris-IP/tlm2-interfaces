@@ -706,10 +706,13 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
         }
     } else { // data packet interleaving allowed
         for(auto i = 0U; i < beat_cnt; ++i) {
-            sem_lock lck(wdat_chnl);
-            phase = (i < beat_cnt - 1) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
-            send_packet(phase, trans, txs);
-            SCCTRACE(SCMOD) << "WDAT flit sent. Beat count: " << i << ", addr: 0x" << std::hex << trans.get_address()<<", last="<<(i == (beat_cnt - 1));
+            {
+                sem_lock lck(wdat_chnl);
+                phase = (i < beat_cnt - 1) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
+                send_packet(phase, trans, txs);
+                SCCTRACE(SCMOD) << "WDAT flit sent. Beat count: " << i << ", addr: 0x" << std::hex << trans.get_address()<<", last="<<(i == (beat_cnt - 1));
+            }
+            wait(SC_ZERO_TIME); // yield execution to allow others to lock
         }
     }
 }
