@@ -109,6 +109,7 @@ fsm_handle* axi_target_pe_b::create_fsm_handle() { return new fsm_handle(); }
 
 void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[RequestPhaseBeg] = [this, fsm_hndl]() -> void {
+        fsm_hndl->trans->acquire();
         fsm_hndl->beat_count = 0;
         outstanding_cnt[fsm_hndl->trans->get_command()]++;
     };
@@ -212,6 +213,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tx[cmd] = nullptr;
             stalled_tp[cmd] = CB_CNT;
         }
+        fsm_hndl->trans->release();
     };
 }
 
