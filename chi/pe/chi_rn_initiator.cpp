@@ -342,8 +342,8 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             auto allocate = (ace_ext->is_read_other_allocate() && axi_gp_cmd==tlm::TLM_WRITE_COMMAND) ||
                     (ace_ext->is_write_other_allocate() && axi_gp_cmd==tlm::TLM_READ_COMMAND);
             auto cachable = ace_ext->is_modifiable();
-            auto device = !ace_ext->is_bufferable();
-            auto ewa = cachable || !device;
+            auto ewa = ace_ext->is_bufferable();
+            auto device = ace_ext->get_cache()<2;
             mem_attr = (allocate?8:0) + (cachable?4:0) + (device?2:0) + (ewa?1:0);
             // ReadNoSnp., ReadNoSnpSep., ReadOnce*., WriteNoSnp., WriteNoSnp, CMO., WriteNoSnpZero., WriteUnique., WriteUnique, CMO., WriteUniqueZero., Atomic.
             if(!device)
