@@ -585,11 +585,10 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
 
 void chi::pe::chi_rn_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
 
-void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
-    auto data_ext = new chi::chi_data_extension;
+void chi::pe::chi_rn_initiator_b::update_data_extension(chi::chi_data_extension *data_ext, payload_type &trans) {
     auto req_e = trans.get_extension<chi::chi_ctrl_extension>();
     sc_assert(req_e != nullptr);
-    switch(req_e->req.get_opcode()) {
+    switch (req_e->req.get_opcode()) {
     case chi::req_optype_e::WriteNoSnpFull:
     case chi::req_optype_e::WriteNoSnpPtl:
     case chi::req_optype_e::WriteUniquePtl:
@@ -627,29 +626,26 @@ void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
     case chi::req_optype_e::AtomicCompare:
         data_ext->dat.set_opcode(chi::dat_optype_e::NonCopyBackWrData);
         break;
-
     default:
         SCCWARN(SCMOD) << " Unable to match req_opcode with data_opcode in write transaction ";
     }
-
-    if(data_ext->dat.get_opcode() == chi::dat_optype_e::NonCopyBackWrData) {
+    if (data_ext->dat.get_opcode() == chi::dat_optype_e::NonCopyBackWrData) {
         data_ext->dat.set_resp(chi::dat_resptype_e::NonCopyBackWrData);
-    } else if(data_ext->dat.get_opcode() == chi::dat_optype_e::NCBWrDataCompAck) {
+    } else if (data_ext->dat.get_opcode() == chi::dat_optype_e::NCBWrDataCompAck) {
         data_ext->dat.set_resp(chi::dat_resptype_e::NCBWrDataCompAck);
-    } else if(data_ext->dat.get_opcode() == chi::dat_optype_e::CopyBackWrData) {
+    } else if (data_ext->dat.get_opcode() == chi::dat_optype_e::CopyBackWrData) {
         auto cache_ext = trans.get_extension<::cache::cache_info>();
         sc_assert(cache_ext != nullptr);
-
         auto cache_state = cache_ext->get_state();
-        if(cache_state == ::cache::state::IX) {
+        if (cache_state == ::cache::state::IX) {
             data_ext->dat.set_resp(chi::dat_resptype_e::CopyBackWrData_I);
-        } else if(cache_state == ::cache::state::UC) {
+        } else if (cache_state == ::cache::state::UC) {
             data_ext->dat.set_resp(chi::dat_resptype_e::CopyBackWrData_UC);
-        } else if(cache_state == ::cache::state::SC) {
+        } else if (cache_state == ::cache::state::SC) {
             data_ext->dat.set_resp(chi::dat_resptype_e::CopyBackWrData_SC);
-        } else if(cache_state == ::cache::state::UD) {
+        } else if (cache_state == ::cache::state::UD) {
             data_ext->dat.set_resp(chi::dat_resptype_e::CopyBackWrData_UD_PD);
-        } else if(cache_state == ::cache::state::SD) {
+        } else if (cache_state == ::cache::state::SD) {
             data_ext->dat.set_resp(chi::dat_resptype_e::CopyBackWrData_SD_PD);
         } else
             SCCWARN(SCMOD) << " Unable to match cache state with resptype ";
@@ -661,6 +657,11 @@ void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
     data_ext->set_txn_id(db_id);
     data_ext->set_src_id(req_e->resp.get_tgt_id());
     data_ext->dat.set_tgt_id(req_e->get_src_id());
+}
+
+void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
+    auto data_ext = new chi::chi_data_extension;
+    update_data_extension(data_ext, trans);
     trans.set_auto_extension<chi::chi_data_extension>(data_ext);
 }
 
@@ -820,24 +821,23 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
         /// send NonCopyBackWrData_I data to HN packet by packet.
         /// While send data process is still ongoing HN can reply with CompDataI (old data)
         if(output_beat_cnt < exp_beat_cnt) {
-            auto data_ext = trans.get_extension<chi::chi_data_extension>();
-            if(data_ext == nullptr) {
+            ;
+            if(auto data_ext = trans.get_extension<chi::chi_data_extension>()) {
+                update_data_extension(data_ext, trans);
+            } else {
                 create_data_ext(trans);
-                data_ext = trans.get_extension<chi::chi_data_extension>();
             }
-            SCCDEBUG(SCMOD) << ": " << sc_core::sc_time_stamp()
-                    << ": Starting atomic transaction on channel WDAT : (txn_id, opcode, cmd, addr, len) = (" << txn_id << ", "
-                    << to_char(data_ext->dat.get_opcode()) << ", " << trans.get_command() << ", " << trans.get_address() << ", "
-                    << trans.get_data_length() << ")";
             output_beat_cnt++;
+            SCCDEBUG(SCMOD)
+                    << "Atomic send data (txn_id,opcode,cmd,addr,len) = (" << txn_id << ","
+                    << to_char(trans.get_extension<chi::chi_data_extension>()->dat.get_opcode()) << ", " << trans.get_command()
+                    << ",0x" << std::hex << trans.get_address() << ","
+                    << trans.get_data_length() << "), beat="<< output_beat_cnt << "/" << exp_beat_cnt;
             phase = (output_beat_cnt < exp_beat_cnt) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
             send_packet(phase, trans, txs);
             if(output_beat_cnt == exp_beat_cnt) {
-                SCCTRACE(SCMOD) << "txn_id = " << txn_id << ": Sent last atomic write data. All beats over.";
                 wait(clk_i.posedge_event()); // sync to clock before releasing resource
                 not_finish &= 0x2;           // clear bit0
-            } else {
-                SCCTRACE(SCMOD) << "txn_id = " << txn_id << ": Sent atomic write data. Beat number = "<< output_beat_cnt << " of " << input_beat_cnt;
             }
         }
         /// HN sends CompData_I to the Requester. The data received with Comp is the old copy of the data.
@@ -849,12 +849,16 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
             phase = std::get<1>(entry);
 
             if(phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA) {
-                SCCTRACE(SCMOD) << "Atomic transaction: Received old data, beat count: " << input_beat_cnt << ", addr: 0x" << std::hex
-                        << trans.get_address();
+                auto data_ext = trans.get_extension<chi::chi_data_extension>();
+                sc_assert(data_ext);
+                input_beat_cnt++;
+                SCCDEBUG(SCMOD)
+                        << "Atomic received data (txn_id,opcode,cmd,addr,len)=(" << txn_id << ","
+                        << to_char(data_ext->dat.get_opcode()) << "," << trans.get_command() << ",0x" << std::hex << trans.get_address() << ","
+                        << trans.get_data_length() << "), beat="<< input_beat_cnt << "/" << exp_beat_cnt;
                 phase = phase == chi::BEGIN_PARTIAL_DATA ? chi::END_PARTIAL_DATA : chi::END_DATA;
                 delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
-                input_beat_cnt++;
                 if(phase == chi::END_DATA) {
                     not_finish &= 0x1; // clear bit1
                     if(input_beat_cnt != exp_beat_cnt)
