@@ -159,7 +159,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                         wait(clk_i.posedge_event());
                 }
                 auto res = send(trans, txs, tlm::BEGIN_REQ);
-                if(res == axi::BEGIN_PARTIAL_RESP && res == tlm::BEGIN_RESP)
+                if(res == axi::BEGIN_PARTIAL_RESP || res == tlm::BEGIN_RESP)
                     next_phase=res;
                 else if(res != tlm::END_REQ)
                     SCCERR(SCMOD)<<"target did not repsond with END_REQ to a BEGIN_REQ";
@@ -179,7 +179,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 }
                 sem_lock lck(wr_chnl);
                 auto res = send(trans, txs, tlm::BEGIN_REQ);
-                if(res == axi::BEGIN_PARTIAL_RESP && res == tlm::BEGIN_RESP)
+                if(res == axi::BEGIN_PARTIAL_RESP || res == tlm::BEGIN_RESP)
                     next_phase=res;
                 else if(res != tlm::END_REQ)
                     SCCERR(SCMOD)<<"target did not repsond with END_REQ to a BEGIN_REQ";
