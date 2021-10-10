@@ -439,7 +439,10 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
 };
 namespace scv {
 using namespace tlm::scc::scv;
-__attribute__((constructor)) bool register_extensions() {
+#if defined(__GNUG__)
+__attribute__((constructor))
+#endif
+bool register_extensions() {
     chi::chi_ctrl_extension extchi_req; // NOLINT
     tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_req.ID,

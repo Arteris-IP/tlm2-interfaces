@@ -701,7 +701,10 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
     if(!data_interleaving.value) {
         sem_lock lck(wdat_chnl);
         for(auto i = 0U; i < beat_cnt; ++i) {
-            phase = (i < beat_cnt - 1) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
+            if(i < beat_cnt - 1) 
+                phase = chi::BEGIN_PARTIAL_DATA;
+            else
+                phase = chi::BEGIN_DATA;
             send_packet(phase, trans, txs);
             SCCTRACE(SCMOD) << "WDAT flit with txnid "<<data_ext->cmn.get_txn_id()<<" sent. Beat count: " << i << ", addr: 0x" << std::hex << trans.get_address()<<", last="<<(i == (beat_cnt - 1));
         }
@@ -709,7 +712,10 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
         for(auto i = 0U; i < beat_cnt; ++i) {
             {
                 sem_lock lck(wdat_chnl);
-                phase = (i < beat_cnt - 1) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
+                if(i < beat_cnt - 1)
+                    phase = chi::BEGIN_PARTIAL_DATA;
+                else
+                    phase = chi::BEGIN_DATA;
                 send_packet(phase, trans, txs);
                 SCCTRACE(SCMOD) << "WDAT flit with txnid "<<data_ext->cmn.get_txn_id()<<" sent. Beat count: " << i << ", addr: 0x" << std::hex << trans.get_address()<<", last="<<(i == (beat_cnt - 1));
             }
@@ -765,7 +771,10 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         } else if(trans.is_read() && (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
             SCCTRACE(SCMOD) << "RDAT flit received. Beat count: " << beat_cnt << ", addr: 0x" << std::hex << trans.get_address();
             not_finish &= 0x1; // clear bit1
-            phase = phase == chi::BEGIN_PARTIAL_DATA ? chi::END_PARTIAL_DATA : chi::END_DATA;
+            if(phase == chi::BEGIN_PARTIAL_DATA)
+                phase = chi::END_PARTIAL_DATA;
+            else
+                phase = chi::END_DATA;
             delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
@@ -833,7 +842,10 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                     << to_char(trans.get_extension<chi::chi_data_extension>()->dat.get_opcode()) << ", " << trans.get_command()
                     << ",0x" << std::hex << trans.get_address() << ","
                     << trans.get_data_length() << "), beat="<< output_beat_cnt << "/" << exp_beat_cnt;
-            phase = (output_beat_cnt < exp_beat_cnt) ? chi::BEGIN_PARTIAL_DATA : chi::BEGIN_DATA;
+            if(output_beat_cnt < exp_beat_cnt)
+                phase = chi::BEGIN_PARTIAL_DATA;
+            else
+                phase = chi::BEGIN_DATA;
             send_packet(phase, trans, txs);
             if(output_beat_cnt == exp_beat_cnt) {
                 wait(clk_i.posedge_event()); // sync to clock before releasing resource
@@ -856,7 +868,10 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                         << "Atomic received data (txn_id,opcode,cmd,addr,len)=(" << txn_id << ","
                         << to_char(data_ext->dat.get_opcode()) << "," << trans.get_command() << ",0x" << std::hex << trans.get_address() << ","
                         << trans.get_data_length() << "), beat="<< input_beat_cnt << "/" << exp_beat_cnt;
-                phase = phase == chi::BEGIN_PARTIAL_DATA ? chi::END_PARTIAL_DATA : chi::END_DATA;
+                if(phase == chi::BEGIN_PARTIAL_DATA)
+                    phase = chi::END_PARTIAL_DATA;
+                else
+                    phase = chi::END_DATA;
                 delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(phase == chi::END_DATA) {
@@ -907,6 +922,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         auto timing_e = trans.get_extension<atp::timing_params>();
         if(timing_e != nullptr) { // TPU as it has been defined in TPU
             auto delay_in_cycles = trans.is_read() ? timing_e->artv : timing_e->awtv;
+            if(delay_in_cycles) delay_in_cycles--; // one cycle is automatically gone
             auto current_count = get_clk_cnt();
             if(current_count - m_prev_clk_cnt < delay_in_cycles) {
                 unsigned delta_cycles = delay_in_cycles - (current_count - m_prev_clk_cnt);
@@ -916,9 +932,9 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                 }
             }
         } // no timing info in case of STL
+
         {
             sem_lock lck(req_chnl);
-            m_prev_clk_cnt=get_clk_cnt();
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
             sc_core::sc_time delay;
             SCCTRACE(SCMOD) << "Send REQ, addr: 0x" << std::hex << trans.get_address() << ", TxnID: 0x" << std::hex << txn_id;
@@ -1016,7 +1032,10 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             } else if(snp_ext->resp.get_data_pull() &&  (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
                 SCCTRACE(SCMOD) << "RDAT packet received with phase "<<phase<<". Beat count: " << beat_cnt << ", addr: 0x" << std::hex << trans.get_address();
                 not_finish &= 0x1; // clear bit1
-                phase = phase == chi::BEGIN_PARTIAL_DATA ? chi::END_PARTIAL_DATA : chi::END_DATA;
+                if(phase == chi::BEGIN_PARTIAL_DATA)
+                    phase = chi::END_PARTIAL_DATA;
+                else
+                    phase = chi::END_DATA;
                 delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 beat_cnt++;

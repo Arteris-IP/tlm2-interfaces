@@ -355,7 +355,10 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
 };
 namespace scv {
 using namespace tlm::scc::scv;
-__attribute__((constructor)) bool register_extensions() {
+#if defined(__GNUG__)
+__attribute__((constructor))
+#endif
+bool register_extensions() {
     axi::axi3_extension ext3; // NOLINT
     tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
     axi::axi4_extension ext4; // NOLINT

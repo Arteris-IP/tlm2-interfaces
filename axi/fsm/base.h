@@ -115,9 +115,9 @@ struct base {
      */
     void react(axi::fsm::protocol_time_point_e event, payload_type* trans);
 
-    scc::peq<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, bool>> fsm_event_queue;
+    ::scc::peq<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, bool>> fsm_event_queue;
 
-    scc::fifo_w_cb<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, unsigned>> fsm_clk_queue;
+    ::scc::fifo_w_cb<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, unsigned>> fsm_clk_queue;
 
     sc_core::sc_process_handle fsm_clk_queue_hndl;
 
