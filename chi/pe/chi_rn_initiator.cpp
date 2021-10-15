@@ -1068,20 +1068,21 @@ void chi::pe::chi_rn_initiator_b::snoop_dispatch(){
         while(!(trans = snp_peq.get_next_transaction())) {
             wait(snp_peq.get_event());
         }
-        if(thread_avail==0 && thread_active<32)
+        if(thread_avail==0 && thread_active<32){
             sc_core::sc_spawn([this]() {
-            payload_type* trans{nullptr};
-            thread_avail++;
-            thread_active++;
-            while(true){
-                while(!(trans = snp_dispatch_que.get_next_transaction()))
-                    wait(snp_dispatch_que.get_event());
-                sc_assert(thread_avail>0);
-                thread_avail--;
-                this->snoop_handler(trans);
+                payload_type* trans{nullptr};
                 thread_avail++;
-            }
-        }, nullptr, &opts);
+                thread_active++;
+                while(true){
+                    while(!(trans = snp_dispatch_que.get_next_transaction()))
+                        wait(snp_dispatch_que.get_event());
+                    sc_assert(thread_avail>0);
+                    thread_avail--;
+                    this->snoop_handler(trans);
+                    thread_avail++;
+                }
+            }, nullptr, &opts);
+        }
         snp_dispatch_que.notify(*trans);
     }
 
@@ -1099,7 +1100,7 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     auto it = tx_state_by_trans.find(to_id(trans));
     if(it == tx_state_by_trans.end()) {
         bool success;
-        std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), new tx_state(util::strprintf("peq_%d", to_id(trans)))});
+        std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), new tx_state("snp_peq")});
     }
     auto* txs = it->second;
 

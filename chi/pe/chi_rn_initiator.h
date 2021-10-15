@@ -127,7 +127,7 @@ protected:
 
     struct tx_state {
         scc::peq<std::tuple<payload_type*, tlm::tlm_phase>> peq;
-        tx_state(std::string const& name) : peq(name.c_str()) {}
+        tx_state(std::string const& name) : peq(sc_core::sc_gen_unique_name(name.c_str())) {}
     };
     std::unordered_map<uintptr_t, tx_state*> tx_state_by_trans;
 
