@@ -112,7 +112,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count++;
-        if(fsm_hndl->beat_count < (get_burst_lenght(fsm_hndl->trans) - 1))
+        if(fsm_hndl->beat_count < (get_burst_lenght(*fsm_hndl->trans) - 1))
             if(::scc::get_value(wr_data_beat_delay) > 0)
                 schedule(BegPartReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
             else
@@ -161,7 +161,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             }
 			if(latency < std::numeric_limits<unsigned>::max()) {
 				auto evt = ext->is_snoop_data_transfer() && ext->get_length() > 0 ? BegPartRespE : BegRespE;
-				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans, latency));
+				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans.get(), latency));
 			}
         } else {
             // auto ext = fsm_hndl->trans->get_extension<axi::axi4_extension>();
@@ -191,7 +191,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
-			auto size = get_burst_lenght(fsm_hndl->trans)-1;
+			auto size = get_burst_lenght(*fsm_hndl->trans)-1;
             fsm_hndl->beat_count++;
 			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
         } else {

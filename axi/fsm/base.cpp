@@ -84,7 +84,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
             payload_type& gp = *(fsm_hndl->trans);
         }
         fsm_hndl->trans->acquire();
-        active_fsm.insert(std::make_pair(fsm_hndl->trans, fsm_hndl));
+        active_fsm.insert(std::make_pair(fsm_hndl->trans.get(), fsm_hndl));
         fsm_hndl->start=sc_time_stamp();
         return fsm_hndl;
     } else {
@@ -126,7 +126,7 @@ void base::process_fsm_clk_queue() {
 }
 
 void base::react(protocol_time_point_e event, payload_type* trans) {
-	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
+	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(*trans)<<")";
     auto fsm_hndl = active_fsm[trans];
     if(!fsm_hndl) {
     	SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
@@ -138,7 +138,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         return;
     case WReadyE:
     case RequestPhaseBeg:
-        if(is_burst(trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
+        if(is_burst(*trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());
@@ -166,7 +166,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         return;
     case EndRespE:
         if(!coherent || fsm_hndl->is_snoop) {
-            SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+            SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(*fsm_hndl->trans)<<")";
         	fsm_hndl->fsm->process_event(EndResp());
         	active_fsm.erase(trans);
         	fsm_hndl->trans = nullptr;
@@ -177,7 +177,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         } 
         return;
     case Ack:
-        SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+        SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(*fsm_hndl->trans)<<")";
     	fsm_hndl->fsm->process_event(AckRecv());
     	active_fsm.erase(trans);
     	fsm_hndl->trans = nullptr;
