@@ -81,9 +81,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
             fsm_hndl->trans = gp;
         } else {
             fsm_hndl->trans = ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>() : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
-            payload_type& gp = *(fsm_hndl->trans);
         }
-        fsm_hndl->trans->acquire();
         active_fsm.insert(std::make_pair(fsm_hndl->trans.get(), fsm_hndl));
         fsm_hndl->start=sc_time_stamp();
         return fsm_hndl;
