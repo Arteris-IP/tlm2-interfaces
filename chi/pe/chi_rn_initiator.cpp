@@ -922,7 +922,6 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         auto timing_e = trans.get_extension<atp::timing_params>();
         if(timing_e != nullptr) { // TPU as it has been defined in TPU
             auto delay_in_cycles = trans.is_read() ? timing_e->artv : timing_e->awtv;
-            if(delay_in_cycles) delay_in_cycles--; // one cycle is automatically gone
             auto current_count = get_clk_cnt();
             if(current_count - m_prev_clk_cnt < delay_in_cycles) {
                 unsigned delta_cycles = delay_in_cycles - (current_count - m_prev_clk_cnt);
@@ -932,9 +931,9 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                 }
             }
         } // no timing info in case of STL
-
         {
             sem_lock lck(req_chnl);
+            m_prev_clk_cnt=get_clk_cnt();
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
             sc_core::sc_time delay;
             SCCTRACE(SCMOD) << "Send REQ, addr: 0x" << std::hex << trans.get_address() << ", TxnID: 0x" << std::hex << txn_id;
