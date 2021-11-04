@@ -66,9 +66,9 @@ struct fsm_handle {
     //! event indicating the end of the transaction
     sc_core::sc_event finish;
     //! additional data being used in the various adapters, @todo refactor to remove this forward definitions
+    tlm::scc::tlm_gp_shared_ptr gp{};
     union {
         uint64_t progress;
-        tlm::tlm_generic_payload* gp;
         void* pp;
     } p;
     sc_core::sc_time start;
