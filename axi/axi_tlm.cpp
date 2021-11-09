@@ -201,9 +201,39 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
         if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
         return "illegal write snoop value";
     }
-    if((ext->get_snoop()==snoop_e::READ_NO_SNOOP || ext->get_snoop()==snoop_e::WRITE_NO_SNOOP) &&
-            ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
-        return "illegal domain for no snoop access";
+    //check table ED3-7 and D3-8 of IHI0022H
+    switch(ext->get_snoop()) {
+    case snoop_e::READ_NO_SNOOP:
+    case snoop_e::WRITE_NO_SNOOP:    // non coherent access to coherent domain
+        if(ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
+            return "illegal domain for no non-coherent access";
+        }
+        break;
+    case snoop_e::READ_ONCE:
+    case snoop_e::READ_SHARED:
+    case snoop_e::READ_CLEAN:
+    case snoop_e::READ_NOT_SHARED_DIRTY:
+    case snoop_e::READ_UNIQUE:
+    case snoop_e::MAKE_UNIQUE:
+    case snoop_e::DVM_COMPLETE:
+    case snoop_e::DVM_MESSAGE:
+    case snoop_e::WRITE_UNIQUE:
+    case snoop_e::WRITE_LINE_UNIQUE:
+    case snoop_e::EVICT:
+        if(ext->get_domain()!=domain_e::INNER_SHAREABLE &&  ext->get_domain()!=domain_e::OUTER_SHAREABLE){
+            return "illegal domain for coherent access";
+        }
+        break;
+    case snoop_e::CLEAN_SHARED:
+    case snoop_e::CLEAN_INVALID:
+    case snoop_e::MAKE_INVALID:
+    case snoop_e::WRITE_CLEAN:
+    case snoop_e::WRITE_BACK:
+    case snoop_e::WRITE_EVICT:
+        if(ext->get_domain()==domain_e::SYSTEM){
+            return "illegal domain for coherent access";
+        }
+        break;
     }
     if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
         return "illegal barrier/snoop value combination";
@@ -216,6 +246,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case 13:
         return "illegal cache value";
     }
+    if((ext->get_cache()&2)==0 && ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM)
+        return "illegal domain for no non-cachable access";
     return nullptr;
 }
 
