@@ -96,8 +96,8 @@ axi::fsm::fsm_handle* axi::pe::simple_initiator_b::create_fsm_handle() { return 
 void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[RequestPhaseBeg] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count = 0;
-        if(protocol_cb[RequestPhaseBeg])
-            protocol_cb[RequestPhaseBeg](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[RequestPhaseBeg];
+        if(f) f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
         sc_time t;
@@ -106,12 +106,13 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         if(ret == tlm::TLM_UPDATED) {
             schedule(EndPartReqE, fsm_hndl->trans, t, true);
         }
-        if(protocol_cb[BegPartReqE])
-            protocol_cb[BegPartReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[BegPartReqE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count++;
-        if(fsm_hndl->beat_count < (get_burst_lenght(fsm_hndl->trans) - 1))
+        if(fsm_hndl->beat_count < (get_burst_lenght(*fsm_hndl->trans) - 1))
             if(::scc::get_value(wr_data_beat_delay) > 0)
                 schedule(BegPartReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
             else
@@ -120,8 +121,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             schedule(BegReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
         else
             schedule(BegReqE, fsm_hndl->trans, SC_ZERO_TIME);
-        if(protocol_cb[EndPartReqE])
-            protocol_cb[EndPartReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[EndPartReqE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -134,8 +136,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
                 schedule(EndReqE, fsm_hndl->trans, t, true);
             }
         }
-        if(protocol_cb[BegReqE])
-            protocol_cb[BegReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[BegReqE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -158,7 +161,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             }
 			if(latency < std::numeric_limits<unsigned>::max()) {
 				auto evt = ext->is_snoop_data_transfer() && ext->get_length() > 0 ? BegPartRespE : BegRespE;
-				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans, latency));
+				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans.get(), latency));
 			}
         } else {
             // auto ext = fsm_hndl->trans->get_extension<axi::axi4_extension>();
@@ -167,8 +170,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 rd.post();
         }
-        if(protocol_cb[EndReqE])
-            protocol_cb[EndReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[BegReqE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -181,12 +185,13 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndPartRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        if(protocol_cb[BegPartRespE])
-            protocol_cb[BegPartRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[BegPartRespE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
-			auto size = get_burst_lenght(fsm_hndl->trans)-1;
+			auto size = get_burst_lenght(*fsm_hndl->trans)-1;
             fsm_hndl->beat_count++;
 			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
         } else {
@@ -195,8 +200,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
             fsm_hndl->beat_count++;
         }
-        if(protocol_cb[EndPartRespE])
-            protocol_cb[EndPartRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[EndPartRespE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -210,8 +216,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        if(protocol_cb[BegRespE])
-            protocol_cb[BegRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[BegRespE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
 		if(fsm_hndl->is_snoop) {
@@ -225,16 +232,18 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             }else
             	fsm_hndl->finish.notify();
         }
-        if(protocol_cb[EndRespE])
-            protocol_cb[EndRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[EndRespE];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
     fsm_hndl->fsm->cb[Ack] = [this, fsm_hndl]() -> void {
     	sc_time t;
     	tlm::tlm_phase phase = axi::ACK;
     	auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
     	fsm_hndl->finish.notify();
-        if(protocol_cb[Ack])
-            protocol_cb[Ack](*fsm_hndl->trans, fsm_hndl->is_snoop);
+        auto& f = protocol_cb[Ack];
+        if(f)
+            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
 }
 

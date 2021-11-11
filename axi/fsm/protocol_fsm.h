@@ -139,7 +139,7 @@ struct Request : bsc::state<Request, AxiProtocolFsm> { // @suppress("Class has a
 struct WaitForResponse : bsc::state<WaitForResponse, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     WaitForResponse(my_context ctx)
     : my_base(ctx) {}
-    ~WaitForResponse() override {
+    ~WaitForResponse() {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::ResponsePhaseBeg))
             context<AxiProtocolFsm>().cb.at(axi::fsm::ResponsePhaseBeg)();
     }

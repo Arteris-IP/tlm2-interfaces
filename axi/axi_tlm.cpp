@@ -15,6 +15,7 @@
  */
 
 #include "axi_tlm.h"
+#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 
 namespace axi {
 
@@ -200,9 +201,39 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
         if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
         return "illegal write snoop value";
     }
-    if((ext->get_snoop()==snoop_e::READ_NO_SNOOP || ext->get_snoop()==snoop_e::WRITE_NO_SNOOP) &&
-            ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
-        return "illegal domain for no snoop access";
+    //check table ED3-7 and D3-8 of IHI0022H
+    switch(ext->get_snoop()) {
+    case snoop_e::READ_NO_SNOOP:
+    case snoop_e::WRITE_NO_SNOOP:    // non coherent access to coherent domain
+        if(ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
+            return "illegal domain for no non-coherent access";
+        }
+        break;
+    case snoop_e::READ_ONCE:
+    case snoop_e::READ_SHARED:
+    case snoop_e::READ_CLEAN:
+    case snoop_e::READ_NOT_SHARED_DIRTY:
+    case snoop_e::READ_UNIQUE:
+    case snoop_e::MAKE_UNIQUE:
+    case snoop_e::DVM_COMPLETE:
+    case snoop_e::DVM_MESSAGE:
+    case snoop_e::WRITE_UNIQUE:
+    case snoop_e::WRITE_LINE_UNIQUE:
+    case snoop_e::EVICT:
+        if(ext->get_domain()!=domain_e::INNER_SHAREABLE &&  ext->get_domain()!=domain_e::OUTER_SHAREABLE){
+            return "illegal domain for coherent access";
+        }
+        break;
+    case snoop_e::CLEAN_SHARED:
+    case snoop_e::CLEAN_INVALID:
+    case snoop_e::MAKE_INVALID:
+    case snoop_e::WRITE_CLEAN:
+    case snoop_e::WRITE_BACK:
+    case snoop_e::WRITE_EVICT:
+        if(ext->get_domain()==domain_e::SYSTEM){
+            return "illegal domain for coherent access";
+        }
+        break;
     }
     if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
         return "illegal barrier/snoop value combination";
@@ -215,6 +246,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case 13:
         return "illegal cache value";
     }
+    if((ext->get_cache()&2)==0 && ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM)
+        return "illegal domain for no non-cachable access";
     return nullptr;
 }
 
@@ -246,14 +279,14 @@ char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
     return nullptr;
 }
 } // namespace axi
+
 #include <tlm/scc/scv/tlm_recorder.h>
 namespace axi {
-
 using namespace tlm::scc::scv;
 
 class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext3 = trans.get_extension<axi3_extension>();
         if(ext3) { // CTRL, DATA, RESP
             handle.record_attribute("trans.axi3.id", ext3->get_id());
@@ -275,7 +308,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext3 = trans.get_extension<axi3_extension>();
         if(ext3) {
             handle.record_attribute("trans.axi3.resp", std::string(to_char(ext3->get_resp())));
@@ -284,7 +317,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 };
 class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<axi4_extension>();
         if(ext4) {
             handle.record_attribute("trans.axi4.id", ext4->get_id());
@@ -306,7 +339,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<axi4_extension>();
         if(ext4) {
             handle.record_attribute("trans.axi4.resp", std::string(to_char(ext4->get_resp())));
@@ -315,7 +348,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 };
 class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<ace_extension>();
         if(ext4) {
             handle.record_attribute("trans.ace.id", ext4->get_id());
@@ -340,7 +373,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         auto ext4 = trans.get_extension<ace_extension>();
         if(ext4) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
@@ -354,7 +387,10 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
 };
 namespace scv {
 using namespace tlm::scc::scv;
-__attribute__((constructor)) bool register_extensions() {
+#if defined(__GNUG__)
+__attribute__((constructor))
+#endif
+bool register_extensions() {
     axi::axi3_extension ext3; // NOLINT
     tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
     axi::axi4_extension ext4; // NOLINT

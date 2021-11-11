@@ -19,6 +19,7 @@
 #include <array>
 #include <axi/axi_tlm.h>
 #include <functional>
+#include <tlm/scc/tlm_gp_shared.h>
 
 namespace axi {
 namespace fsm {
@@ -57,7 +58,7 @@ struct fsm_handle {
     //! pointer to the FSM
     AxiProtocolFsm* fsm = nullptr;
     //! pointer to the associated AXITLM payload
-    axi::axi_protocol_types::tlm_payload_type* trans = nullptr;
+    tlm::scc::tlm_gp_shared_ptr  trans = nullptr;
     //! beat count of this transaction
     size_t beat_count = 0;
     //! indicator if this is a snoop access
@@ -65,9 +66,9 @@ struct fsm_handle {
     //! event indicating the end of the transaction
     sc_core::sc_event finish;
     //! additional data being used in the various adapters, @todo refactor to remove this forward definitions
+    tlm::scc::tlm_gp_shared_ptr gp{};
     union {
         uint64_t progress;
-        tlm::tlm_generic_payload* gp;
         void* pp;
     } p;
     sc_core::sc_time start;

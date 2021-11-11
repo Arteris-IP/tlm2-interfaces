@@ -129,7 +129,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
-            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else {// accepted, schedule response
             outstanding_tx[fsm_hndl->trans->get_command()]++;
@@ -147,7 +147,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
-            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
         } else { // accepted, schedule response
             if(!fsm_hndl->beat_count) outstanding_tx[fsm_hndl->trans->get_command()]++;
@@ -176,7 +176,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         if(fw_o.get_interface())
             fw_o->transport(*(fsm_hndl->trans));
         else if(latency < std::numeric_limits<unsigned>::max()) {
-            auto size = get_burst_lenght(fsm_hndl->trans) - 1;
+            auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
             schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans, latency);
         }
     };
@@ -192,7 +192,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
-        auto size = get_burst_lenght(fsm_hndl->trans) - 1;
+        auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
         fsm_hndl->beat_count++;
         if(rd_data_beat_delay.value)
             schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.value);

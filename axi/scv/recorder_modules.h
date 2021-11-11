@@ -47,7 +47,7 @@ public:
      *        If this database is not initialized (e.g. by not calling
      * scv_tr_db::set_default_db() ) recording is disabled.
      */
-    axitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true, scv_tr_db* tr_db = scv_tr_db::get_default_db())
+    axitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true, SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
     : sc_module(name)
     , BASE(this->name(), recording_enabled, tr_db) {
         // bind the sockets to the module

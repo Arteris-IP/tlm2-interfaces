@@ -127,7 +127,7 @@ protected:
 
     struct tx_state {
         scc::peq<std::tuple<payload_type*, tlm::tlm_phase>> peq;
-        tx_state(std::string const& name) : peq(name.c_str()) {}
+        tx_state(std::string const& name) : peq(sc_core::sc_gen_unique_name(name.c_str())) {}
     };
     std::unordered_map<uintptr_t, tx_state*> tx_state_by_trans;
 
@@ -159,6 +159,7 @@ private:
     void exec_read_write_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
     void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
     void cresp_response(payload_type& trans);
+    void update_data_extension(chi::chi_data_extension *data_ext, payload_type &trans);
 
     unsigned m_clock_counter{0};
     unsigned m_prev_clk_cnt{0};

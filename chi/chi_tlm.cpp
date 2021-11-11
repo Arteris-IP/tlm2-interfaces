@@ -15,6 +15,7 @@
  */
 
 #include "chi_tlm.h"
+#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <iostream>
 
 namespace chi {
@@ -312,13 +313,14 @@ bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
 }
 
 } // namespace chi
+
 #include <tlm/scc/scv/tlm_recorder.h>
 namespace chi {
 using namespace tlm::scc::scv;
 
 class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
         auto ext = trans.get_extension<chi_ctrl_extension>();
         if(ext) {
             handle.record_attribute("trans.chi_c.qos", ext->get_qos());
@@ -359,12 +361,12 @@ class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
+    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
 
 class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
         auto ext = trans.get_extension<chi_data_extension>();
         if(ext) {
             handle.record_attribute("trans.chi_d.qos", ext->get_qos());
@@ -388,12 +390,12 @@ class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
+    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
 
 class chi_snp_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
         auto ext = trans.get_extension<chi_snp_extension>();
         if(ext) {
             handle.record_attribute("trans.chi_s.qos", ext->get_qos());
@@ -422,12 +424,12 @@ class chi_snp_ext_recording : public tlm_extensions_recording_if<chi_protocol_ty
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
+    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
 
 class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
-    void recordBeginTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
         auto ext = trans.get_extension<chi_credit_extension>();
         if(ext) {
             handle.record_attribute("trans.chi_credit.type", std::string(to_char(ext->type)));
@@ -435,11 +437,14 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
         }
     }
 
-    void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
+    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
 namespace scv {
 using namespace tlm::scc::scv;
-__attribute__((constructor)) bool register_extensions() {
+#if defined(__GNUG__)
+__attribute__((constructor))
+#endif
+bool register_extensions() {
     chi::chi_ctrl_extension extchi_req; // NOLINT
     tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_req.ID,

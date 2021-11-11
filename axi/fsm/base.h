@@ -23,6 +23,7 @@
 #include <scc/fifo_w_cb.h>
 #include <scc/peq.h>
 #include <scc/report.h>
+#include <tlm/scc/tlm_gp_shared.h>
 
 namespace axi {
 namespace fsm {
@@ -97,6 +98,9 @@ struct base {
     /**
      * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
      */
+    inline void schedule(axi::fsm::protocol_time_point_e e, tlm::scc::tlm_gp_shared_ptr& gp, unsigned cycles) {
+        schedule(e, gp.get(), cycles);
+    }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles) {
     	SCCTRACE(instance_name)<<"pushing sync event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (sync:"<<cycles<<")";
         fsm_clk_queue.push_back(std::make_tuple(e, gp, cycles));
@@ -104,6 +108,9 @@ struct base {
     /**
      * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
      */
+    inline void schedule(axi::fsm::protocol_time_point_e e, tlm::scc::tlm_gp_shared_ptr& gp, sc_core::sc_time delay, bool syncronize = false) {
+        schedule(e, gp.get(), delay, syncronize);
+    }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay, bool syncronize = false) {
     	SCCTRACE(instance_name)<<"pushing event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (delay "<<delay<<")";
         fsm_event_queue.notify(std::make_tuple(e, gp, syncronize), delay);
@@ -113,11 +120,15 @@ struct base {
      * @param event the event triggering the FSM
      * @param trans the AXITLM transaction the event belongs to
      */
+    inline void react(axi::fsm::protocol_time_point_e event, tlm::scc::tlm_gp_shared_ptr& trans){
+        react(event, trans.get());
+    }
+
     void react(axi::fsm::protocol_time_point_e event, payload_type* trans);
 
-    scc::peq<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, bool>> fsm_event_queue;
+    ::scc::peq<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, bool>> fsm_event_queue;
 
-    scc::fifo_w_cb<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, unsigned>> fsm_clk_queue;
+    ::scc::fifo_w_cb<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, unsigned>> fsm_clk_queue;
 
     sc_core::sc_process_handle fsm_clk_queue_hndl;
 
