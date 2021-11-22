@@ -98,19 +98,19 @@ public:
     // However, AXI3 allows data interleaving and there may be support for AXI3 in Symphony, so keep it configurable in the testbench.
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", false};
     //! Read address valid to next read address valid
-    sc_core::sc_attribute<unsigned> artv{"artv", 0};
+    sc_core::sc_attribute<unsigned> artv{"artv", 1};
     //! Write address valid to next write address valid
-    sc_core::sc_attribute<unsigned> awtv{"awtv", 0};
+    sc_core::sc_attribute<unsigned> awtv{"awtv", 1};
     //! Write data handshake to next beat valid
-    sc_core::sc_attribute<unsigned> wbv{"wbv", 0};
+    sc_core::sc_attribute<unsigned> wbv{"wbv", 1};
     //! Read data valid to same beat ready
     sc_core::sc_attribute<unsigned> rbr{"rbr", 0};
     //! Write response valid to ready
     sc_core::sc_attribute<unsigned> br{"br", 0};
     //! Read last data handshake to acknowledge
-    sc_core::sc_attribute<unsigned> rla{"rla", 0};
+    sc_core::sc_attribute<unsigned> rla{"rla", 1};
     //! Write response handshake to acknowledge
-    sc_core::sc_attribute<unsigned> ba{"ba", 0};
+    sc_core::sc_attribute<unsigned> ba{"ba", 1};
     //! Quirks enable
     sc_core::sc_attribute<bool> enable_id_serializing{"enable_id_serializing", false};
     //! number of snoops which can be handled
