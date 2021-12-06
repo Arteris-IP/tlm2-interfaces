@@ -168,9 +168,9 @@ private:
     uint64_t peq_cnt{0};
 
     unsigned  tx_waiting{0};
-    scc::sc_variable_t<unsigned> tx_waiting_v { "TxWaiting", tx_waiting };
+    scc::sc_ref_variable<unsigned> tx_waiting_v { "TxWaiting", tx_waiting };
     unsigned  tx_outstanding{0};
-    scc::sc_variable_t<unsigned> tx_outstanding_v { "TxOutstanding", tx_outstanding };
+    scc::sc_ref_variable<unsigned> tx_outstanding_v { "TxOutstanding", tx_outstanding };
 };
 
 /**
