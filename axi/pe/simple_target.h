@@ -180,9 +180,23 @@ protected:
     void start_of_simulation() override;
     std::unique_ptr<bw_intor_impl> bw_intor;
     std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
-    std::array<unsigned, 3>  outstanding_tx{{0,0,0}}; // just for tracing, always active
-    scc::sc_ref_variable<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
-    scc::sc_ref_variable<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
+    scc::sc_variable<unsigned> outstanding_rd_tx{"OutstandingRd", 0};
+    scc::sc_variable<unsigned> outstanding_wr_tx{"OutstandingWr", 0};
+    unsigned outstanding_ign_tx{0};
+    inline unsigned& getOutStandingTx(tlm::tlm_command cmd) {
+        switch(cmd){
+        case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
+        case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
+        default: return outstanding_ign_tx;
+        }
+    }
+    inline unsigned getOutStandingTx(tlm::tlm_command cmd) const {
+        switch(cmd){
+        case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
+        case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
+        default: return outstanding_ign_tx;
+        }
+    }
     std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};
     std::array<axi::fsm::protocol_time_point_e, 3> stalled_tp{{axi::fsm::CB_CNT,axi::fsm::CB_CNT,axi::fsm::CB_CNT}};
     void nb_fw(payload_type& trans, const phase_type& phase) {

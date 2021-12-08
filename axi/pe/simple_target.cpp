@@ -132,7 +132,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else {// accepted, schedule response
-            outstanding_tx[fsm_hndl->trans->get_command()]++;
+            getOutStandingTx(fsm_hndl->trans->get_command())++;
             if(wr_data_accept_delay.value)
                 schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value-1);
             else
@@ -150,7 +150,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
         } else { // accepted, schedule response
-            if(!fsm_hndl->beat_count) outstanding_tx[fsm_hndl->trans->get_command()]++;
+            if(!fsm_hndl->beat_count) getOutStandingTx(fsm_hndl->trans->get_command())++;
             auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
             if(latency)
                 schedule(EndReqE, fsm_hndl->trans, latency-1);
@@ -217,7 +217,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         }
         auto cmd = fsm_hndl->trans->get_command();
         outstanding_cnt[cmd]--;
-        outstanding_tx[cmd]--;
+        getOutStandingTx(cmd)--;
         if(stalled_tx[cmd]){
             auto* trans = stalled_tx[cmd];
             auto latency = trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
@@ -225,7 +225,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
                 schedule(stalled_tp[cmd], trans, latency-1);
             else
                 schedule(stalled_tp[cmd], trans, sc_core::SC_ZERO_TIME);
-            outstanding_tx[cmd]++;
+            getOutStandingTx(cmd)++;
             stalled_tx[cmd] = nullptr;
             stalled_tp[cmd] = CB_CNT;
         }

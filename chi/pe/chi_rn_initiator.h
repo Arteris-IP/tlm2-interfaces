@@ -167,10 +167,8 @@ private:
     sc_core::sc_clock* clk_if{nullptr};
     uint64_t peq_cnt{0};
 
-    unsigned  tx_waiting{0};
-    scc::sc_ref_variable<unsigned> tx_waiting_v { "TxWaiting", tx_waiting };
-    unsigned  tx_outstanding{0};
-    scc::sc_ref_variable<unsigned> tx_outstanding_v { "TxOutstanding", tx_outstanding };
+    scc::sc_variable<unsigned> tx_waiting{"TxWaiting", 0};
+    scc::sc_variable<unsigned> tx_outstanding {"TxOutstanding", 0};
 };
 
 /**
