@@ -315,8 +315,3 @@ void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
 }
 
 void simple_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
-
-struct my_data {
-    int x;
-    long y;
-};
