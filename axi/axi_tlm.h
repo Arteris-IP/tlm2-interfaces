@@ -165,14 +165,15 @@ struct common {
      */
     enum class id_type { CTRL, DATA, RESP };
     //! set the id value of a particular channel
-    //! @param the AxID of the ADDR, DATA, and RESP channel
-    void set_id(unsigned int);
+    //! @param value of the AxID of the ADDR, DATA, and RESP channel
+    void set_id(unsigned int value);
     //! get the id value of a particular channel
     //! @return the AxID
     unsigned int get_id() const;
     //! set the user value of a particular channel
-    //! @param AxUSER value of the ADDR, DATA, and RESP channel
-    void set_user(id_type chnl, unsigned int);
+    //! @param chnl AxUSER value of the ADDR, DATA, and RESP channel
+    //! @param value of the user field
+    void set_user(id_type chnl, unsigned int value);
     //! get the user value of a particular channel
     //! @return AxUSER value
     unsigned int get_user(id_type chnl) const;
