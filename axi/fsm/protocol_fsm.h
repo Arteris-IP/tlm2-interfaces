@@ -32,9 +32,7 @@ namespace bsc = boost::statechart;
 
 namespace axi {
 namespace fsm {
-/** @defgroup event Event Declarations
- *  @{
- */
+// Event Declarations
 struct WReq : bsc::event<WReq> {};
 struct BegPartReq : bsc::event<BegPartReq> {};
 struct EndPartReq : bsc::event<EndPartReq> {};
@@ -46,10 +44,7 @@ struct BegResp : bsc::event<BegResp> {};
 struct EndResp : bsc::event<EndResp> {};
 struct EndRespNoAck : bsc::event<EndRespNoAck> {};
 struct AckRecv : bsc::event<AckRecv> {};
-/** @} */ // end of event
-/** @defgroup state_fwd State forward Declarations
- *  @{
- */
+// State forward Declarations
 struct Idle; // forward declaration
 struct ATrans;
 struct PartialRequest;
@@ -60,7 +55,6 @@ struct PartialResponse;
 struct ReadIdle;
 struct Response;
 struct WaitAck;
-/** @} */ // end of state_fwd
 /**
  * State Machine Base Class Declaration
  */
@@ -75,9 +69,6 @@ struct AxiProtocolFsm : bsc::state_machine<AxiProtocolFsm, Idle> {
     };
     axi::fsm::protocol_cb cb;
 };
-/** @defgroup state State Declarations
- *  @{
- */
 //! the idle state
 struct Idle : bsc::state<Idle, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     Idle(my_context ctx)
@@ -185,6 +176,5 @@ struct WaitAck : bsc::state<WaitAck, AxiProtocolFsm> { // @suppress("Class has a
     }
     typedef bsc::transition<AckRecv, Idle> reactions;
 };
-/** @} */ // end of state_fwd
 } // namespace fsm
 } // namespace axi
