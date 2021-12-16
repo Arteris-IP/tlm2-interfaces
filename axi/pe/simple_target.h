@@ -23,6 +23,7 @@
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>
+#include <scc/sc_variable.h>
 #include <unordered_set>
 #include <tlm_utils/peq_with_cb_and_phase.h>
 
