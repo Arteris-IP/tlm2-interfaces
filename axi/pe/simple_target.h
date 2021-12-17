@@ -176,15 +176,15 @@ protected:
     std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
     scc::sc_variable<unsigned> outstanding_rd_tx{"OutstandingRd", 0};
     scc::sc_variable<unsigned> outstanding_wr_tx{"OutstandingWr", 0};
-    unsigned outstanding_ign_tx{0};
-    inline unsigned& getOutStandingTx(tlm::tlm_command cmd) {
+    scc::sc_variable<unsigned> outstanding_ign_tx{"OutstandingIgn", 0};
+    inline scc::sc_variable<unsigned>& getOutStandingTx(tlm::tlm_command cmd) {
         switch(cmd){
         case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
         case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
         default: return outstanding_ign_tx;
         }
     }
-    inline unsigned getOutStandingTx(tlm::tlm_command cmd) const {
+    inline scc::sc_variable<unsigned> getOutStandingTx(tlm::tlm_command cmd) const {
         switch(cmd){
         case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
         case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
