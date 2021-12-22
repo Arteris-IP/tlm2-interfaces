@@ -31,8 +31,8 @@ using namespace axi::fsm;
 namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
 
 std::ostream& axi::fsm::operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
-    os<<"CMD:"<<cmd_str[t.get_command()]<<", ADDR:0x"<<std::hex<<t.get_address()<<", LEN:0x"<<t.get_data_length()
-            <<" AXI_ID:"<<get_axi_id(t);
+    os<<"CMD:"<<cmd_str[t.get_command()]<<", ADDR:0x"<<std::hex<<t.get_address()<<", DLEN:0x"<<t.get_data_length()
+            <<", AxID:0x"<<get_axi_id(t)<<", AxLEN:0x"<<get_burst_lenght(t)<<", AxSIZE:0x"<<get_burst_size(t);
     return os;
 }
 
