@@ -32,7 +32,7 @@ struct fsm_handle;
 
 inline std::ostream& operator<<(std::ostream& os, const std::tuple<axi::fsm::fsm_handle*, axi::fsm::protocol_time_point_e>&) { return os; }
 
-std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t);
+using axi::operator<<;
 
 /**
  * @brief base class of all AXITLM based adapters and interfaces.
@@ -102,7 +102,7 @@ struct base {
         schedule(e, gp.get(), cycles);
     }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles) {
-    	SCCTRACE(instance_name)<<"pushing sync event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (sync:"<<cycles<<")";
+    	SCCTRACE(instance_name)<<"pushing sync event "<<evt2str(e)<<" for transaction "<< *gp <<" (sync:"<<cycles<<")";
         fsm_clk_queue.push_back(std::make_tuple(e, gp, cycles));
     }
     /**
@@ -112,7 +112,7 @@ struct base {
         schedule(e, gp.get(), delay, syncronize);
     }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay, bool syncronize = false) {
-    	SCCTRACE(instance_name)<<"pushing event "<<evt2str(e)<<" for transaction "<<std::hex<<gp<<" (delay "<<delay<<")";
+    	SCCTRACE(instance_name)<<"pushing event "<<evt2str(e)<<" for transaction "<< *gp << " (delay "<<delay<<")";
         fsm_event_queue.notify(std::make_tuple(e, gp, syncronize), delay);
     }
     /**
@@ -124,7 +124,17 @@ struct base {
         react(event, trans.get());
     }
 
-    void react(axi::fsm::protocol_time_point_e event, payload_type* trans);
+    inline void react(axi::fsm::protocol_time_point_e event, payload_type* trans) {
+        SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<< *trans;
+        auto fsm_hndl = active_fsm[trans];
+        if(!fsm_hndl) {
+            SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
+            throw std::runtime_error("No valid FSM found for trans");
+        }
+        react(event, fsm_hndl);
+    }
+
+    void react(axi::fsm::protocol_time_point_e, axi::fsm::fsm_handle*);
 
     ::scc::peq<std::tuple<axi::fsm::protocol_time_point_e, payload_type*, bool>> fsm_event_queue;
 

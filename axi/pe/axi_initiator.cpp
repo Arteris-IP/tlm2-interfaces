@@ -30,19 +30,6 @@ uint8_t log2n(uint8_t siz) { return ((siz > 1) ? 1 + log2n(siz >> 1) : 0); }
 
 } // anonymous namespace
 
-inline
-std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload* t) {
-    static const std::array<const char*, 3>  cmd_str{{"rd", "wr", "ign"}};
-    os<<cmd_str[t->get_command()] <<" tx "<<static_cast<void*>(t)<<" (addr="<<std::hex<<t->get_address()<<std::dec<<", axid="<<get_axi_id(t)<<")";
-    return os;
-}
-
-inline
-std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload& t) {
-    os<<&t;
-    return os;
-}
-
 SC_HAS_PROCESS(axi_initiator_b);
 
 axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,

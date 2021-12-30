@@ -19,6 +19,32 @@
 
 namespace axi {
 
+namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
+
+std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
+    os<<"CMD:"<<cmd_str[t.get_command()]
+                        <<", ADDR:0x"<<std::hex<<t.get_address()
+                        <<", DLEN:0x"<<t.get_data_length();
+    if(auto e = t.get_extension<axi::ace_extension>()){
+        os <<", ID:"<< e->get_id()
+                   <<", CACHE:"<<e->get_cache()
+                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<<(1u << e->get_size())
+                   <<", SNP:"<<std::hex<<(static_cast<unsigned>(e->get_snoop())&0xf)
+                   <<", DOM:"<<std::dec<<static_cast<unsigned>(e->get_domain());
+    } else if(auto e = t.get_extension<axi::axi4_extension>()){
+        os <<", ID:"<< e->get_id()
+                   <<", CACHE:"<<static_cast<unsigned>(e->get_cache())
+                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<< (1u << e->get_size());
+    } else if(auto e = t.get_extension<axi::axi3_extension>()){
+        os <<", ID:"<< e->get_id()
+                   <<", CACHE:"<<static_cast<unsigned>(e->get_cache())
+                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<<(1u<< e->get_size());
+    }
+    os <<" ["<<&t<<"]";
+    return os;
+}
+
+
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
     case snoop_e::READ_NO_SNOOP:

@@ -20,6 +20,7 @@
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
 #include <scc/report.h>
+#include <scc/utilities.h>
 #include <systemc>
 #include <tuple>
 
@@ -76,11 +77,13 @@ axi_target_pe_b::~axi_target_pe_b()= default;
 
 void axi_target_pe_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
-    if(rd_bw_limit_byte_per_sec.value>0.0){
-        time_per_byte_rd=sc_core::sc_time(1.0/rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
-    }
-    if(wr_bw_limit_byte_per_sec.value>0.0){
-        time_per_byte_wr=sc_core::sc_time(1.0/wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+    if(clk_if) {
+        if(rd_bw_limit_byte_per_sec.value>0.0){
+            time_per_byte_rd=sc_core::sc_time(1.0/rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        }
+        if(wr_bw_limit_byte_per_sec.value>0.0){
+            time_per_byte_wr=sc_core::sc_time(1.0/wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        }
     }
 }
 
@@ -141,7 +144,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = axi::END_PARTIAL_REQ;
-        sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
+        sc_time t(clk_if?::scc::time_to_next_posedge(clk_if)-1_ps:SC_ZERO_TIME);
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->beat_count++;
     };
@@ -160,7 +163,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = tlm::END_REQ;
-        sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
+        sc_time t(clk_if?::scc::time_to_next_posedge(clk_if)-1_ps:SC_ZERO_TIME);
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
         if(auto ext3 = fsm_hndl->trans->get_extension<axi3_extension>()) {
@@ -212,7 +215,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
         if(rd_resp.get_value()<rd_resp.get_capacity()){
-            SCCTRACE(SCMOD)<<"finishing exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
+            SCCTRACE(SCMOD)<<"finishing exclusive read response for trans " << *fsm_hndl->trans;
             rd_resp.post();
         }
         auto cmd = fsm_hndl->trans->get_command();
@@ -241,6 +244,7 @@ void axi::pe::axi_target_pe_b::process_req2resp_fifos() {
     while (rd_req2resp_fifo.avail()) {
         auto& entry = rd_req2resp_fifo.front();
         if (std::get<1>(entry) == 0) {
+            sc_assert(rd_resp_fifo.num_free());
             rd_resp_fifo.write(std::get<0>(entry));
         } else {
             std::get<1>(entry) -= 1;
@@ -277,7 +281,7 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
             while(!rd_resp.get_value()) wait(clk_i.posedge_event());
             rd_resp.wait();
         }
-        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
+        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for trans " << *trans;
         auto e = axi::get_burst_lenght(trans)==1 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
         if(rd_data_beat_delay.value)
             schedule(e, trans, rd_data_beat_delay.value-1);
@@ -318,7 +322,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
             while(!rd_resp_ch.get_value())
             	wait(clk_i.posedge_event());
             rd_resp_ch.wait();
-            SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
+            SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for trans " << *fsm_hndl->trans;
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
                 schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
             }

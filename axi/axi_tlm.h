@@ -61,6 +61,8 @@ inline std::ostream& operator<<(std::ostream& os, E e) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload const& t);
+
 /**
  * the burst type enumeration class
  */
@@ -1184,6 +1186,19 @@ inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& t
     return burst_e::FIXED;
 }
 inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_type(*trans); }
+
+inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type& trans) {
+    if(auto e = trans.get_extension<axi::ace_extension>())
+        return e->get_cache();
+    if(auto e = trans.get_extension<axi::axi4_extension>())
+        return e->get_cache();
+    if(auto e = trans.get_extension<axi::axi3_extension>())
+        return e->get_cache();
+    sc_assert(false && "transaction is not an axi or ace transaction");
+    return 0;
+}
+inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type* trans) {return get_cache(*trans);}
+
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
