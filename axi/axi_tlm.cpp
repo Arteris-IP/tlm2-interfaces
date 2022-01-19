@@ -260,6 +260,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
             return "illegal domain for coherent access";
         }
         break;
+    default:
+        break;
     }
     if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
         return "illegal barrier/snoop value combination";
@@ -271,6 +273,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case 12:
     case 13:
         return "illegal cache value";
+    default:
+        break;
     }
     if((ext->get_cache()&2)==0 && ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM)
         return "illegal domain for no non-cachable access";

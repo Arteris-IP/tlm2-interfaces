@@ -54,10 +54,11 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
     const static std::array<std::string, 3> cmd{{"RD", "WR", "IGN"}};
     auto it = active_fsm.find(gp);
     if(!gp || it == active_fsm.end()) {
-        if(gp)
+        if(gp){
             SCCTRACE(instance_name) << "creating fsm for trans " << *gp;
-        else
+        }else{
             SCCTRACE(instance_name) << "creating fsm for undefined transaction";
+        }
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
             auto fsm = new AxiProtocolFsm();

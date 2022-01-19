@@ -80,7 +80,7 @@ public:
      * @param trans the transaction to send
      * @param blocking execute in using the blocking interface
      */
-    void transport(payload_type& trans, bool blocking);
+    void transport(payload_type& trans, bool blocking) override;
     /**
      * @brief Set the snoop callback function
      *
@@ -100,7 +100,7 @@ public:
      * @param trans
      * @param sync when true send response with next rising clock edge otherwise send immediately
      */
-    void snoop_resp(payload_type& trans, bool sync = false);
+    void snoop_resp(payload_type& trans, bool sync = false) override;
     /**
      * @brief the default snoop latency between request and response phase. Will be overwritten by the
      * return of the callback function (if registered)

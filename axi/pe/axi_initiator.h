@@ -35,11 +35,11 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    void b_snoop(payload_type& trans, sc_core::sc_time& t);
+    void b_snoop(payload_type& trans, sc_core::sc_time& t) override;
 
-    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
+    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) override;
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range);
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) override;
 
     size_t get_transferwith_in_bytes() const { return transfer_width_in_bytes; }
     /**
