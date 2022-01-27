@@ -19,7 +19,8 @@
 #include "ace_recorder.h"
 #include <axi/axi_tlm.h>
 
-namespace scv4axi {
+namespace axi {
+namespace scv {
 
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
@@ -93,5 +94,5 @@ public:
 protected:
     axi::scv::ace_recorder<TYPES> recorder;
 };
-
-} // namespace scv4axi
+} // namespace scv
+} // namespace axi
