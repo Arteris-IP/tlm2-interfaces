@@ -222,7 +222,7 @@ public:
     : axi_target_pe_b(nm, socket.get_base_port(), BUSWIDTH)
     , socket(socket) {
         socket(*this);
-        this->instance_name = socket.name();
+        this->instance_name = name();
     }
 
     simple_target() = delete;

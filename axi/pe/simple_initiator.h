@@ -183,7 +183,7 @@ public:
     : simple_initiator_b(nm, socket_.get_base_port(), BUSWIDTH)
     , socket(socket_) {
         socket(*this);
-        this->instance_name = socket.name();
+        this->instance_name = name();
     }
 
     simple_axi_initiator() = delete;
@@ -238,7 +238,7 @@ public:
     : simple_initiator_b(nm, socket.get_base_port(), BUSWIDTH, true)
     , socket(socket) {
         socket(*this);
-        this->instance_name = socket.name();
+        this->instance_name = name();
     }
 
     simple_ace_initiator() = delete;
