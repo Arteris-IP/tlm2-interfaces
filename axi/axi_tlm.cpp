@@ -21,30 +21,6 @@ namespace axi {
 
 namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
 
-std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
-    os<<"CMD:"<<cmd_str[t.get_command()]
-                        <<", ADDR:0x"<<std::hex<<t.get_address()
-                        <<", DLEN:0x"<<t.get_data_length();
-    if(auto e = t.get_extension<axi::ace_extension>()){
-        os <<", ID:"<< e->get_id()
-                   <<", CACHE:"<<e->get_cache()
-                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<<(1u << e->get_size())
-                   <<", SNP:"<<std::hex<<(static_cast<unsigned>(e->get_snoop())&0xf)
-                   <<", DOM:"<<std::dec<<static_cast<unsigned>(e->get_domain());
-    } else if(auto e = t.get_extension<axi::axi4_extension>()){
-        os <<", ID:"<< e->get_id()
-                   <<", CACHE:"<<static_cast<unsigned>(e->get_cache())
-                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<< (1u << e->get_size());
-    } else if(auto e = t.get_extension<axi::axi3_extension>()){
-        os <<", ID:"<< e->get_id()
-                   <<", CACHE:"<<static_cast<unsigned>(e->get_cache())
-                   <<", LN/SZ:"<<e->get_length() + 1<<"/"<<(1u<< e->get_size());
-    }
-    os <<" ["<<&t<<"]";
-    return os;
-}
-
-
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
     case snoop_e::READ_NO_SNOOP:
@@ -177,6 +153,50 @@ template <> const char* to_char<resp_e>(resp_e v) {
     default:
         return "OTHER";
     }
+}
+
+std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
+    char const* ch = t.get_command()==tlm::TLM_READ_COMMAND?"AR":(t.get_command()==tlm::TLM_WRITE_COMMAND?"AW":"");
+    os<<"CMD:"<<cmd_str[t.get_command()]
+                        <<", "<<ch<<"ADDR:0x"<<std::hex<<t.get_address()
+                        <<", TXLEN:0x"<<t.get_data_length();
+    if(auto e = t.get_extension<axi::ace_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
+           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           <<", "<<ch<<"SNOOP:0x"<<std::hex<<(static_cast<unsigned>(e->get_snoop())&0xf)<<std::dec
+           <<", "<<ch<<"DOMAIN:"<<to_char(e->get_domain())
+           <<", "<<ch<<"BAR:"<<to_char(e->get_barrier())
+           <<", "<<ch<<"UNIQUE:"<<e->get_unique()
+           ;
+    } else if(auto e = t.get_extension<axi::axi4_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
+           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           ;
+    } else if(auto e = t.get_extension<axi::axi3_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
+           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           ;
+    }
+    os <<" [ptr:"<<&t<<"]";
+    return os;
 }
 
 namespace {
