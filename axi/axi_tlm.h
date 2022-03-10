@@ -792,7 +792,7 @@ struct axi_extension : public common, // 2x 4byte
     bool is_response_array_complete();
 
 private:
-    std::vector<response> response_arr;
+    std::vector<response> response_arr{};
     bool response_array_complete{false};
 };
 /**
@@ -1210,38 +1210,32 @@ template <> struct enable_for_enum<snoop_e> { static const bool enable = true; }
 template <> struct enable_for_enum<resp_e> { static const bool enable = true; };
 
 template <> inline burst_e into<burst_e>(typename std::underlying_type<burst_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<burst_e>::type>(burst_e::FIXED) &&
-           t <= static_cast<std::underlying_type<burst_e>::type>(burst_e::WRAP));
+    assert(t <= static_cast<std::underlying_type<burst_e>::type>(burst_e::WRAP));
     return static_cast<burst_e>(t);
 }
 
 template <> inline lock_e into<lock_e>(typename std::underlying_type<lock_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<lock_e>::type>(lock_e::NORMAL) &&
-           t <= static_cast<std::underlying_type<lock_e>::type>(lock_e::LOCKED));
+    assert(t <= static_cast<std::underlying_type<lock_e>::type>(lock_e::LOCKED));
     return static_cast<lock_e>(t);
 }
 
 template <> inline domain_e into<domain_e>(typename std::underlying_type<domain_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<domain_e>::type>(domain_e::NON_SHAREABLE) &&
-           t <= static_cast<std::underlying_type<domain_e>::type>(domain_e::SYSTEM));
+    assert(t <= static_cast<std::underlying_type<domain_e>::type>(domain_e::SYSTEM));
     return static_cast<domain_e>(t);
 }
 
 template <> inline bar_e into<bar_e>(typename std::underlying_type<bar_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<bar_e>::type>(bar_e::RESPECT_BARRIER) &&
-           t <= static_cast<std::underlying_type<bar_e>::type>(bar_e::SYNCHRONISATION_BARRIER));
+    assert(t <= static_cast<std::underlying_type<bar_e>::type>(bar_e::SYNCHRONISATION_BARRIER));
     return static_cast<bar_e>(t);
 }
 
 template <> inline snoop_e into<snoop_e>(typename std::underlying_type<snoop_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<snoop_e>::type>(snoop_e::READ_ONCE) &&
-                    t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::WRITE_NO_SNOOP));
+    assert(t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::WRITE_NO_SNOOP));
     return static_cast<snoop_e>(t);
 }
 
 template <> inline resp_e into<resp_e>(typename std::underlying_type<resp_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<resp_e>::type>(resp_e::OKAY) &&
-           t <= static_cast<std::underlying_type<resp_e>::type>(resp_e::DECERR));
+    assert(t <= static_cast<std::underlying_type<resp_e>::type>(resp_e::DECERR));
     return static_cast<resp_e>(t);
 }
 
