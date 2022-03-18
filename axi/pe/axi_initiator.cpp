@@ -18,6 +18,7 @@
 #include <axi/pe/axi_initiator.h>
 #include <atp/timing_params.h>
 #include <scc/report.h>
+#include <tlm/scc/tlm_gp_shared.h>
 
 using namespace sc_core;
 using sem_lock = scc::ordered_semaphore::lock;
@@ -274,7 +275,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
 
 // This process handles the SNOOP request received
 void axi_initiator_b::snoop_thread() {
-    payload_type* trans{nullptr};
+    tlm::scc::tlm_gp_shared_ptr trans{nullptr};
     while(true) {
         while(!(trans = snp_peq.get_next_transaction())) {
             wait(snp_peq.get_event());
@@ -286,7 +287,7 @@ void axi_initiator_b::snoop_thread() {
         auto it = snp_state_by_id.find(&trans);
         if(it == snp_state_by_id.end()) {
             bool success;
-            std::tie(it, success) = snp_state_by_id.insert(std::make_pair(trans, new tx_state()));
+            std::tie(it, success) = snp_state_by_id.insert(std::make_pair(trans.get(), new tx_state()));
         }
         auto* txs = it->second;
 

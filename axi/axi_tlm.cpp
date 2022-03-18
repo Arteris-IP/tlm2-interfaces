@@ -162,8 +162,8 @@ std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
                         <<", TXLEN:0x"<<t.get_data_length();
     if(auto e = t.get_extension<axi::ace_extension>()){
         os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
-           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
            <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
            <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
            <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
@@ -176,8 +176,8 @@ std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
            ;
     } else if(auto e = t.get_extension<axi::axi4_extension>()){
         os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
-           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
            <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
            <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
            <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
@@ -186,8 +186,8 @@ std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
            ;
     } else if(auto e = t.get_extension<axi::axi3_extension>()){
         os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<e->get_length() + 1
-           <<", "<<ch<<"SIZE:0x"<<(1u << e->get_size())<<std::dec
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
            <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
            <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
            <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
