@@ -120,7 +120,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         else if(::scc::get_value(wr_data_beat_delay) > 0)
             schedule(BegReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
         else
-            schedule(BegReqE, fsm_hndl->trans, SC_ZERO_TIME);
+            schedule(BegReqE, fsm_hndl->trans, 0);
         auto& f = protocol_cb[EndPartReqE];
         if(f)
             f(*fsm_hndl->trans, fsm_hndl->is_snoop);
