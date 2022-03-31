@@ -53,8 +53,9 @@ axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
     SC_METHOD(clk_counter);
     sensitive << clk_i.pos();
 
-    SC_THREAD(snoop_thread);
-
+    if(flavor==flavor_e::AXI)
+        for(auto i=0u; i<16; i++)
+            sc_core::sc_spawn([this](){snoop_thread();});
 }
 
 axi_initiator_b::~axi_initiator_b() {
@@ -280,6 +281,8 @@ void axi_initiator_b::snoop_thread() {
         while(!(trans = snp_peq.get_next_transaction())) {
             wait(snp_peq.get_event());
         }
+        snoops_in_flight++;
+        SCCDEBUG(SCMOD)<<"start snoop #"<<snoops_in_flight;
         auto req_ext = trans->get_extension<ace_extension>();
         sc_assert(req_ext != nullptr);
         auto const txn_id = req_ext->get_id();
@@ -304,6 +307,7 @@ void axi_initiator_b::snoop_thread() {
             snoop_resp(*trans);
         }
     }
+    snoops_in_flight--;
 }
 
 void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {

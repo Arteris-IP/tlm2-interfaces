@@ -156,6 +156,7 @@ private:
 
     unsigned m_clock_counter{0};
     unsigned m_prev_clk_cnt{0};
+    unsigned snoops_in_flight{0};
 };
 
 /**
