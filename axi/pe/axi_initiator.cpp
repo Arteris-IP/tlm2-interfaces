@@ -306,8 +306,8 @@ void axi_initiator_b::snoop_thread() {
                 wait(clk_i.posedge_event());
             snoop_resp(*trans);
         }
-    }
-    snoops_in_flight--;
+        snoops_in_flight--;
+   }
 }
 
 void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
