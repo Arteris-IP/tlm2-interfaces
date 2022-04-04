@@ -1060,12 +1060,12 @@ inline bool is_dataless(axi::ace_extension const* ext){
     if(!ext) return false;
     auto snp = ext->get_snoop();
     return
-            snp==snoop_e::CLEAN_UNIQUE  ||
-            snp==snoop_e::MAKE_UNIQUE   ||
-            snp==snoop_e::CLEAN_SHARED  ||
-            snp==snoop_e::CLEAN_INVALID ||
-            snp==snoop_e::MAKE_INVALID  ||
-            snp==snoop_e::EVICT ||
+            snp == snoop_e::CLEAN_UNIQUE  ||
+            snp == snoop_e::MAKE_UNIQUE   ||
+            snp == snoop_e::CLEAN_SHARED  ||
+            snp == snoop_e::CLEAN_INVALID ||
+            snp == snoop_e::MAKE_INVALID  ||
+            snp == snoop_e::EVICT ||
             snp == snoop_e::STASH_ONCE_SHARED ||
             snp == snoop_e::STASH_ONCE_UNIQUE;
 
