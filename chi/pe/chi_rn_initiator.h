@@ -30,8 +30,6 @@ namespace pe {
 
 class chi_rn_initiator_b : public sc_core::sc_module, public chi::chi_bw_transport_if<chi::chi_protocol_types> {
 public:
-    SC_HAS_PROCESS(chi_rn_initiator_b);
-
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
 
