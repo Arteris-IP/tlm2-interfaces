@@ -87,20 +87,6 @@ void axi_target_pe_b::end_of_elaboration() {
     }
 }
 
-void axi::pe::axi_target_pe_b::start_of_simulation() {
-    if(!operation_cb) {
-        operation_cb=[this](payload_type& trans)-> unsigned {
-            if(trans.is_write())
-                wr_req2resp_fifo.push_back(std::make_tuple(&trans, wr_resp_delay.value));
-            else if(trans.is_read())
-                rd_req2resp_fifo.push_back(std::make_tuple(&trans, rd_resp_delay.value));
-            else
-                return 0;
-            return std::numeric_limits<unsigned>::max();
-        };
-    }
-}
-
 void axi_target_pe_b::b_transport(payload_type& trans, sc_time& t) {
     auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.value : wr_resp_delay.value;
     trans.set_dmi_allowed(false);
@@ -174,13 +160,20 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             exta->set_resp(resp_e::OKAY);
         } else
             sc_assert(false && "No valid AXITLM extension found!");
-        auto latency =
-                operation_cb ? operation_cb(*fsm_hndl->trans) : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
         if(fw_o.get_interface())
             fw_o->transport(*(fsm_hndl->trans));
-        else if(latency < std::numeric_limits<unsigned>::max()) {
-            auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
-            schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans, latency);
+        else {
+            auto latency =  operation_cb ?
+                    operation_cb(*fsm_hndl->trans):
+                    fsm_hndl->trans->is_read() ?
+                            rd_resp_delay.value:
+                            wr_resp_delay.value;
+            if(latency < std::numeric_limits<unsigned>::max()) {
+                if(fsm_hndl->trans->is_write())
+                    wr_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
+                else if(fsm_hndl->trans->is_read())
+                    rd_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
+            }
         }
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
@@ -237,7 +230,10 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay){
     auto e = axi::get_burst_lenght(trans)==1 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
-	schedule(e, &trans, clk_delay);
+    if(trans.is_write())
+        wr_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
+    else if(trans.is_read())
+        rd_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
 }
 
 void axi::pe::axi_target_pe_b::process_req2resp_fifos() {

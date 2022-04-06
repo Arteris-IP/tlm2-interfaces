@@ -62,7 +62,7 @@ public:
      */
     sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
     /**
-     * @brief enable data interleaving on read responses
+     * @brief enable data interleaving on read responses if rd_data_beat_delay is greater than 0
      */
     sc_core::sc_attribute<bool> rd_data_interleaving{"rd_data_interleaving", true};
     /**
@@ -105,6 +105,7 @@ public:
 
     void set_operation_cb(std::function<unsigned(payload_type& trans)> cb) { operation_cb = cb; }
     /**
+     * start the response from an operation callback if latency is not set by the callback
      *
      * @param trans
      * @param sync
@@ -117,7 +118,7 @@ public:
      */
     bool is_active() { return !active_fsm.empty(); }
     /**
-     * get the event being notfied upon the finishing of an event
+     * get the event being notfied upon the finishing of a transaction
      *
      * @return reference to sc_event
      */
@@ -171,7 +172,6 @@ protected:
 
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
-    void start_of_simulation() override;
     std::unique_ptr<bw_intor_impl> bw_intor;
     std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
     scc::sc_variable<unsigned> outstanding_rd_tx{"OutstandingRd", 0};
