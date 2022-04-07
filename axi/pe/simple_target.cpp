@@ -214,6 +214,8 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         auto cmd = fsm_hndl->trans->get_command();
         outstanding_cnt[cmd]--;
         getOutStandingTx(cmd)--;
+        if(cmd==tlm::TLM_READ_COMMAND)
+            active_rdresp_id.erase(axi::get_axi_id(fsm_hndl->trans.get()));
         if(stalled_tx[cmd]){
             auto* trans = stalled_tx[cmd];
             auto latency = trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
@@ -279,6 +281,11 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
         }
         SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for trans " << *trans;
         auto e = axi::get_burst_lenght(trans)==1 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
+        auto id = axi::get_axi_id(trans);
+        while(active_rdresp_id.size() && active_rdresp_id.find(id)!=active_rdresp_id.end()){
+            wait(clk_i.posedge_event());
+        }
+        active_rdresp_id.insert(id);
         if(rd_data_beat_delay.value)
             schedule(e, trans, rd_data_beat_delay.value-1);
         else

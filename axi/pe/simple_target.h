@@ -198,6 +198,7 @@ protected:
         base::nb_fw(trans, phase, delay);
     }
     tlm_utils::peq_with_cb_and_phase<axi_target_pe_b> fw_peq{this, &axi_target_pe_b::nb_fw};
+    std::unordered_set<unsigned> active_rdresp_id;
 };
 
 /**
