@@ -947,8 +947,9 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                 auto entry = txs->peq.get();
                 sc_assert(std::get<0>(entry) == &trans && std::get<1>(entry) == tlm::END_REQ);
             }
+            auto credit_ext = trans.get_extension<chi_credit_extension>();
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
-            if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
+            if(credit_ext) {
                 if(credit_ext->type==credit_type_e::REQ) {
                     SCCTRACEALL(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
                     for(auto i=0U; i<credit_ext->count; ++i)
