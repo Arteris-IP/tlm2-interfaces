@@ -224,7 +224,6 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 auto delay_in_cycles = timing_e ? (trans.is_read() ? timing_e->rbr : timing_e->br) : br.value;
                 for(unsigned i = 0; i < delay_in_cycles; ++i)
                     wait(clk_i.posedge_event());
-                trans.set_response_status(tlm::TLM_OK_RESPONSE);
                 burst_length--;
                 tlm::tlm_phase phase = tlm::END_RESP;
                 sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
