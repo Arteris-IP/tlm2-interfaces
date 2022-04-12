@@ -153,7 +153,14 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
             id_mtx[axi_id]->wait(); // wait until running tx with same id is over
         }
         txs->active_tx = &trans;
-        auto burst_length = get_burst_lenght(trans);
+        auto burst_length = 0;
+        if(auto e = trans.get_extension<axi::ace_extension>()){
+            burst_length = is_dataless(e)? 1: e->get_length() + 1;
+        } else if(auto e = trans.get_extension<axi::axi4_extension>()){
+            burst_length = e->get_length() + 1;
+        } else if(auto e = trans.get_extension<axi::axi3_extension>()){
+            burst_length = e->get_length() + 1;
+        }
         SCCTRACE(SCMOD) << "start transport "<<trans ;
         tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
         if(!trans.is_read()) { // data less via write channel
@@ -166,7 +173,8 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 SCCTRACE(SCMOD) << "starting "<<burst_length<<" write beats of "<<trans;
                 for(unsigned i = 0; i < burst_length - 1; ++i) {
                     auto res = send(trans, txs, axi::BEGIN_PARTIAL_REQ);
-                    sc_assert(axi::END_PARTIAL_REQ == res);
+                    if(axi::END_PARTIAL_REQ != res)
+                        SCCFATAL(SCMOD)<<"target responded with "<<res<<" for the "<<i<<"th beat of "<<burst_length<<" beats  in transaction "<<trans;
                     for(unsigned i = 0; i < (timing_e ? timing_e->wbv : wbv.value); ++i)
                         wait(clk_i.posedge_event());
                 }
