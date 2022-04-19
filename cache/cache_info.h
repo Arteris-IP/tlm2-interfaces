@@ -27,10 +27,10 @@ inline bool isInvalidState(state s){ return s==state::IX;}
 inline bool isDirtyState(state s){ return s==state::SD || s== state::UD || s==state::UDP;}
 inline bool isUniqueState(state s){ return s==state::UC || s== state::UD || s==state::UDP;}
 inline bool isSharedState(state s){ return s==state::SC || s== state::SD;}
-inline state setDirtyFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x2);}
-inline state setCleanFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x2);}
-inline state setUniqueFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x4);}
-inline state setSharedFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x4);}
+inline state setDirtyFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x4);}
+inline state setCleanFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x4);}
+inline state setUniqueFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x2);}
+inline state setSharedFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x2);}
 
 struct cache_info : public tlm::tlm_extension<cache_info> {
 
