@@ -28,14 +28,6 @@ using namespace tlm;
 using namespace axi;
 using namespace axi::fsm;
 
-namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
-
-std::ostream& axi::fsm::operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
-    os<<"CMD:"<<cmd_str[t.get_command()]<<", ADDR:0x"<<std::hex<<t.get_address()<<", LEN:0x"<<t.get_data_length()
-            <<"AXI_ID:"<<get_axi_id(t);
-    return os;
-}
-
 base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
 , wr_start(wr_start)
@@ -62,10 +54,11 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
     const static std::array<std::string, 3> cmd{{"RD", "WR", "IGN"}};
     auto it = active_fsm.find(gp);
     if(!gp || it == active_fsm.end()) {
-        if(gp)
-            SCCTRACE(instance_name) << "creating fsm for trans " << *gp << ", ptr " << gp << std::dec;
-        else
+        if(gp){
+            SCCTRACE(instance_name) << "creating fsm for trans " << *gp;
+        }else{
             SCCTRACE(instance_name) << "creating fsm for undefined transaction";
+        }
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
             auto fsm = new AxiProtocolFsm();
@@ -108,8 +101,7 @@ void base::process_fsm_clk_queue() {
         while(fsm_clk_queue.avail()) {
             auto entry = fsm_clk_queue.front();
             if(std::get<2>(entry) == 0) {
-                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << std::hex
-                                        << std::get<1>(entry) << std::dec;
+                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *std::get<1>(entry);
                 react(std::get<0>(entry), std::get<1>(entry));
             } else {
                 std::get<2>(entry) -= 1;
@@ -123,20 +115,14 @@ void base::process_fsm_clk_queue() {
         fsm_clk_queue_hndl.disable();
 }
 
-void base::react(protocol_time_point_e event, payload_type* trans) {
-	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(*trans)<<")";
-    auto fsm_hndl = active_fsm[trans];
-    if(!fsm_hndl) {
-    	SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
-    	throw std::runtime_error("No valid FSM found for trans");
-    }
+void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
     switch(event) {
     case WValidE:
         fsm_hndl->fsm->process_event(WReq());
         return;
     case WReadyE:
     case RequestPhaseBeg:
-        if(is_burst(*trans) && trans->is_write() && !is_dataless(trans->get_extension<axi::ace_extension>()))
+        if(is_burst(*fsm_hndl->trans) && fsm_hndl->trans->is_write() && !is_dataless(fsm_hndl->trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());
@@ -164,30 +150,31 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         return;
     case EndRespE:
         if(!coherent || fsm_hndl->is_snoop) {
-            SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(*fsm_hndl->trans)<<")";
-        	fsm_hndl->fsm->process_event(EndResp());
-        	active_fsm.erase(trans);
-        	fsm_hndl->trans = nullptr;
-        	idle_fsm.push_back(fsm_hndl);
-        	finish_evt.notify();
+            SCCTRACE(instance_name) << "freeing fsm for trans " << *fsm_hndl->trans;
+            fsm_hndl->fsm->process_event(EndResp());
+            active_fsm.erase(fsm_hndl->trans.get());
+            fsm_hndl->trans = nullptr;
+            idle_fsm.push_back(fsm_hndl);
+            finish_evt.notify();
         } else {
             fsm_hndl->fsm->process_event(EndRespNoAck());
-        } 
+        }
         return;
     case Ack:
-        SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(*fsm_hndl->trans)<<")";
-    	fsm_hndl->fsm->process_event(AckRecv());
-    	active_fsm.erase(trans);
-    	fsm_hndl->trans = nullptr;
-    	idle_fsm.push_back(fsm_hndl);
-    	finish_evt.notify();
+        SCCTRACE(instance_name) << "freeing fsm for trans " << *fsm_hndl->trans;
+        fsm_hndl->fsm->process_event(AckRecv());
+        active_fsm.erase(fsm_hndl->trans.get());
+        fsm_hndl->trans = nullptr;
+        idle_fsm.push_back(fsm_hndl);
+        finish_evt.notify();
         return;
     default:
-        	SCCFATAL(instance_name)<<"No valid protocol time point";
+            SCCFATAL(instance_name)<<"No valid protocol time point";
     }
 }
+
 tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time& t) {
-    SCCTRACE(instance_name) << "base::nb_fw " << phase << " of "<<(trans.is_read()?"RD":"WR")<<" trans " << std::hex << &trans << std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
+    SCCTRACE(instance_name) << "base::nb_fw " << phase << " of trans " << trans;
     if(phase == BEGIN_PARTIAL_REQ || phase == BEGIN_REQ) { // read/write
         auto fsm = find_or_create(&trans);
         if(!trans.is_read()) {
@@ -232,7 +219,7 @@ tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time&
 }
 
 tlm_sync_enum base::nb_bw(payload_type& trans, phase_type const& phase, sc_time& t) {
-    SCCTRACE(instance_name) << "base::nb_bw " << phase << " of "<<(trans.is_read()?"RD":"WR")<<" trans " << std::hex << &trans << std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
+    SCCTRACE(instance_name) << "base::nb_bw " << phase << " of trans " << trans;
     if(phase == END_PARTIAL_REQ || phase == END_REQ) { // read/write
         if(t == SC_ZERO_TIME) {
             react(phase == END_REQ ? EndReqE : EndPartReqE, &trans);

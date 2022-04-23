@@ -23,6 +23,7 @@
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>
+#include <scc/sc_variable.h>
 #include <unordered_set>
 #include <tlm_utils/peq_with_cb_and_phase.h>
 
@@ -61,7 +62,7 @@ public:
      */
     sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
     /**
-     * @brief enable data interleaving on read responses
+     * @brief enable data interleaving on read responses if rd_data_beat_delay is greater than 0
      */
     sc_core::sc_attribute<bool> rd_data_interleaving{"rd_data_interleaving", true};
     /**
@@ -85,9 +86,6 @@ public:
      */
     sc_core::sc_attribute<unsigned> wr_resp_delay{"wr_resp_delay", 0};
 
-    /** @defgroup fw_if Initiator foreward interface
-     *  @{
-     */
     void b_transport(payload_type& trans, sc_core::sc_time& t) override;
 
     tlm::tlm_sync_enum nb_transport_fw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) override;
@@ -95,10 +93,6 @@ public:
     bool get_direct_mem_ptr(payload_type& trans, tlm::tlm_dmi& dmi_data) override;
 
     unsigned int transport_dbg(payload_type& trans) override;
-    /** @} */ // end of fw_if
-    /** @defgroup config Initiator configuration interface
-     *  @{
-     */
     /**
      * @brief Set the operation callback function
      *
@@ -111,6 +105,7 @@ public:
 
     void set_operation_cb(std::function<unsigned(payload_type& trans)> cb) { operation_cb = cb; }
     /**
+     * start the response from an operation callback if latency is not set by the callback
      *
      * @param trans
      * @param sync
@@ -123,7 +118,7 @@ public:
      */
     bool is_active() { return !active_fsm.empty(); }
     /**
-     * get the event being notfied upon the finishing of an event
+     * get the event being notfied upon the finishing of a transaction
      *
      * @return reference to sc_event
      */
@@ -177,12 +172,25 @@ protected:
 
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
-    void start_of_simulation() override;
     std::unique_ptr<bw_intor_impl> bw_intor;
     std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
-    std::array<unsigned, 3>  outstanding_tx{{0,0,0}}; // just for tracing, always active
-    scc::sc_variable_t<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
-    scc::sc_variable_t<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
+    scc::sc_variable<unsigned> outstanding_rd_tx{"OutstandingRd", 0};
+    scc::sc_variable<unsigned> outstanding_wr_tx{"OutstandingWr", 0};
+    scc::sc_variable<unsigned> outstanding_ign_tx{"OutstandingIgn", 0};
+    inline scc::sc_variable<unsigned>& getOutStandingTx(tlm::tlm_command cmd) {
+        switch(cmd){
+        case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
+        case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
+        default: return outstanding_ign_tx;
+        }
+    }
+    inline scc::sc_variable<unsigned> getOutStandingTx(tlm::tlm_command cmd) const {
+        switch(cmd){
+        case tlm::TLM_READ_COMMAND: return outstanding_rd_tx;
+        case tlm::TLM_WRITE_COMMAND: return outstanding_wr_tx;
+        default: return outstanding_ign_tx;
+        }
+    }
     std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};
     std::array<axi::fsm::protocol_time_point_e, 3> stalled_tp{{axi::fsm::CB_CNT,axi::fsm::CB_CNT,axi::fsm::CB_CNT}};
     void nb_fw(payload_type& trans, const phase_type& phase) {
@@ -190,6 +198,7 @@ protected:
         base::nb_fw(trans, phase, delay);
     }
     tlm_utils::peq_with_cb_and_phase<axi_target_pe_b> fw_peq{this, &axi_target_pe_b::nb_fw};
+    std::unordered_set<unsigned> active_rdresp_id;
 };
 
 /**
@@ -214,7 +223,7 @@ public:
     : axi_target_pe_b(nm, socket.get_base_port(), BUSWIDTH)
     , socket(socket) {
         socket(*this);
-        this->instance_name = socket.name();
+        this->instance_name = name();
     }
 
     simple_target() = delete;

@@ -20,6 +20,7 @@
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
 #include <scc/report.h>
+#include <scc/utilities.h>
 #include <systemc>
 #include <tuple>
 
@@ -76,25 +77,13 @@ axi_target_pe_b::~axi_target_pe_b()= default;
 
 void axi_target_pe_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
-    if(rd_bw_limit_byte_per_sec.value>0.0){
-        time_per_byte_rd=sc_core::sc_time(1.0/rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
-    }
-    if(wr_bw_limit_byte_per_sec.value>0.0){
-        time_per_byte_wr=sc_core::sc_time(1.0/wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
-    }
-}
-
-void axi::pe::axi_target_pe_b::start_of_simulation() {
-    if(!operation_cb) {
-        operation_cb=[this](payload_type& trans)-> unsigned {
-            if(trans.is_write())
-                wr_req2resp_fifo.push_back(std::make_tuple(&trans, wr_resp_delay.value));
-            else if(trans.is_read())
-                rd_req2resp_fifo.push_back(std::make_tuple(&trans, rd_resp_delay.value));
-            else
-                return 0;
-            return std::numeric_limits<unsigned>::max();
-        };
+    if(clk_if) {
+        if(rd_bw_limit_byte_per_sec.value>0.0){
+            time_per_byte_rd=sc_core::sc_time(1.0/rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        }
+        if(wr_bw_limit_byte_per_sec.value>0.0){
+            time_per_byte_wr=sc_core::sc_time(1.0/wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        }
     }
 }
 
@@ -132,7 +121,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else {// accepted, schedule response
-            outstanding_tx[fsm_hndl->trans->get_command()]++;
+            getOutStandingTx(fsm_hndl->trans->get_command())++;
             if(wr_data_accept_delay.value)
                 schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value-1);
             else
@@ -141,7 +130,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = axi::END_PARTIAL_REQ;
-        sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
+        sc_time t(clk_if?::scc::time_to_next_posedge(clk_if)-1_ps:SC_ZERO_TIME);
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->beat_count++;
     };
@@ -150,7 +139,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
         } else { // accepted, schedule response
-            if(!fsm_hndl->beat_count) outstanding_tx[fsm_hndl->trans->get_command()]++;
+            if(!fsm_hndl->beat_count) getOutStandingTx(fsm_hndl->trans->get_command())++;
             auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
             if(latency)
                 schedule(EndReqE, fsm_hndl->trans, latency-1);
@@ -160,7 +149,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         tlm::tlm_phase phase = tlm::END_REQ;
-        sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
+        sc_time t(clk_if?::scc::time_to_next_posedge(clk_if)-1_ps:SC_ZERO_TIME);
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
         if(auto ext3 = fsm_hndl->trans->get_extension<axi3_extension>()) {
@@ -171,13 +160,20 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             exta->set_resp(resp_e::OKAY);
         } else
             sc_assert(false && "No valid AXITLM extension found!");
-        auto latency =
-                operation_cb ? operation_cb(*fsm_hndl->trans) : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
         if(fw_o.get_interface())
             fw_o->transport(*(fsm_hndl->trans));
-        else if(latency < std::numeric_limits<unsigned>::max()) {
-            auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
-            schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans, latency);
+        else {
+            auto latency =  operation_cb ?
+                    operation_cb(*fsm_hndl->trans):
+                    fsm_hndl->trans->is_read() ?
+                            rd_resp_delay.value:
+                            wr_resp_delay.value;
+            if(latency < std::numeric_limits<unsigned>::max()) {
+                if(fsm_hndl->trans->is_write())
+                    wr_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
+                else if(fsm_hndl->trans->is_read())
+                    rd_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
+            }
         }
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
@@ -212,12 +208,14 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
         if(rd_resp.get_value()<rd_resp.get_capacity()){
-            SCCTRACE(SCMOD)<<"finishing exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
+            SCCTRACE(SCMOD)<<"finishing exclusive read response for trans " << *fsm_hndl->trans;
             rd_resp.post();
         }
         auto cmd = fsm_hndl->trans->get_command();
         outstanding_cnt[cmd]--;
-        outstanding_tx[cmd]--;
+        getOutStandingTx(cmd)--;
+        if(cmd==tlm::TLM_READ_COMMAND)
+            active_rdresp_id.erase(axi::get_axi_id(fsm_hndl->trans.get()));
         if(stalled_tx[cmd]){
             auto* trans = stalled_tx[cmd];
             auto latency = trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
@@ -225,7 +223,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
                 schedule(stalled_tp[cmd], trans, latency-1);
             else
                 schedule(stalled_tp[cmd], trans, sc_core::SC_ZERO_TIME);
-            outstanding_tx[cmd]++;
+            getOutStandingTx(cmd)++;
             stalled_tx[cmd] = nullptr;
             stalled_tp[cmd] = CB_CNT;
         }
@@ -234,13 +232,17 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay){
     auto e = axi::get_burst_lenght(trans)==1 || trans.is_write()? axi::fsm::BegRespE:BegPartRespE;
-	schedule(e, &trans, clk_delay);
+    if(trans.is_write())
+        wr_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
+    else if(trans.is_read())
+        rd_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
 }
 
 void axi::pe::axi_target_pe_b::process_req2resp_fifos() {
     while (rd_req2resp_fifo.avail()) {
         auto& entry = rd_req2resp_fifo.front();
         if (std::get<1>(entry) == 0) {
+            sc_assert(rd_resp_fifo.num_free());
             rd_resp_fifo.write(std::get<0>(entry));
         } else {
             std::get<1>(entry) -= 1;
@@ -277,8 +279,13 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
             while(!rd_resp.get_value()) wait(clk_i.posedge_event());
             rd_resp.wait();
         }
-        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<trans->get_address();
+        SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for trans " << *trans;
         auto e = axi::get_burst_lenght(trans)==1 || trans->is_write()? axi::fsm::BegRespE:BegPartRespE;
+        auto id = axi::get_axi_id(trans);
+        while(active_rdresp_id.size() && active_rdresp_id.find(id)!=active_rdresp_id.end()){
+            wait(clk_i.posedge_event());
+        }
+        active_rdresp_id.insert(id);
         if(rd_data_beat_delay.value)
             schedule(e, trans, rd_data_beat_delay.value-1);
         else
@@ -318,7 +325,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
             while(!rd_resp_ch.get_value())
             	wait(clk_i.posedge_event());
             rd_resp_ch.wait();
-            SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
+            SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for trans " << *fsm_hndl->trans;
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
                 schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
             }

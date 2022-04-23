@@ -34,19 +34,14 @@ public:
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
-    /** @defgroup bw_if Initiator backward interface
-     *  @{
-     */
-    void b_snoop(payload_type& trans, sc_core::sc_time& t);
 
-    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
+    void b_snoop(payload_type& trans, sc_core::sc_time& t) override;
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range);
+    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) override;
 
-    /** @} */ // end of bw_if
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) override;
 
     size_t get_transferwith_in_bytes() const { return transfer_width_in_bytes; }
-    /** @} */ // end of config
     /**
      * @brief The forward transport function. It behaves blocking and is re-entrant.
      *
@@ -57,7 +52,6 @@ public:
      * @param blocking execute in using the blocking interface
      */
     void transport(payload_type& trans, bool blocking);
-
     /**
      * @brief Set the snoop callback function
      *
@@ -98,19 +92,19 @@ public:
     // However, AXI3 allows data interleaving and there may be support for AXI3 in Symphony, so keep it configurable in the testbench.
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", false};
     //! Read address valid to next read address valid
-    sc_core::sc_attribute<unsigned> artv{"artv", 0};
+    sc_core::sc_attribute<unsigned> artv{"artv", 1};
     //! Write address valid to next write address valid
-    sc_core::sc_attribute<unsigned> awtv{"awtv", 0};
+    sc_core::sc_attribute<unsigned> awtv{"awtv", 1};
     //! Write data handshake to next beat valid
-    sc_core::sc_attribute<unsigned> wbv{"wbv", 0};
+    sc_core::sc_attribute<unsigned> wbv{"wbv", 1};
     //! Read data valid to same beat ready
     sc_core::sc_attribute<unsigned> rbr{"rbr", 0};
     //! Write response valid to ready
     sc_core::sc_attribute<unsigned> br{"br", 0};
     //! Read last data handshake to acknowledge
-    sc_core::sc_attribute<unsigned> rla{"rla", 0};
+    sc_core::sc_attribute<unsigned> rla{"rla", 1};
     //! Write response handshake to acknowledge
-    sc_core::sc_attribute<unsigned> ba{"ba", 0};
+    sc_core::sc_attribute<unsigned> ba{"ba", 1};
     //! Quirks enable
     sc_core::sc_attribute<bool> enable_id_serializing{"enable_id_serializing", false};
     //! number of snoops which can be handled
@@ -162,6 +156,7 @@ private:
 
     unsigned m_clock_counter{0};
     unsigned m_prev_clk_cnt{0};
+    unsigned snoops_in_flight{0};
 };
 
 /**

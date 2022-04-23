@@ -544,7 +544,7 @@ private:
     dat_resptype_e resp{dat_resptype_e::CompData_I};
     uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
     uint16_t tgt_id{0}, home_n_id{0};
-    dat_optype_e opcode;
+    dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
     uint32_t rsvdc{0};
     uint64_t data_check{0};
     bool trace_tag{false};
@@ -885,26 +885,22 @@ template <> struct enable_for_enum<rsp_optype_e> { static const bool enable = tr
 template <> struct enable_for_enum<rsp_resptype_e> { static const bool enable = true; };
 
 template <> inline req_optype_e into<req_optype_e>(typename std::underlying_type<req_optype_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<req_optype_e>::type>(req_optype_e::ReqLCrdReturn) &&
-           t <= static_cast<std::underlying_type<req_optype_e>::type>(req_optype_e::PrefetchTgt));
+    assert(t <= static_cast<std::underlying_type<req_optype_e>::type>(req_optype_e::PrefetchTgt));
     return static_cast<req_optype_e>(t);
 }
 
 template <> inline snp_optype_e into<snp_optype_e>(typename std::underlying_type<snp_optype_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<snp_optype_e>::type>(snp_optype_e::SnpLCrdReturn) &&
-           t <= static_cast<std::underlying_type<snp_optype_e>::type>(snp_optype_e::SnpUniqueFwd));
+    assert(t <= static_cast<std::underlying_type<snp_optype_e>::type>(snp_optype_e::SnpUniqueFwd));
     return static_cast<snp_optype_e>(t);
 }
 
 template <> inline dat_optype_e into<dat_optype_e>(typename std::underlying_type<dat_optype_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<dat_optype_e>::type>(dat_optype_e::DataLCrdReturn) &&
-           t <= static_cast<std::underlying_type<dat_optype_e>::type>(dat_optype_e::NCBWrDataCompAck));
+    assert(t <= static_cast<std::underlying_type<dat_optype_e>::type>(dat_optype_e::NCBWrDataCompAck));
     return static_cast<dat_optype_e>(t);
 }
 
 template <> inline dat_resptype_e into<dat_resptype_e>(typename std::underlying_type<dat_resptype_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<dat_resptype_e>::type>(dat_resptype_e::CompData_I) &&
-           t <= static_cast<std::underlying_type<dat_resptype_e>::type>(dat_resptype_e::CopyBackWrData_SD_PD));
+    assert(t <= static_cast<std::underlying_type<dat_resptype_e>::type>(dat_resptype_e::CopyBackWrData_SD_PD));
     return static_cast<dat_resptype_e>(t);
 }
 
@@ -915,8 +911,7 @@ template <> inline rsp_optype_e into<rsp_optype_e>(typename std::underlying_type
 }
 
 template <> inline rsp_resptype_e into<rsp_resptype_e>(typename std::underlying_type<rsp_resptype_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<rsp_resptype_e>::type>(rsp_resptype_e::SnpResp_I) &&
-           t <= static_cast<std::underlying_type<rsp_resptype_e>::type>(rsp_resptype_e::SnpResp_SD));
+    assert(t <= static_cast<std::underlying_type<rsp_resptype_e>::type>(rsp_resptype_e::SnpResp_SD));
     return static_cast<rsp_resptype_e>(t);
 }
 

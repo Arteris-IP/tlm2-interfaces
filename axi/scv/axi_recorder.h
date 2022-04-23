@@ -59,8 +59,11 @@ public:
 
     SC_HAS_PROCESS(axi_recorder<TYPES>); // NOLINT
 
-    //! \brief the attribute to selectively enable/disable recording
-    sc_core::sc_attribute<bool> enableTracing{"enableTracing", true};
+    //! \brief the attribute to selectively enable/disable recording of blocking protocol tx
+    sc_core::sc_attribute<bool> enableBlTracing;
+
+    //! \brief the attribute to selectively enable/disable recording of non-blocking protocol tx
+    sc_core::sc_attribute<bool> enableNbTracing;
 
     //! \brief the attribute to selectively enable/disable timed recording
     sc_core::sc_attribute<bool> enableTimedTracing{"enableTimedTracing", true};
@@ -86,7 +89,8 @@ public:
      * scv_tr_db::set_default_db() ) recording is disabled.
      */
     axi_recorder(const char* name, bool recording_enabled = true, SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
-    : enableTracing("enableTracing", recording_enabled)
+    : enableBlTracing("enableBlTracing", recording_enabled)
+    , enableNbTracing("enableNbTracing", recording_enabled)
     , b_timed_peq(this, &axi_recorder::btx_cb)
     , nb_timed_peq(this, &axi_recorder::nbtx_cb)
     , m_db(tr_db)
@@ -177,7 +181,13 @@ public:
      * \return if true transaction recording is enabled otherwise transaction
      * recording is bypassed
      */
-    inline bool isRecordingEnabled() const { return m_db && enableTracing.value; }
+    inline bool isRecordingBlockingTxEnabled() const { return m_db && enableBlTracing.value; }
+    /*! \brief get the current state of transaction recording
+     *
+     * \return if true transaction recording is enabled otherwise transaction
+     * recording is bypassed
+     */
+    inline bool isRecordingNonBlockingTxEnabled() const { return m_db && enableNbTracing.value; }
 
 private:
     //! event queue to hold time points of blocking transactions
@@ -227,7 +237,7 @@ private:
     SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>* dmi_trInvalidateHandle{nullptr};
 protected:
     void initialize_streams() {
-        if(isRecordingEnabled()){
+        if(isRecordingBlockingTxEnabled()){
             b_streamHandle = new SCVNS scv_tr_stream((fixed_basename + "_bl").c_str(), "[TLM][axi][b]", m_db);
             b_trHandle[tlm::TLM_READ_COMMAND] =
                     new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("read", *b_streamHandle, "start_delay", "end_delay");
@@ -244,6 +254,8 @@ protected:
                 b_trTimedHandle[tlm::TLM_IGNORE_COMMAND] =
                         new SCVNS scv_tr_generator<>("ignore", *b_streamHandleTimed);
             }
+        }
+        if(isRecordingNonBlockingTxEnabled()){
             nb_streamHandle = new SCVNS scv_tr_stream((fixed_basename + "_nb").c_str(), "[TLM][axi][nb]", m_db);
             nb_trHandle[FW] = new SCVNS scv_tr_generator<std::string, std::string>("fw", *nb_streamHandle, "tlm_phase", "tlm_phase[return_path]");
             nb_trHandle[BW] = new SCVNS scv_tr_generator<std::string, std::string>("bw", *nb_streamHandle, "tlm_phase", "tlm_phase[return_path]");
@@ -252,11 +264,11 @@ protected:
                 nb_trTimedHandle[FW] = new SCVNS scv_tr_generator<>("request", *nb_streamHandleTimed);
                 nb_trTimedHandle[BW] = new SCVNS scv_tr_generator<>("response", *nb_streamHandleTimed);
             }
-            if(enableDmiTracing.value) {
-                dmi_streamHandle = new SCVNS scv_tr_stream((fixed_basename + "_dmi").c_str(), "[TLM][axi][dmi]", m_db);
-                dmi_trGetHandle = new SCVNS scv_tr_generator<>("get", *dmi_streamHandle);
-                dmi_trInvalidateHandle = new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("invalidate", *dmi_streamHandle, "start_addr", "end_addr");
-            }
+        }
+        if(m_db && enableDmiTracing.value && !dmi_streamHandle) {
+            dmi_streamHandle = new SCVNS scv_tr_stream((fixed_basename + "_dmi").c_str(), "[TLM][axi][dmi]", m_db);
+            dmi_trGetHandle = new SCVNS scv_tr_generator<>("get", *dmi_streamHandle);
+            dmi_trInvalidateHandle = new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>("invalidate", *dmi_streamHandle, "start_addr", "end_addr");
         }
     }
 private:
@@ -275,7 +287,7 @@ private:
 
 template <typename TYPES> void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
     tlm_recording_payload* req{nullptr};
-    if(!isRecordingEnabled()) {
+    if(!isRecordingBlockingTxEnabled()) {
         get_fw_if()->b_transport(trans, delay);
         return;
     }
@@ -355,7 +367,7 @@ template <typename TYPES> void axi_recorder<TYPES>::btx_cb(tlm_recording_payload
 template <typename TYPES>
 tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans, typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingEnabled())
+    if(!isRecordingNonBlockingTxEnabled())
         return get_fw_if()->nb_transport_fw(trans, phase, delay);
    /*************************************************************************
      * prepare recording
@@ -436,7 +448,7 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
 template <typename TYPES>
 tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans, typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingEnabled())
+    if(!isRecordingNonBlockingTxEnabled())
         return get_bw_if()->nb_transport_bw(trans, phase, delay);
     /*************************************************************************
      * prepare recording
@@ -574,6 +586,8 @@ template <typename TYPES> void axi_recorder<TYPES>::nbtx_cb(tlm_recording_payloa
 template <typename TYPES> bool axi_recorder<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_type& trans, tlm::tlm_dmi& dmi_data) {
     if(!(m_db && enableDmiTracing.value))
         return get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
+    else if(!dmi_streamHandle)
+        initialize_streams();
     SCVNS scv_tr_handle h = dmi_trGetHandle->begin_transaction();
     bool status = get_fw_if()->get_direct_mem_ptr(trans, dmi_data);
     tlm::scc::scv::record(h, trans);
@@ -591,7 +605,8 @@ template <typename TYPES> void axi_recorder<TYPES>::invalidate_direct_mem_ptr(sc
     if(!(m_db && enableDmiTracing.value)) {
         get_bw_if()->invalidate_direct_mem_ptr(start_addr, end_addr);
         return;
-    }
+    } else if(!dmi_streamHandle)
+        initialize_streams();
     SCVNS scv_tr_handle h = dmi_trInvalidateHandle->begin_transaction(start_addr);
     get_bw_if()->invalidate_direct_mem_ptr(start_addr, end_addr);
     dmi_trInvalidateHandle->end_transaction(h, end_addr);

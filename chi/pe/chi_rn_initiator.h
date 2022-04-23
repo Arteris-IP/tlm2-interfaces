@@ -30,25 +30,18 @@ namespace pe {
 
 class chi_rn_initiator_b : public sc_core::sc_module, public chi::chi_bw_transport_if<chi::chi_protocol_types> {
 public:
-    SC_HAS_PROCESS(chi_rn_initiator_b);
-
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
-    /** @defgroup bw_if Initiator backward interface
-     *  @{
-     */
+
     void b_snoop(payload_type& trans, sc_core::sc_time& t) override;
 
-    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
+    tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) override;
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range);
-
-    /** @} */ // end of bw_if
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) override;
 
     size_t get_transferwith_in_bytes() const { return transfer_width_in_bytes; }
-    /** @} */ // end of config
     /**
      * @brief The forward transport function. It behaves blocking and is re-entrant.
      *
@@ -59,7 +52,6 @@ public:
      * @param blocking execute in using the blocking interface
      */
     void transport(payload_type& trans, bool blocking);
-
     /**
      * @brief Set the snoop callback function
      *
@@ -104,7 +96,7 @@ public:
 
     sc_core::sc_attribute<bool> use_legacy_mapping{"use_legacy_mapping", false};
 protected:
-    void end_of_elaboration() { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
+    void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
     unsigned calculate_beats(payload_type& p) {
         //sc_assert(p.get_data_length() > 0);
@@ -167,10 +159,8 @@ private:
     sc_core::sc_clock* clk_if{nullptr};
     uint64_t peq_cnt{0};
 
-    unsigned  tx_waiting{0};
-    scc::sc_variable_t<unsigned> tx_waiting_v { "TxWaiting", tx_waiting };
-    unsigned  tx_outstanding{0};
-    scc::sc_variable_t<unsigned> tx_outstanding_v { "TxOutstanding", tx_outstanding };
+    scc::sc_variable<unsigned> tx_waiting{"TxWaiting", 0};
+    scc::sc_variable<unsigned> tx_outstanding {"TxOutstanding", 0};
 };
 
 /**

@@ -23,6 +23,15 @@ namespace cache {
 // invalid/valid(0), shared/unique(1), clean/dirty(2), partial&exclusive(3)
 enum class state: uint8_t { IX=0, SC=0x1, SD= 0x5, UC=0x3, UD=0x7, UCE=0xE, UDP=0xf, RES=0xff };
 
+inline bool isInvalidState(state s){ return s==state::IX;}
+inline bool isDirtyState(state s){ return s==state::SD || s== state::UD || s==state::UDP;}
+inline bool isUniqueState(state s){ return s==state::UC || s== state::UD || s==state::UDP;}
+inline bool isSharedState(state s){ return s==state::SC || s== state::SD;}
+inline state setDirtyFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x4);}
+inline state setCleanFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x4);}
+inline state setUniqueFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)|0x2);}
+inline state setSharedFrom(state s) { return static_cast<state>(static_cast<uint8_t>(s)&~0x2);}
+
 struct cache_info : public tlm::tlm_extension<cache_info> {
 
     tlm_extension_base* clone() const override {

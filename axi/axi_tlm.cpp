@@ -19,6 +19,8 @@
 
 namespace axi {
 
+namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
+
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
     case snoop_e::READ_NO_SNOOP:
@@ -153,6 +155,50 @@ template <> const char* to_char<resp_e>(resp_e v) {
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
+    char const* ch = t.get_command()==tlm::TLM_READ_COMMAND?"AR":(t.get_command()==tlm::TLM_WRITE_COMMAND?"AW":"");
+    os<<"CMD:"<<cmd_str[t.get_command()]
+                        <<", "<<ch<<"ADDR:0x"<<std::hex<<t.get_address()
+                        <<", TXLEN:0x"<<t.get_data_length();
+    if(auto e = t.get_extension<axi::ace_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           <<", "<<ch<<"SNOOP:0x"<<std::hex<<(static_cast<unsigned>(e->get_snoop())&0xf)<<std::dec
+           <<", "<<ch<<"DOMAIN:"<<to_char(e->get_domain())
+           <<", "<<ch<<"BAR:"<<to_char(e->get_barrier())
+           <<", "<<ch<<"UNIQUE:"<<e->get_unique()
+           ;
+    } else if(auto e = t.get_extension<axi::axi4_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           ;
+    } else if(auto e = t.get_extension<axi::axi3_extension>()){
+        os <<", "<<ch<<"ID:"<< e->get_id()
+           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
+           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
+           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
+           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
+           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
+           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
+           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
+           ;
+    }
+    os <<" [ptr:"<<&t<<"]";
+    return os;
+}
+
 namespace {
     const std::array<std::array<bool, 4>, 16> rd_valid{{
             {true, true, true, true},       // ReadNoSnoop/ReadOnce
@@ -234,6 +280,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
             return "illegal domain for coherent access";
         }
         break;
+    default:
+        break;
     }
     if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
         return "illegal barrier/snoop value combination";
@@ -245,6 +293,8 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case 12:
     case 13:
         return "illegal cache value";
+    default:
+        break;
     }
     if((ext->get_cache()&2)==0 && ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM)
         return "illegal domain for no non-cachable access";

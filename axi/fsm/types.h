@@ -68,9 +68,13 @@ struct fsm_handle {
     //! additional data being used in the various adapters, @todo refactor to remove this forward definitions
     tlm::scc::tlm_gp_shared_ptr gp{};
     union {
-        uint64_t progress;
-        void* pp;
-    } p;
+        uint64_t i64;
+        struct {
+            uint32_t i0;
+            uint32_t i1;
+        } i32;
+        void* p;
+    } aux;
     sc_core::sc_time start;
     /**
      * reset all data members to their default
@@ -79,7 +83,7 @@ struct fsm_handle {
         trans = nullptr;
         beat_count = 0;
         is_snoop = false;
-        p.progress = 0;
+        aux.i64 = 0;
         start=sc_core::SC_ZERO_TIME;
     }
 };

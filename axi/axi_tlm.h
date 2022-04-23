@@ -61,6 +61,8 @@ inline std::ostream& operator<<(std::ostream& os, E e) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload const& t);
+
 /**
  * the burst type enumeration class
  */
@@ -165,14 +167,15 @@ struct common {
      */
     enum class id_type { CTRL, DATA, RESP };
     //! set the id value of a particular channel
-    //! @param the AxID of the ADDR, DATA, and RESP channel
-    void set_id(unsigned int);
+    //! @param value of the AxID of the ADDR, DATA, and RESP channel
+    void set_id(unsigned int value);
     //! get the id value of a particular channel
     //! @return the AxID
     unsigned int get_id() const;
     //! set the user value of a particular channel
-    //! @param AxUSER value of the ADDR, DATA, and RESP channel
-    void set_user(id_type chnl, unsigned int);
+    //! @param chnl AxUSER value of the ADDR, DATA, and RESP channel
+    //! @param value of the user field
+    void set_user(id_type chnl, unsigned int value);
     //! get the user value of a particular channel
     //! @return AxUSER value
     unsigned int get_user(id_type chnl) const;
@@ -789,7 +792,7 @@ struct axi_extension : public common, // 2x 4byte
     bool is_response_array_complete();
 
 private:
-    std::vector<response> response_arr;
+    std::vector<response> response_arr{};
     bool response_array_complete{false};
 };
 /**
@@ -1057,12 +1060,12 @@ inline bool is_dataless(axi::ace_extension const* ext){
     if(!ext) return false;
     auto snp = ext->get_snoop();
     return
-            snp==snoop_e::CLEAN_UNIQUE  ||
-            snp==snoop_e::MAKE_UNIQUE   ||
-            snp==snoop_e::CLEAN_SHARED  ||
-            snp==snoop_e::CLEAN_INVALID ||
-            snp==snoop_e::MAKE_INVALID  ||
-            snp==snoop_e::EVICT ||
+            snp == snoop_e::CLEAN_UNIQUE  ||
+            snp == snoop_e::MAKE_UNIQUE   ||
+            snp == snoop_e::CLEAN_SHARED  ||
+            snp == snoop_e::CLEAN_INVALID ||
+            snp == snoop_e::MAKE_INVALID  ||
+            snp == snoop_e::EVICT ||
             snp == snoop_e::STASH_ONCE_SHARED ||
             snp == snoop_e::STASH_ONCE_UNIQUE;
 
@@ -1183,6 +1186,19 @@ inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& t
     return burst_e::FIXED;
 }
 inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_type(*trans); }
+
+inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type& trans) {
+    if(auto e = trans.get_extension<axi::ace_extension>())
+        return e->get_cache();
+    if(auto e = trans.get_extension<axi::axi4_extension>())
+        return e->get_cache();
+    if(auto e = trans.get_extension<axi::axi3_extension>())
+        return e->get_cache();
+    sc_assert(false && "transaction is not an axi or ace transaction");
+    return 0;
+}
+inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type* trans) {return get_cache(*trans);}
+
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
@@ -1194,38 +1210,32 @@ template <> struct enable_for_enum<snoop_e> { static const bool enable = true; }
 template <> struct enable_for_enum<resp_e> { static const bool enable = true; };
 
 template <> inline burst_e into<burst_e>(typename std::underlying_type<burst_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<burst_e>::type>(burst_e::FIXED) &&
-           t <= static_cast<std::underlying_type<burst_e>::type>(burst_e::WRAP));
+    assert(t <= static_cast<std::underlying_type<burst_e>::type>(burst_e::WRAP));
     return static_cast<burst_e>(t);
 }
 
 template <> inline lock_e into<lock_e>(typename std::underlying_type<lock_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<lock_e>::type>(lock_e::NORMAL) &&
-           t <= static_cast<std::underlying_type<lock_e>::type>(lock_e::LOCKED));
+    assert(t <= static_cast<std::underlying_type<lock_e>::type>(lock_e::LOCKED));
     return static_cast<lock_e>(t);
 }
 
 template <> inline domain_e into<domain_e>(typename std::underlying_type<domain_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<domain_e>::type>(domain_e::NON_SHAREABLE) &&
-           t <= static_cast<std::underlying_type<domain_e>::type>(domain_e::SYSTEM));
+    assert(t <= static_cast<std::underlying_type<domain_e>::type>(domain_e::SYSTEM));
     return static_cast<domain_e>(t);
 }
 
 template <> inline bar_e into<bar_e>(typename std::underlying_type<bar_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<bar_e>::type>(bar_e::RESPECT_BARRIER) &&
-           t <= static_cast<std::underlying_type<bar_e>::type>(bar_e::SYNCHRONISATION_BARRIER));
+    assert(t <= static_cast<std::underlying_type<bar_e>::type>(bar_e::SYNCHRONISATION_BARRIER));
     return static_cast<bar_e>(t);
 }
 
 template <> inline snoop_e into<snoop_e>(typename std::underlying_type<snoop_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<snoop_e>::type>(snoop_e::READ_ONCE) &&
-                    t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::WRITE_NO_SNOOP));
+    assert(t <= static_cast<std::underlying_type<snoop_e>::type>(snoop_e::WRITE_NO_SNOOP));
     return static_cast<snoop_e>(t);
 }
 
 template <> inline resp_e into<resp_e>(typename std::underlying_type<resp_e>::type t) {
-    assert(t >= static_cast<typename std::underlying_type<resp_e>::type>(resp_e::OKAY) &&
-           t <= static_cast<std::underlying_type<resp_e>::type>(resp_e::DECERR));
+    assert(t <= static_cast<std::underlying_type<resp_e>::type>(resp_e::DECERR));
     return static_cast<resp_e>(t);
 }
 

@@ -377,6 +377,8 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             case chi::req_optype_e::AtomicCompare:
                 chi_req_ext->req.set_order(0b10);
                 break;
+            default:
+                break;
             }
         }
     }
@@ -470,41 +472,41 @@ void setExpCompAck(chi::chi_ctrl_extension* const req_e) {
 }
 
 bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcode) {
-    if(auto* rsp_e = gp.get_extension<chi::chi_ctrl_extension>()){
-        rsp_e->resp.set_opcode(rsp_opcode);
+    if(auto* ctrl_e = gp.get_extension<chi::chi_ctrl_extension>()){
+        ctrl_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
-            if(is_dataless(rsp_e) || gp.is_write()) {
-                rsp_e->resp.set_tgt_id(rsp_e->req.get_tgt_id());
-                rsp_e->resp.set_trace_tag(rsp_e->req.is_trace_tag()); // XXX ??
-                rsp_e->cmn.set_txn_id(rsp_e->resp.get_db_id());
+            if(is_dataless(ctrl_e) || gp.is_write()) {
+                ctrl_e->resp.set_tgt_id(ctrl_e->req.get_tgt_id());
+                ctrl_e->resp.set_trace_tag(ctrl_e->req.is_trace_tag()); // XXX ??
                 return true;
             } else {
                 auto dat_e = gp.get_extension<chi::chi_data_extension>();
-                rsp_e->set_src_id(dat_e->get_src_id());
-                rsp_e->set_qos(dat_e->get_qos());
-                rsp_e->set_txn_id(dat_e->dat.get_db_id());
-                rsp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
-                rsp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
+                ctrl_e->set_src_id(dat_e->get_src_id());
+                ctrl_e->set_qos(dat_e->get_qos());
+                ctrl_e->set_txn_id(dat_e->dat.get_db_id());
+                ctrl_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
+                ctrl_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
                 return true;
             }
         }
-    } else if(auto* rsp_e = gp.get_extension<chi::chi_snp_extension>()){
-        rsp_e->resp.set_opcode(rsp_opcode);
+    } else if(auto* snp_e = gp.get_extension<chi::chi_snp_extension>()){
+        snp_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
             auto dat_e = gp.get_extension<chi::chi_data_extension>();
-            rsp_e->set_src_id(dat_e->get_src_id());
-            rsp_e->set_qos(dat_e->get_qos());
-            rsp_e->set_txn_id(dat_e->dat.get_db_id());
-            rsp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
-            rsp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
+            snp_e->set_src_id(dat_e->get_src_id());
+            snp_e->set_qos(dat_e->get_qos());
+            snp_e->set_txn_id(dat_e->dat.get_db_id());
+            snp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
+            snp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
             return true;
         }
-
     }
     return false;
 }
 
 } // anonymous namespace
+
+SC_HAS_PROCESS(chi_rn_initiator_b);
 
 chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
         sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port,
@@ -562,7 +564,7 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
         if(phase == tlm::BEGIN_REQ ) {
             if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
                 if(credit_ext->type==credit_type_e::REQ) {
-                    SCCDEBUG(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
+                    SCCTRACEALL(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
                     for(auto i=0U; i<credit_ext->count; ++i)
                         req_credits.post();
                 }
@@ -726,8 +728,8 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
 
 void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& txs) {
     if(make_rsp_from_req(trans, chi::rsp_optype_e::CompAck)) {
-        SCCDEBUG(SCMOD) << "Send the CompAck response on SRSP channel, addr: 0x" << std::hex << trans.get_address();
         sem_lock lck(sresp_chnl);
+        SCCDEBUG(SCMOD) << "Send the CompAck response on SRSP channel, addr: 0x" << std::hex << trans.get_address();
         tlm::tlm_phase phase = chi::ACK;
         auto delay = SC_ZERO_TIME;
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
@@ -794,9 +796,9 @@ void chi::pe::chi_rn_initiator_b::cresp_response(payload_type& trans) {
     auto resp_ext = trans.get_extension<chi::chi_ctrl_extension>();
     sc_assert(resp_ext != nullptr);
     auto id = (unsigned)(resp_ext->get_txn_id());
-    SCCDEBUG(SCMOD) << "CRESP: " << (unsigned)resp_ext->get_src_id() << ", " << (unsigned)resp_ext->resp.get_tgt_id() << ", "
-            << "TxnID=0x" << std::hex << id << ", " << to_char(resp_ext->resp.get_opcode()) << ", "
-            << ", 0x" << std::hex << trans.get_address() << ")";
+    SCCDEBUG(SCMOD) << "got cresp: src_id=" << (unsigned)resp_ext->get_src_id() << ", tgt_id=" << (unsigned)resp_ext->resp.get_tgt_id() << ", "
+            << "txnid=0x" << std::hex << id << ", " << to_char(resp_ext->resp.get_opcode()) << ", db_id="<<(unsigned)resp_ext->resp.get_db_id()
+            << ", addr=0x" << std::hex << trans.get_address() << ")";
     tlm::tlm_phase phase = tlm::END_RESP;
     sc_core::sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
     socket_fw->nb_transport_fw(trans, phase, delay);
@@ -945,10 +947,11 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                 auto entry = txs->peq.get();
                 sc_assert(std::get<0>(entry) == &trans && std::get<1>(entry) == tlm::END_REQ);
             }
+            auto credit_ext = trans.get_extension<chi_credit_extension>();
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
-            if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
+            if(credit_ext) {
                 if(credit_ext->type==credit_type_e::REQ) {
-                    SCCDEBUG(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
+                    SCCTRACEALL(SCMOD) << "Received "<<credit_ext->count<<" req "<<(credit_ext->count==1?"credit":"credits");
                     for(auto i=0U; i<credit_ext->count; ++i)
                         req_credits.post();
                 }
