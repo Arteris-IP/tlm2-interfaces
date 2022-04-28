@@ -21,6 +21,7 @@
 #include <array>
 #include <axi/fsm/base.h>
 #include <functional>
+#include <memory>
 #include <scc/ordered_semaphore.h>
 #include <scc/sc_variable.h>
 #include <tlm/scc/pe/intor_if.h>

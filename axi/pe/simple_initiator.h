@@ -19,7 +19,6 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
-#include <array>
 #include <axi/fsm/base.h>
 #include <deque>
 #include <scc/ordered_semaphore.h>
