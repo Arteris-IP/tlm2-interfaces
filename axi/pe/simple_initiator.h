@@ -19,12 +19,12 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
 #include <array>
-#include <axi/fsm/base.h>
-#include <tlm/scc/pe/intor_if.h>
-#include <deque>
 #include <array>
+#include <axi/fsm/base.h>
+#include <deque>
 #include <scc/ordered_semaphore.h>
 #include <sysc/kernel/sc_attribute.h>
+#include <tlm/scc/pe/intor_if.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -46,7 +46,8 @@ public:
 
     sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
     /**
-     * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to WVALID)
+     * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to
+     * WVALID)
      */
     sc_core::sc_attribute<unsigned> wr_data_beat_delay{"wr_data_beat_delay", 0};
     /**
@@ -85,11 +86,12 @@ public:
      * @brief Set the snoop callback function
      *
      * This callback is invoked once a snoop transaction arrives. This function shall return the latency
-     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() not snoop response will be triggered. This
-     * needs to be done by a call to snoop_resp()
+     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() not snoop response will be
+     * triggered. This needs to be done by a call to snoop_resp()
      *
      * @todo refine API
-     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects and should be fixed
+     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects
+     * and should be fixed
      *
      * @param cb the callback function
      */
@@ -107,15 +109,15 @@ public:
      * @todo this is a hack and should be fixed
      */
     unsigned snoop_latency{1};
-	/**
-	 * @brief register a callback for a certain time point
-	 *
-	 * This function allows to register a callback for certain time points of a transaction
-	 * (see #axi::fsm::protocol_time_point_e). The callback will be invoked after the FSM-actions are executed.
-	 *
-	 * @param e the timepoint
-	 * @param cb the callback taking a reference to the transaction and a bool indicating a snoop if true
-	 */
+    /**
+     * @brief register a callback for a certain time point
+     *
+     * This function allows to register a callback for certain time points of a transaction
+     * (see #axi::fsm::protocol_time_point_e). The callback will be invoked after the FSM-actions are executed.
+     *
+     * @param e the timepoint
+     * @param cb the callback taking a reference to the transaction and a bool indicating a snoop if true
+     */
     void add_protocol_cb(axi::fsm::protocol_time_point_e e, std::function<void(payload_type&, bool)> cb) {
         assert(e < axi::fsm::CB_CNT);
         protocol_cb[e] = cb;
@@ -127,8 +129,9 @@ protected:
      * @param port
      * @param transfer_width
      */
-    explicit simple_initiator_b(const sc_core::sc_module_name& nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
-                                size_t transfer_width, bool coherent=false);
+    explicit simple_initiator_b(const sc_core::sc_module_name& nm,
+                                sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
+                                size_t transfer_width, bool coherent = false);
 
     simple_initiator_b() = delete;
 

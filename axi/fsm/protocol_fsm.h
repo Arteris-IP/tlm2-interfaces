@@ -77,11 +77,13 @@ struct Idle : bsc::state<Idle, AxiProtocolFsm> { // @suppress("Class has a virtu
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::RequestPhaseBeg))
             context<AxiProtocolFsm>().cb.at(axi::fsm::RequestPhaseBeg)();
     }
-    typedef mpl::list<bsc::transition<BegPartReq, PartialRequest>, bsc::transition<BegReq, Request>, bsc::transition<WReq, ATrans>>
+    typedef mpl::list<bsc::transition<BegPartReq, PartialRequest>, bsc::transition<BegReq, Request>,
+                      bsc::transition<WReq, ATrans>>
         reactions;
 };
 //! special state to map AWREADY/WDATA of SNPS to AXI protocol
-struct ATrans : bsc::state<ATrans, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct ATrans
+: bsc::state<ATrans, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     ATrans(my_context ctx)
     : my_base(ctx) {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::WValidE))
@@ -94,7 +96,8 @@ struct ATrans : bsc::state<ATrans, AxiProtocolFsm> { // @suppress("Class has a v
     typedef mpl::list<bsc::transition<BegPartReq, PartialRequest>, bsc::transition<BegReq, Request>> reactions;
 };
 //! a burst beat
-struct PartialRequest : bsc::state<PartialRequest, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct PartialRequest
+: bsc::state<PartialRequest, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     PartialRequest(my_context ctx)
     : my_base(ctx) {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::BegPartReqE))
@@ -107,11 +110,13 @@ struct PartialRequest : bsc::state<PartialRequest, AxiProtocolFsm> { // @suppres
     typedef bsc::transition<EndPartReq, WriteIdle> reactions;
 };
 //! the phase between 2 burst beats, should keep the link locked
-struct WriteIdle : bsc::simple_state<WriteIdle, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct WriteIdle
+: bsc::simple_state<WriteIdle, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     typedef mpl::list<bsc::transition<BegPartReq, PartialRequest>, bsc::transition<BegReq, Request>> reactions;
 };
 //! the request, either the last beat of a write or the address phase of a read
-struct Request : bsc::state<Request, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct Request
+: bsc::state<Request, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     Request(my_context ctx)
     : my_base(ctx) {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::BegReqE))
@@ -121,13 +126,15 @@ struct Request : bsc::state<Request, AxiProtocolFsm> { // @suppress("Class has a
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::EndReqE))
             context<AxiProtocolFsm>().cb.at(axi::fsm::EndReqE)();
     }
-    typedef mpl::list<bsc::transition<EndReq, WaitForResponse>,
-                      bsc::transition<BegResp, Response, AxiProtocolFsm, &AxiProtocolFsm::InvokeResponsePhaseBeg>,
-                      bsc::transition<BegPartResp, PartialResponse, AxiProtocolFsm, &AxiProtocolFsm::InvokeResponsePhaseBeg>>
+    typedef mpl::list<
+        bsc::transition<EndReq, WaitForResponse>,
+        bsc::transition<BegResp, Response, AxiProtocolFsm, &AxiProtocolFsm::InvokeResponsePhaseBeg>,
+        bsc::transition<BegPartResp, PartialResponse, AxiProtocolFsm, &AxiProtocolFsm::InvokeResponsePhaseBeg>>
         reactions;
 };
 //! the operation state where the target can do it's stuff
-struct WaitForResponse : bsc::state<WaitForResponse, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct WaitForResponse
+: bsc::state<WaitForResponse, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     WaitForResponse(my_context ctx)
     : my_base(ctx) {}
     ~WaitForResponse() {
@@ -137,7 +144,8 @@ struct WaitForResponse : bsc::state<WaitForResponse, AxiProtocolFsm> { // @suppr
     typedef mpl::list<bsc::transition<BegPartResp, PartialResponse>, bsc::transition<BegResp, Response>> reactions;
 };
 //! the beat of a burst response
-struct PartialResponse : bsc::state<PartialResponse, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct PartialResponse
+: bsc::state<PartialResponse, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     PartialResponse(my_context ctx)
     : my_base(ctx) {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::BegPartRespE))
@@ -150,11 +158,13 @@ struct PartialResponse : bsc::state<PartialResponse, AxiProtocolFsm> { // @suppr
     typedef bsc::transition<EndPartResp, ReadIdle> reactions;
 };
 //! the phase between 2 read burst response beats
-struct ReadIdle : bsc::simple_state<ReadIdle, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct ReadIdle
+: bsc::simple_state<ReadIdle, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     typedef mpl::list<bsc::transition<BegPartResp, PartialResponse>, bsc::transition<BegResp, Response>> reactions;
 };
 //! the write response or the last read response (beat)
-struct Response : bsc::state<Response, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct Response
+: bsc::state<Response, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     Response(my_context ctx)
     : my_base(ctx) {
         if(context<AxiProtocolFsm>().cb.at(axi::fsm::BegRespE))
@@ -167,7 +177,8 @@ struct Response : bsc::state<Response, AxiProtocolFsm> { // @suppress("Class has
     typedef mpl::list<bsc::transition<EndResp, Idle>, bsc::transition<EndRespNoAck, WaitAck>> reactions;
 };
 //! waiting for ack in case of ACE access
-struct WaitAck : bsc::state<WaitAck, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
+struct WaitAck
+: bsc::state<WaitAck, AxiProtocolFsm> { // @suppress("Class has a virtual method and non-virtual destructor")
     WaitAck(my_context ctx)
     : my_base(ctx) {}
     ~WaitAck() {

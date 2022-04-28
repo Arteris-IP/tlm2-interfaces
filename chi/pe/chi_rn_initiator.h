@@ -56,11 +56,12 @@ public:
      * @brief Set the snoop callback function
      *
      * This callback is invoked once a snoop transaction arrives. This function shall return the latency
-     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be triggered. This
-     * needs to be done by a call to snoop_resp()
+     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be
+     * triggered. This needs to be done by a call to snoop_resp()
      *
      * @todo refine API
-     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects and should be fixed
+     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects
+     * and should be fixed
      *
      * @param cb the callback function
      */
@@ -73,8 +74,8 @@ public:
      */
     void snoop_resp(payload_type& trans, bool sync = false);
 
-    chi_rn_initiator_b(sc_core::sc_module_name nm, sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port,
-                       size_t transfer_width);
+    chi_rn_initiator_b(sc_core::sc_module_name nm,
+                       sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port, size_t transfer_width);
 
     virtual ~chi_rn_initiator_b();
 
@@ -90,16 +91,18 @@ public:
 
     sc_core::sc_attribute<unsigned> src_id{"src_id", 1};
 
-    sc_core::sc_attribute<unsigned> home_node_id{"home_node_id", 0}; // home node id will be used as tgt_id in all transaction req
+    sc_core::sc_attribute<unsigned> home_node_id{"home_node_id",
+                                                 0}; // home node id will be used as tgt_id in all transaction req
 
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", true};
 
     sc_core::sc_attribute<bool> use_legacy_mapping{"use_legacy_mapping", false};
+
 protected:
     void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
     unsigned calculate_beats(payload_type& p) {
-        //sc_assert(p.get_data_length() > 0);
+        // sc_assert(p.get_data_length() > 0);
         return p.get_data_length() < transfer_width_in_bytes ? 1 : p.get_data_length() / transfer_width_in_bytes;
     }
 
@@ -111,7 +114,7 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore  req_credits{0U}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore req_credits{0U}; // L-credits provided by completer(HN)
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 
@@ -119,7 +122,8 @@ protected:
 
     struct tx_state {
         scc::peq<std::tuple<payload_type*, tlm::tlm_phase>> peq;
-        tx_state(std::string const& name) : peq(sc_core::sc_gen_unique_name(name.c_str())) {}
+        tx_state(std::string const& name)
+        : peq(sc_core::sc_gen_unique_name(name.c_str())) {}
     };
     std::unordered_map<uintptr_t, tx_state*> tx_state_by_trans;
 
@@ -148,10 +152,12 @@ private:
 
     void create_data_ext(payload_type& trans);
     void send_packet(tlm::tlm_phase phase, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state* txs);
-    void exec_read_write_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
-    void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
+    void exec_read_write_protocol(const unsigned int txn_id, payload_type& trans,
+                                  chi::pe::chi_rn_initiator_b::tx_state*& txs);
+    void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans,
+                              chi::pe::chi_rn_initiator_b::tx_state*& txs);
     void cresp_response(payload_type& trans);
-    void update_data_extension(chi::chi_data_extension *data_ext, payload_type &trans);
+    void update_data_extension(chi::chi_data_extension* data_ext, payload_type& trans);
 
     unsigned m_clock_counter{0};
     unsigned m_prev_clk_cnt{0};
@@ -160,7 +166,7 @@ private:
     uint64_t peq_cnt{0};
 
     scc::sc_variable<unsigned> tx_waiting{"TxWaiting", 0};
-    scc::sc_variable<unsigned> tx_outstanding {"TxOutstanding", 0};
+    scc::sc_variable<unsigned> tx_outstanding{"TxOutstanding", 0};
 };
 
 /**

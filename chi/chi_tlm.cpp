@@ -15,8 +15,8 @@
  */
 
 #include "chi_tlm.h"
-#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <iostream>
+#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 
 namespace chi {
 
@@ -305,10 +305,10 @@ template <> const char* to_char<credit_type_e>(credit_type_e v) {
     }
 }
 
-template<>
-bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
+template <> bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext) {
     auto sz = ext->req.get_size();
-    if(sz>6) return false;
+    if(sz > 6)
+        return false;
     return true;
 }
 
