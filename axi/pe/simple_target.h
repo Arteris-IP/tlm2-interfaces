@@ -23,6 +23,7 @@
 #include <functional>
 #include <memory>
 #include <scc/ordered_semaphore.h>
+#include <scc/sc_attribute_randomized.h>
 #include <scc/sc_variable.h>
 #include <tlm/scc/pe/intor_if.h>
 #include <tlm_utils/peq_with_cb_and_phase.h>
@@ -73,25 +74,25 @@ public:
      * @brief the latency between between BEGIN(_PARTIAL)_REQ and END(_PARTIAL)_REQ (AWVALID to AWREADY and WVALID to
      * WREADY) -> AWR, WBR
      */
-    sc_core::sc_attribute<unsigned> wr_data_accept_delay{"wr_data_accept_delay", 0};
+    scc::sc_attribute_randomized<int> wr_data_accept_delay{"wr_data_accept_delay", 0};
     /**
      * @brief the latency between between BEGIN_REQ and END_REQ (ARVALID to ARREADY) -> APR
      */
-    sc_core::sc_attribute<unsigned> rd_addr_accept_delay{"rd_addr_accept_delay", 0};
+    scc::sc_attribute_randomized<int> rd_addr_accept_delay{"rd_addr_accept_delay", 0};
     /**
      * @brief the latency between between END(_PARTIAL)_RESP and BEGIN(_PARTIAL)_RESP (RREADY to RVALID) -> RBV
      */
-    sc_core::sc_attribute<unsigned> rd_data_beat_delay{"rd_data_beat_delay", 0};
+    scc::sc_attribute_randomized<int> rd_data_beat_delay{"rd_data_beat_delay", 0};
     /**
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> RIV
      */
-    sc_core::sc_attribute<unsigned> rd_resp_delay{"rd_resp_delay", 0};
+    scc::sc_attribute_randomized<int> rd_resp_delay{"rd_resp_delay", 0};
     /**
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> BV
      */
-    sc_core::sc_attribute<unsigned> wr_resp_delay{"wr_resp_delay", 0};
+    scc::sc_attribute_randomized<int> wr_resp_delay{"wr_resp_delay", 0};
 
     void b_transport(payload_type& trans, sc_core::sc_time& t) override;
 

@@ -89,7 +89,7 @@ void axi_target_pe_b::end_of_elaboration() {
 }
 
 void axi_target_pe_b::b_transport(payload_type& trans, sc_time& t) {
-    auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.value : wr_resp_delay.value;
+    auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
     trans.set_dmi_allowed(false);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
     auto* i = clk_i.get_interface();
@@ -124,8 +124,8 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else { // accepted, schedule response
             getOutStandingTx(fsm_hndl->trans->get_command())++;
-            if(wr_data_accept_delay.value)
-                schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value - 1);
+            if(wr_data_accept_delay.get_value())
+                schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.get_value() - 1);
             else
                 schedule(EndPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
         }
@@ -144,7 +144,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         } else { // accepted, schedule response
             if(!fsm_hndl->beat_count)
                 getOutStandingTx(fsm_hndl->trans->get_command())++;
-            auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
+            auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.get_value() : wr_data_accept_delay.get_value();
             if(latency)
                 schedule(EndReqE, fsm_hndl->trans, latency - 1);
             else
@@ -168,7 +168,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             fw_o->transport(*(fsm_hndl->trans));
         else {
             auto latency = operation_cb ? operation_cb(*fsm_hndl->trans)
-                                        : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
+                                        : fsm_hndl->trans->is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
             if(latency < std::numeric_limits<unsigned>::max()) {
                 if(fsm_hndl->trans->is_write())
                     wr_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
@@ -191,8 +191,8 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
         auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
         fsm_hndl->beat_count++;
-        if(rd_data_beat_delay.value)
-            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.value);
+        if(rd_data_beat_delay.get_value())
+            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.get_value());
         else
             schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, SC_ZERO_TIME, true);
     };
@@ -219,7 +219,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             active_rdresp_id.erase(axi::get_axi_id(fsm_hndl->trans.get()));
         if(stalled_tx[cmd]) {
             auto* trans = stalled_tx[cmd];
-            auto latency = trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
+            auto latency = trans->is_read() ? rd_addr_accept_delay.get_value() : wr_data_accept_delay.get_value();
             if(latency)
                 schedule(stalled_tp[cmd], trans, latency - 1);
             else
@@ -276,7 +276,7 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
                 delay--;
             }
         }
-        if(!rd_data_interleaving.value || rd_data_beat_delay.value == 0) {
+        if(!rd_data_interleaving.value || rd_data_beat_delay.get_value() == 0) {
             while(!rd_resp.get_value())
                 wait(clk_i.posedge_event());
             rd_resp.wait();
@@ -288,8 +288,8 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
             wait(clk_i.posedge_event());
         }
         active_rdresp_id.insert(id);
-        if(rd_data_beat_delay.value)
-            schedule(e, trans, rd_data_beat_delay.value - 1);
+        if(rd_data_beat_delay.get_value())
+            schedule(e, trans, rd_data_beat_delay.get_value() - 1);
         else
             schedule(e, trans, SC_ZERO_TIME);
     }
