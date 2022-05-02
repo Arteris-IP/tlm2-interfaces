@@ -326,7 +326,10 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto& txs = it->second;
     auto timing_e = trans.set_auto_extension<atp::timing_params>(nullptr);
     auto axi_id = get_axi_id(trans);
-    auto burst_length = get_burst_lenght(trans);
+    auto data_len=trans.get_data_length();
+    auto burst_length = data_len/transfer_width_in_bytes;
+    if(burst_length<1)
+        burst_length=1;
     tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
     auto delay_in_cycles = wbv.value;
     sem_lock lck(sresp_chnl);

@@ -160,7 +160,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
                 ext->set_snoop_was_unique(false);
             }
             if(latency < std::numeric_limits<unsigned>::max()) {
-                auto evt = ext->is_snoop_data_transfer() && ext->get_length() > 0 ? BegPartRespE : BegRespE;
+                auto length = transfer_width_in_bytes/fsm_hndl->trans->get_data_length();
+                auto evt = ext->is_snoop_data_transfer() && length > 1 ? BegPartRespE : BegRespE;
                 snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans.get(), latency));
             }
         } else {
@@ -191,7 +192,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
-            auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
+            auto size = transfer_width_in_bytes/fsm_hndl->trans->get_data_length();
+            if(size<1)
+                size=1;
             fsm_hndl->beat_count++;
             schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
         } else {
