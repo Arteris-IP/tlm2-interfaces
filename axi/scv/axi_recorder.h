@@ -417,7 +417,6 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
     /*************************************************************************
      * handle recording
      *************************************************************************/
-    h.record_attribute("trans.uid", reinterpret_cast<uintptr_t>(&trans));
     tlm::scc::scv::record(h, status);
     h.record_attribute("delay[return_path]", delay.to_string());
     tlm::scc::scv::record(h, trans);
@@ -500,7 +499,6 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
     /*************************************************************************
      * handle recording
      *************************************************************************/
-    h.record_attribute("trans.uid", reinterpret_cast<uintptr_t>(&trans));
     tlm::scc::scv::record(h, status);
     h.record_attribute("delay[return_path]", delay.to_string());
     tlm::scc::scv::record(h, trans);

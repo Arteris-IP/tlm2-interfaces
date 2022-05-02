@@ -325,14 +325,26 @@ template <> char const* is_valid_msg<axi::axi3_extension>(axi::axi3_extension* e
 } // namespace axi
 
 #include <tlm/scc/scv/tlm_recorder.h>
+#include <tlm/scc/tlm_id.h>
 namespace axi {
 using namespace tlm::scc::scv;
+
+class tlm_id_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+
+    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+        if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
+            handle.record_attribute("trans.uid", ext->id);
+        }
+    }
+
+    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {
+    }
+};
 
 class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext3 = trans.get_extension<axi3_extension>();
-        if(ext3) { // CTRL, DATA, RESP
+        if(auto ext3 = trans.get_extension<axi3_extension>()) { // CTRL, DATA, RESP
             handle.record_attribute("trans.axi3.id", ext3->get_id());
             handle.record_attribute("trans.axi3.user[CTRL]", ext3->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi3.user[DATA]", ext3->get_user(common::id_type::DATA));
@@ -353,8 +365,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext3 = trans.get_extension<axi3_extension>();
-        if(ext3) {
+        if(auto ext3 = trans.get_extension<axi3_extension>()) {
             handle.record_attribute("trans.axi3.resp", std::string(to_char(ext3->get_resp())));
         }
     }
@@ -362,8 +373,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<axi4_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<axi4_extension>()) {
             handle.record_attribute("trans.axi4.id", ext4->get_id());
             handle.record_attribute("trans.axi4.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi4.user[DATA]", ext4->get_user(common::id_type::DATA));
@@ -384,8 +394,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<axi4_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<axi4_extension>()) {
             handle.record_attribute("trans.axi4.resp", std::string(to_char(ext4->get_resp())));
         }
     }
@@ -393,8 +402,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<ace_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<ace_extension>()) {
             handle.record_attribute("trans.ace.id", ext4->get_id());
             handle.record_attribute("trans.ace.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.ace.user[DATA]", ext4->get_user(common::id_type::DATA));
@@ -418,8 +426,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<ace_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<ace_extension>()) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
             handle.record_attribute("trans.ace.cresp_PassDirty", ext4->is_pass_dirty());
             handle.record_attribute("trans.ace.cresp_IsShared", ext4->is_shared());
@@ -435,6 +442,9 @@ using namespace tlm::scc::scv;
 __attribute__((constructor))
 #endif
 bool register_extensions() {
+    tlm::scc::tlm_id_extension ext(reinterpret_cast<uintptr_t>(0UL)); // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext.ID, new tlm_id_ext_recording()); // NOLINT
     axi::axi3_extension ext3; // NOLINT
     tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         ext3.ID, new axi::axi3_ext_recording()); // NOLINT
