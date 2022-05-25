@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arteris IP
+ * Copyright 2020-2022 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,49 +23,41 @@ namespace axi {
 //! protocol engine implementations
 namespace pe {
 /**
- * the target socket protocol engine(s) adapted to a particular target socket configuration
- *
- * @deprecated Use ordered_/reoerdering_target instead
+ * the target socket protocol engine(s) adapted to a particular target socket configuration,
+ * shuffles the responses from the order they arrived
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-class simple_target : public axi_target_pe_b {
+class reordering_target : public axi_target_pe_b {
 public:
     using base = axi_target_pe_b;
     using payload_type = base::payload_type;
     using phase_type = base::phase_type;
     /**
      * @brief the constructor
-     * @param socket reference to the initiator socket used to send and receive transactions
+     * @param nm module instance name
      */
-    simple_target(axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
-    : // @suppress("Class members should be properly initialized")
-        simple_target(sc_core::sc_gen_unique_name("simple_target"), socket) {}
 
-    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
-    : axi_target_pe_b(nm, BUSWIDTH)
-    , socket(socket) {
+    reordering_target(const sc_core::sc_module_name& nm)
+    : axi_target_pe_b(nm, BUSWIDTH) {
         socket(*this);
-        this->instance_name = name();
     }
 
-    simple_target() = delete;
+    reordering_target() = delete;
 
-    simple_target(simple_target const&) = delete;
+    reordering_target(reordering_target const&) = delete;
 
-    simple_target(simple_target&&) = delete;
+    reordering_target(reordering_target&&) = delete;
 
-    simple_target& operator=(simple_target const&) = delete;
+    reordering_target& operator=(reordering_target const&) = delete;
 
-    simple_target& operator=(simple_target&&) = delete;
+    reordering_target& operator=(reordering_target&&) = delete;
 
+    axi::axi_target_socket<BUSWIDTH, TYPES, N, POL> sckt{"sckt"};
 protected:
-    axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
-
     void end_of_elaboration(){
-        set_bw_interface(socket.get_base_port().operator -> ());
+        set_bw_interface(sckt.get_base_port().operator -> ());
     }
 };
-
 } // namespace pe
 } // namespace axi

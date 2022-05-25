@@ -16,7 +16,7 @@
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include "simple_target.h"
+#include "axi_target_pe_b.h"
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
 #include <scc/report.h>
@@ -44,12 +44,12 @@ struct axi_target_pe_b::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
 };
 
 axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm,
-                                 sc_core::sc_port_b<axi::axi_bw_transport_if<axi_protocol_types>>& port,
                                  size_t transfer_width)
 : sc_module(nm)
 , base(transfer_width)
-, socket_bw(port)
 , bw_intor(new bw_intor_impl(this)) {
+    instance_name = name();
+
     add_attribute(max_outstanding_tx);
     add_attribute(rd_bw_limit_byte_per_sec);
     add_attribute(wr_bw_limit_byte_per_sec);
