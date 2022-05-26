@@ -25,7 +25,7 @@ namespace pe {
 /**
  * the target socket protocol engine(s) adapted to a particular target socket configuration
  *
- * @deprecated Use ordered_/reoerdering_target instead
+ * @deprecated Use ordered_/reordering_target instead
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>

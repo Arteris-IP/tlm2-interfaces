@@ -33,6 +33,9 @@ public:
     using base = axi_target_pe_b;
     using payload_type = base::payload_type;
     using phase_type = base::phase_type;
+
+    axi::axi_target_socket<BUSWIDTH, TYPES, N, POL> sckt{"sckt"};
+
     /**
      * @brief the constructor
      * @param nm module instance name
@@ -40,7 +43,7 @@ public:
 
     ordered_target(const sc_core::sc_module_name& nm)
     : axi_target_pe_b(nm, BUSWIDTH) {
-        socket(*this);
+        sckt(*this);
     }
 
     ordered_target() = delete;
@@ -53,7 +56,6 @@ public:
 
     ordered_target& operator=(ordered_target&&) = delete;
 
-    axi::axi_target_socket<BUSWIDTH, TYPES, N, POL> sckt{"sckt"};
 protected:
     void end_of_elaboration(){
         set_bw_interface(sckt.get_base_port().operator -> ());

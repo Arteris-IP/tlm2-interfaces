@@ -51,7 +51,7 @@ public:
 
     sc_core::sc_port<tlm::scc::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
 
-    sc_core::sc_export<tlm::scc::pe::intor_bw_nb> bw_i{"bw_o"};
+    sc_core::sc_export<tlm::scc::pe::intor_bw_nb> bw_i{"bw_i"};
 
     /**
      * @brief the number of supported outstanding transactions. If this limit is reached the target starts to do
