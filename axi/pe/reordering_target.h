@@ -31,7 +31,9 @@ public:
 
     sc_core::sc_attribute<unsigned> min_latency{"min_latency", 10};
 
-    sc_core::sc_attribute<unsigned> max_latency{"max_latency", 10};
+    sc_core::sc_attribute<unsigned> max_latency{"max_latency", 100};
+
+    sc_core::sc_attribute<unsigned> window_size{"window_size", 2};
 
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**

@@ -15,10 +15,14 @@
  */
 
 #include "reordering_target.h"
-
 axi::pe::tx_reorderer::tx_reorderer(const sc_core::sc_module_name &nm): sc_core::sc_module(nm) {
+    SC_HAS_PROCESS(tx_reorderer);
     add_attribute(min_latency);
     add_attribute(max_latency);
+    fw_i(*this);
+    SC_METHOD(clock_cb);
+    sensitive<<clk_i.pos();
+    dont_initialize();
 }
 
 void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt_transport) {
@@ -48,8 +52,8 @@ void axi::pe::tx_reorderer::clock_cb() {
             bw_o->transport(*deq.front().trans);
             deq.pop_front();
         }
-    } else if(r2.size()) {
-        auto rnd = scc::MT19937::uniform(0, r2.size());
+    } else if(r2.size()>window_size.value) {
+        auto rnd = scc::MT19937::uniform(0, r2.size()-1);
         auto& deq = reorder_buffer[r2[rnd]];
         bw_o->transport(*deq.front().trans);
         deq.pop_front();
