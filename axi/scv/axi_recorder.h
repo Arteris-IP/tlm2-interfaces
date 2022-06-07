@@ -20,6 +20,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 #endif
 
+#include <axi/checker/axi_protocol.h>
 #include <array>
 #include <axi/axi_tlm.h>
 #include <regex>
@@ -41,7 +42,7 @@ bool register_extensions();
  * This module records all TLM transaction to a SCV transaction stream for
  * further viewing and analysis.
  * The handle of the created transaction is storee in an tlm_extension so that
- * another instance of the scv_axi_recorder
+ * another instance of the axi_recorder
  * e.g. further down the path can link to it.
  */
 template <typename TYPES = axi::axi_protocol_types>
@@ -73,6 +74,9 @@ public:
 
     //! \brief the attribute to selectively enable/disable transport dbg recording
     sc_core::sc_attribute<bool> enableTrDbgTracing{"enableTrDbgTracing", false};
+
+    //! \brief the attribute to  enable/disable protocol checking
+    sc_core::sc_attribute<bool> enableProtocolChecker{"enableProtocolChecker", true};
 
     //! \brief the port where fw accesses are forwarded to
     virtual tlm::tlm_fw_transport_if<TYPES>* get_fw_if() = 0;
@@ -120,6 +124,7 @@ public:
         delete dmi_streamHandle;
         delete dmi_trGetHandle;
         delete dmi_trInvalidateHandle;
+        delete checker;
     }
 
     // TLM-2.0 interface methods for initiator and target sockets, surrounded with
@@ -274,11 +279,14 @@ protected:
             dmi_trInvalidateHandle = new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>(
                 "invalidate", *dmi_streamHandle, "start_addr", "end_addr");
         }
+        if(enableProtocolChecker.value) {
+            checker=new axi::checker::axi_protocol(fixed_basename);
+        }
     }
 
 private:
     const std::string fixed_basename;
-
+    axi::checker::checker_if<TYPES>* checker{nullptr};
     inline std::string phase2string(const tlm::tlm_phase& p) {
         std::stringstream ss;
         ss << p;
@@ -375,8 +383,15 @@ template <typename TYPES>
 tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans,
                                                         typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
-        return get_fw_if()->nb_transport_fw(trans, phase, delay);
+    if(!isRecordingNonBlockingTxEnabled()){
+        if(checker){
+            checker->fw_pre(trans, phase);
+            tlm::tlm_sync_enum status = get_fw_if()->nb_transport_fw(trans, phase, delay);
+            checker->fw_post(trans, phase, status);
+            return status;
+        } else
+            return get_fw_if()->nb_transport_fw(trans, phase, delay);
+    }
     /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -413,7 +428,9 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
     /*************************************************************************
      * do the access
      *************************************************************************/
+    if(checker) checker->fw_pre(trans, phase);
     tlm::tlm_sync_enum status = get_fw_if()->nb_transport_fw(trans, phase, delay);
+    if(checker) checker->fw_post(trans, phase, status);
     /*************************************************************************
      * handle recording
      *************************************************************************/
@@ -458,8 +475,15 @@ template <typename TYPES>
 tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans,
                                                         typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
-        return get_bw_if()->nb_transport_bw(trans, phase, delay);
+    if(!isRecordingNonBlockingTxEnabled()){
+        if(checker) {
+            checker->bw_pre(trans, phase);
+            tlm::tlm_sync_enum status = get_bw_if()->nb_transport_bw(trans, phase, delay);
+            checker->bw_post(trans, phase, status);
+            return status;
+        } else
+            return get_bw_if()->nb_transport_bw(trans, phase, delay);
+    }
     /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -495,7 +519,9 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
     /*************************************************************************
      * do the access
      *************************************************************************/
+    if(checker) checker->bw_pre(trans, phase);
     tlm::tlm_sync_enum status = get_bw_if()->nb_transport_bw(trans, phase, delay);
+    if(checker) checker->bw_post(trans, phase, status);
     /*************************************************************************
      * handle recording
      *************************************************************************/

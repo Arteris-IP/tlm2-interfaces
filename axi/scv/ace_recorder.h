@@ -20,6 +20,7 @@
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 #endif
 
+#include <axi/checker/checker_if.h>
 #include <array>
 #include <axi/axi_tlm.h>
 #include <regex>
@@ -30,6 +31,7 @@
 #include <unordered_map>
 #include <vector>
 
+//! SCV components for AXI/ACE
 namespace axi {
 namespace scv {
 
@@ -318,7 +320,7 @@ protected:
 
 private:
     const std::string fixed_basename;
-
+    axi::checker::checker_if<TYPES>* checker{nullptr};
     inline std::string phase2string(const tlm::tlm_phase& p) {
         std::stringstream ss;
         ss << p;
@@ -471,8 +473,15 @@ template <typename TYPES>
 tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans,
                                                         typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
-        return get_fw_if()->nb_transport_fw(trans, phase, delay);
+    if(!isRecordingNonBlockingTxEnabled()){
+        if(checker){
+            checker->fw_pre(trans, phase);
+            tlm::tlm_sync_enum status = get_fw_if()->nb_transport_fw(trans, phase, delay);
+            checker->fw_post(trans, phase, status);
+            return status;
+        } else
+            return get_fw_if()->nb_transport_fw(trans, phase, delay);
+    }
     /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -510,7 +519,9 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
     /*************************************************************************
      * do the access
      *************************************************************************/
+    if(checker) checker->fw_pre(trans, phase);
     tlm::tlm_sync_enum status = get_fw_if()->nb_transport_fw(trans, phase, delay);
+    if(checker) checker->fw_post(trans, phase, status);
     /*************************************************************************
      * handle recording
      *************************************************************************/
@@ -555,8 +566,15 @@ template <typename TYPES>
 tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans,
                                                         typename TYPES::tlm_phase_type& phase,
                                                         sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
-        return get_bw_if()->nb_transport_bw(trans, phase, delay);
+    if(!isRecordingNonBlockingTxEnabled()){
+        if(checker) {
+            checker->bw_pre(trans, phase);
+            tlm::tlm_sync_enum status = get_bw_if()->nb_transport_bw(trans, phase, delay);
+            checker->bw_post(trans, phase, status);
+            return status;
+        } else
+            return get_bw_if()->nb_transport_bw(trans, phase, delay);
+    }
     /*************************************************************************
      * prepare recording
      *************************************************************************/
@@ -593,7 +611,9 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
     /*************************************************************************
      * do the access
      *************************************************************************/
+    if(checker) checker->bw_pre(trans, phase);
     tlm::tlm_sync_enum status = get_bw_if()->nb_transport_bw(trans, phase, delay);
+    if(checker) checker->bw_post(trans, phase, status);
     /*************************************************************************
      * handle recording
      *************************************************************************/

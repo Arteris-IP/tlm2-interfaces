@@ -33,29 +33,31 @@ void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt
 }
 
 void axi::pe::tx_reorderer::clock_cb() {
-    std::vector<unsigned> r1{}, r2{};
-    r1.reserve(reorder_buffer.size());
-    r2.reserve(reorder_buffer.size());
-    for(auto& e:reorder_buffer) {
-        if(e.second.size()){
-            e.second.front().age++;
-            if(e.second.front().age>max_latency.value) {
-                r1.push_back(e.first);
-            } else if(e.second.front().age>min_latency.value)
-                r2.push_back(e.first);
+    if(!reorder_buffer.empty()) {
+        std::vector<unsigned> r1{}, r2{};
+        r1.reserve(reorder_buffer.size());
+        r2.reserve(reorder_buffer.size());
+        for(auto& e:reorder_buffer) {
+            if(e.second.size()){
+                e.second.front().age++;
+                if(e.second.front().age>max_latency.value) {
+                    r1.push_back(e.first);
+                } else if(e.second.front().age>min_latency.value)
+                    r2.push_back(e.first);
+            }
         }
-    }
-    if(r1.size()) {
-        std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
-        for(auto& e:r1) {
-            auto& deq = reorder_buffer[e];
+        if(r1.size()) {
+            std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
+            for(auto& e:r1) {
+                auto& deq = reorder_buffer[e];
+                bw_o->transport(*deq.front().trans);
+                deq.pop_front();
+            }
+        } else if(r2.size()>window_size.value) {
+            auto rnd = scc::MT19937::uniform(0, r2.size()-1);
+            auto& deq = reorder_buffer[r2[rnd]];
             bw_o->transport(*deq.front().trans);
             deq.pop_front();
         }
-    } else if(r2.size()>window_size.value) {
-        auto rnd = scc::MT19937::uniform(0, r2.size()-1);
-        auto& deq = reorder_buffer[r2[rnd]];
-        bw_o->transport(*deq.front().trans);
-        deq.pop_front();
     }
 }
