@@ -327,9 +327,9 @@ template <> char const* is_valid_msg<axi::axi3_extension>(axi::axi3_extension* e
 #include <tlm/scc/scv/tlm_recorder.h>
 #include <tlm/scc/tlm_id.h>
 namespace axi {
-using namespace tlm::scc::scv;
+namespace scv {
 
-class tlm_id_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+class tlm_id_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
@@ -341,7 +341,7 @@ class tlm_id_ext_recording : public tlm_extensions_recording_if<axi_protocol_typ
     }
 };
 
-class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+class axi3_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         if(auto ext3 = trans.get_extension<axi3_extension>()) { // CTRL, DATA, RESP
@@ -370,7 +370,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
         }
     }
 };
-class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+class axi4_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         if(auto ext4 = trans.get_extension<axi4_extension>()) {
@@ -399,7 +399,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
         }
     }
 };
-class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         if(auto ext4 = trans.get_extension<ace_extension>()) {
@@ -436,24 +436,23 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
         }
     }
 };
-namespace scv {
-using namespace tlm::scc::scv;
+
 #if defined(__GNUG__)
 __attribute__((constructor))
 #endif
 bool register_extensions() {
     tlm::scc::tlm_id_extension ext(reinterpret_cast<uintptr_t>(0UL)); // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         ext.ID, new tlm_id_ext_recording()); // NOLINT
     axi::axi3_extension ext3; // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        ext3.ID, new axi::axi3_ext_recording()); // NOLINT
+    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext3.ID, new axi::scv::axi3_ext_recording()); // NOLINT
     axi::axi4_extension ext4;                    // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        ext4.ID, new axi::axi4_ext_recording()); // NOLINT
+    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext4.ID, new axi::scv::axi4_ext_recording()); // NOLINT
     axi::ace_extension extace;                   // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        extace.ID, new axi::ace_ext_recording()); // NOLINT
+    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        extace.ID, new axi::scv::ace_ext_recording()); // NOLINT
     return true;                                  // NOLINT
 }
 bool registered = register_extensions();
