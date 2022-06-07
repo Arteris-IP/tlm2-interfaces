@@ -19,18 +19,21 @@
 #include "types.h"
 #include <axi/axi_tlm.h>
 #include <deque>
-#include <unordered_map>
 #include <scc/fifo_w_cb.h>
 #include <scc/peq.h>
 #include <scc/report.h>
 #include <tlm/scc/tlm_gp_shared.h>
+#include <unordered_map>
 
 namespace axi {
 namespace fsm {
 //! forward declaration to reduce dependencies
 struct fsm_handle;
 
-inline std::ostream& operator<<(std::ostream& os, const std::tuple<axi::fsm::fsm_handle*, axi::fsm::protocol_time_point_e>&) { return os; }
+inline std::ostream& operator<<(std::ostream& os,
+                                const std::tuple<axi::fsm::fsm_handle*, axi::fsm::protocol_time_point_e>&) {
+    return os;
+}
 
 using axi::operator<<;
 
@@ -46,7 +49,8 @@ struct base {
      * @param transfer_width the bus width in bytes
      * @param wr_start the phase to start a write access
      */
-    base(size_t transfer_width, bool coherent=false, axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
+    base(size_t transfer_width, bool coherent = false,
+         axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
     /**
      * @brief the destructor
      */
@@ -92,27 +96,34 @@ struct base {
      */
     void process_fsm_event();
     /**
-     * @brief processes the fsm_clk_queue and triggers the FSM accordingly. Should be registered as rising-edge clock callback
+     * @brief processes the fsm_clk_queue and triggers the FSM accordingly. Should be registered as rising-edge clock
+     * callback
      */
     void process_fsm_clk_queue();
     /**
-     * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
+     * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge
+     * clock callback
      */
     inline void schedule(axi::fsm::protocol_time_point_e e, tlm::scc::tlm_gp_shared_ptr& gp, unsigned cycles) {
         schedule(e, gp.get(), cycles);
     }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles) {
-    	SCCTRACE(instance_name)<<"pushing sync event "<<evt2str(e)<<" for transaction "<< *gp <<" (sync:"<<cycles<<")";
+        SCCTRACE(instance_name) << "pushing sync event " << evt2str(e) << " for transaction " << *gp
+                                << " (sync:" << cycles << ")";
         fsm_clk_queue.push_back(std::make_tuple(e, gp, cycles));
     }
     /**
-     * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge clock callback
+     * @brief processes the fsm_sched_queue and propagates events to fsm_clk_queue. Should be registered as falling-edge
+     * clock callback
      */
-    inline void schedule(axi::fsm::protocol_time_point_e e, tlm::scc::tlm_gp_shared_ptr& gp, sc_core::sc_time delay, bool syncronize = false) {
+    inline void schedule(axi::fsm::protocol_time_point_e e, tlm::scc::tlm_gp_shared_ptr& gp, sc_core::sc_time delay,
+                         bool syncronize = false) {
         schedule(e, gp.get(), delay, syncronize);
     }
-    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay, bool syncronize = false) {
-    	SCCTRACE(instance_name)<<"pushing event "<<evt2str(e)<<" for transaction "<< *gp << " (delay "<<delay<<")";
+    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay,
+                  bool syncronize = false) {
+        SCCTRACE(instance_name) << "pushing event " << evt2str(e) << " for transaction " << *gp << " (delay " << delay
+                                << ")";
         fsm_event_queue.notify(std::make_tuple(e, gp, syncronize), delay);
     }
     /**
@@ -120,15 +131,16 @@ struct base {
      * @param event the event triggering the FSM
      * @param trans the AXITLM transaction the event belongs to
      */
-    inline void react(axi::fsm::protocol_time_point_e event, tlm::scc::tlm_gp_shared_ptr& trans){
+    inline void react(axi::fsm::protocol_time_point_e event, tlm::scc::tlm_gp_shared_ptr& trans) {
         react(event, trans.get());
     }
 
     inline void react(axi::fsm::protocol_time_point_e event, payload_type* trans) {
-        SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<< *trans;
+        SCCTRACE(instance_name) << "reacting on event " << evt2str(static_cast<unsigned>(event)) << " for trans "
+                                << *trans;
         auto fsm_hndl = active_fsm[trans];
         if(!fsm_hndl) {
-            SCCFATAL(instance_name)<<"No valid FSM found for trans "<<std::hex<<trans;
+            SCCFATAL(instance_name) << "No valid FSM found for trans " << std::hex << trans;
             throw std::runtime_error("No valid FSM found for trans");
         }
         react(event, fsm_hndl);

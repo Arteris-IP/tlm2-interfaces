@@ -31,7 +31,7 @@ using namespace axi::fsm;
 base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
 , wr_start(wr_start)
-, coherent(coherent){
+, coherent(coherent) {
     assert(wr_start == RequestPhaseBeg || wr_start == WValidE);
     idle_fsm.clear();
     active_fsm.clear();
@@ -54,9 +54,9 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
     const static std::array<std::string, 3> cmd{{"RD", "WR", "IGN"}};
     auto it = active_fsm.find(gp);
     if(!gp || it == active_fsm.end()) {
-        if(gp){
+        if(gp) {
             SCCTRACE(instance_name) << "creating fsm for trans " << *gp;
-        }else{
+        } else {
             SCCTRACE(instance_name) << "creating fsm for undefined transaction";
         }
         if(idle_fsm.empty()) {
@@ -73,13 +73,14 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp != nullptr) {
             fsm_hndl->trans = gp;
         } else {
-            fsm_hndl->trans = ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>() : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
+            fsm_hndl->trans = ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>()
+                                  : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
         }
         active_fsm.insert(std::make_pair(fsm_hndl->trans.get(), fsm_hndl));
-        fsm_hndl->start=sc_time_stamp();
+        fsm_hndl->start = sc_time_stamp();
         return fsm_hndl;
     } else {
-        it->second->start=sc_time_stamp();
+        it->second->start = sc_time_stamp();
         return it->second;
     }
 }
@@ -101,12 +102,12 @@ void base::process_fsm_clk_queue() {
         while(fsm_clk_queue.avail()) {
             auto entry = fsm_clk_queue.front();
             if(std::get<2>(entry) == 0) {
-                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *std::get<1>(entry);
+                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans "
+                                        << *std::get<1>(entry);
                 react(std::get<0>(entry), std::get<1>(entry));
             } else {
                 std::get<2>(entry) -= 1;
                 fsm_clk_queue.push_back(entry);
-
             }
             fsm_clk_queue.pop_front();
         }
@@ -122,7 +123,8 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
         return;
     case WReadyE:
     case RequestPhaseBeg:
-        if(is_burst(*fsm_hndl->trans) && fsm_hndl->trans->is_write() && !is_dataless(fsm_hndl->trans->get_extension<axi::ace_extension>()))
+        if(is_burst(*fsm_hndl->trans) && fsm_hndl->trans->is_write() &&
+           !is_dataless(fsm_hndl->trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());
@@ -169,7 +171,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
         finish_evt.notify();
         return;
     default:
-            SCCFATAL(instance_name)<<"No valid protocol time point";
+        SCCFATAL(instance_name) << "No valid protocol time point";
     }
 }
 
@@ -209,7 +211,7 @@ tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time&
             react(phase == BEGIN_RESP ? BegRespE : BegPartRespE, &trans);
         } else
             schedule(phase == BEGIN_RESP ? BegRespE : BegPartRespE, &trans, t);
-    } else if(phase == axi::ACK){
+    } else if(phase == axi::ACK) {
         if(t == SC_ZERO_TIME) {
             react(Ack, &trans);
         } else

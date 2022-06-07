@@ -43,8 +43,9 @@ enum protocol_time_point_e {
 };
 
 inline const char* evt2str(unsigned evt) {
-    static const char* lut[] = {"RequestPhaseBeg", "WValidE",          "WReadyE",      "BegPartReqE",  "EndPartReqE", "BegReqE",
-                                "EndReqE",         "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",  "Ack"};
+    static const char* lut[] = {
+        "RequestPhaseBeg",  "WValidE",      "WReadyE",      "BegPartReqE", "EndPartReqE", "BegReqE", "EndReqE",
+        "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",    "Ack"};
     return lut[evt];
 }
 //! alias for the callback function
@@ -58,7 +59,7 @@ struct fsm_handle {
     //! pointer to the FSM
     AxiProtocolFsm* fsm = nullptr;
     //! pointer to the associated AXITLM payload
-    tlm::scc::tlm_gp_shared_ptr  trans = nullptr;
+    tlm::scc::tlm_gp_shared_ptr trans = nullptr;
     //! beat count of this transaction
     size_t beat_count = 0;
     //! indicator if this is a snoop access
@@ -84,7 +85,7 @@ struct fsm_handle {
         beat_count = 0;
         is_snoop = false;
         aux.i64 = 0;
-        start=sc_core::SC_ZERO_TIME;
+        start = sc_core::SC_ZERO_TIME;
     }
 };
 

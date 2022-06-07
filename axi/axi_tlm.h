@@ -38,8 +38,9 @@ template <typename E> inline E into(typename std::underlying_type<E>::type t);
  * @param t
  * @return
  */
-template <typename E, typename ULT = typename std::underlying_type<E>::type,
-          typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
+template <
+    typename E, typename ULT = typename std::underlying_type<E>::type,
+    typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
 inline constexpr ULT to_int(E t) {
     return static_cast<typename std::underlying_type<E>::type>(t);
 }
@@ -82,12 +83,17 @@ enum class domain_e : uint8_t { NON_SHAREABLE = 0x0, INNER_SHAREABLE = 0x1, OUTE
 /**
  * the barrier type enumeration class
  */
-enum class bar_e : uint8_t { RESPECT_BARRIER = 0x0, MEMORY_BARRIER = 0x1, IGNORE_BARRIER = 0x2, SYNCHRONISATION_BARRIER = 0x3 };
+enum class bar_e : uint8_t {
+    RESPECT_BARRIER = 0x0,
+    MEMORY_BARRIER = 0x1,
+    IGNORE_BARRIER = 0x2,
+    SYNCHRONISATION_BARRIER = 0x3
+};
 /**
  * the snoop type enumeration class. Since the interpretation depends of other setting there are double defined entries
  */
 enum class snoop_e : uint8_t {
-	// clang-format off
+    // clang-format off
 	// non-snooping (domain==0 || domain==3, bar==0)
     READ_NO_SNOOP 			= 0x10,
     // Coherent (domain==1 || domain==2, bar==0)
@@ -128,7 +134,7 @@ enum class snoop_e : uint8_t {
     STASH_ONCE_SHARED 		= 0x2c,
     STASH_ONCE_UNIQUE 		= 0x2d,
     STASH_TRANSLATION 		= 0x2e
-	// clang-format on
+    // clang-format on
 };
 
 enum class atop_low_e { ADD = 0x0, CLR = 0x1, EOR = 0x2, SET = 0x3, SMAX = 0x4, SMIN = 0x5, UMAX = 0x6, UMIN = 0x7 };
@@ -892,7 +898,8 @@ DECLARE_EXTENDED_PHASE(ACK);
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload>
+class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -921,7 +928,8 @@ template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N
 struct axi_initiator_socket
 : public tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -939,8 +947,8 @@ struct axi_initiator_socket
      */
     const char* kind() const override { return "axi_initiator_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
-#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2 &&
-                                // TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
+#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
+                                // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
@@ -949,9 +957,11 @@ struct axi_initiator_socket
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct axi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
+struct axi_target_socket
+: public tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -969,8 +979,8 @@ struct axi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_t
      */
     const char* kind() const override { return "axi_target_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
-#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2 &&
-                                // TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
+#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
+                                // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
@@ -982,7 +992,8 @@ template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N
 struct ace_initiator_socket
 : public tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1012,9 +1023,11 @@ struct ace_initiator_socket
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
+struct ace_target_socket
+: public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1044,33 +1057,22 @@ struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_t
  * free function easing handling of transactions and extensions
  *****************************************************************************/
 
-template<typename EXT>
-bool is_valid(EXT& ext){return is_valid(&ext);}
+template <typename EXT> bool is_valid(EXT& ext) { return is_valid(&ext); }
 
-template<typename EXT>
-bool is_valid(EXT* ext){ return is_valid_msg(ext)==nullptr;}
+template <typename EXT> bool is_valid(EXT* ext) { return is_valid_msg(ext) == nullptr; }
 
-template<typename EXT>
-char const* is_valid_msg(EXT& ext){return is_valid_msg(&ext);}
+template <typename EXT> char const* is_valid_msg(EXT& ext) { return is_valid_msg(&ext); }
 
-template<typename EXT>
-char const* is_valid_msg(EXT* ext);
+template <typename EXT> char const* is_valid_msg(EXT* ext);
 
-inline bool is_dataless(axi::ace_extension const* ext){
-    if(!ext) return false;
+inline bool is_dataless(axi::ace_extension const* ext) {
+    if(!ext)
+        return false;
     auto snp = ext->get_snoop();
-    return
-            snp == snoop_e::CLEAN_UNIQUE  ||
-            snp == snoop_e::MAKE_UNIQUE   ||
-            snp == snoop_e::CLEAN_SHARED  ||
-            snp == snoop_e::CLEAN_INVALID ||
-            snp == snoop_e::MAKE_INVALID  ||
-            snp == snoop_e::EVICT ||
-            snp == snoop_e::STASH_ONCE_SHARED ||
-            snp == snoop_e::STASH_ONCE_UNIQUE;
-
+    return snp == snoop_e::CLEAN_UNIQUE || snp == snoop_e::MAKE_UNIQUE || snp == snoop_e::CLEAN_SHARED ||
+           snp == snoop_e::CLEAN_INVALID || snp == snoop_e::MAKE_INVALID || snp == snoop_e::EVICT ||
+           snp == snoop_e::STASH_ONCE_SHARED || snp == snoop_e::STASH_ONCE_UNIQUE;
 }
-
 
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
@@ -1140,7 +1142,9 @@ inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type
  * @param trans
  * @return the number of beats
  */
-inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_lenght(*trans); }
+inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type* trans) {
+    return get_burst_lenght(*trans);
+}
 /**
  * get size of a burst in bytes which is 2^AxBURST
  * @param r
@@ -1173,7 +1177,9 @@ inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type& 
  * @param trans
  * @return the burst size in bytes
  */
-inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_size(*trans); }
+inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) {
+    return get_burst_size(*trans);
+}
 
 inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
@@ -1197,7 +1203,7 @@ inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type& trans
     sc_assert(false && "transaction is not an axi or ace transaction");
     return 0;
 }
-inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type* trans) {return get_cache(*trans);}
+inline unsigned get_cache(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_cache(*trans); }
 
 /*****************************************************************************
  * Implementation details
@@ -1448,18 +1454,17 @@ inline void request::set_atop(uint8_t atop) { this->atop = atop; }
 
 inline uint8_t request::get_atop() const { return atop; }
 
-inline void request::set_stash_nid(uint8_t stash_nid){this->stash_nid=stash_nid;}
+inline void request::set_stash_nid(uint8_t stash_nid) { this->stash_nid = stash_nid; }
 
-inline uint8_t request::get_stash_nid() const { return stash_nid<0x800? stash_nid : 0;}
+inline uint8_t request::get_stash_nid() const { return stash_nid < 0x800 ? stash_nid : 0; }
 
-inline bool request::is_stash_nid_en() const {return stash_nid<0x800;}
+inline bool request::is_stash_nid_en() const { return stash_nid < 0x800; }
 
-inline void request::set_stash_lpid(uint8_t stash_lpid) {this->stash_lpid=stash_lpid;}
+inline void request::set_stash_lpid(uint8_t stash_lpid) { this->stash_lpid = stash_lpid; }
 
-inline uint8_t request::get_stash_lpid() const {return stash_lpid<0x20? stash_lpid : 0;}
+inline uint8_t request::get_stash_lpid() const { return stash_lpid < 0x20 ? stash_lpid : 0; }
 
-inline bool request::is_stash_lpid_en() const {return stash_lpid<0x20;}
-
+inline bool request::is_stash_lpid_en() const { return stash_lpid < 0x20; }
 
 inline void response::reset() { resp = static_cast<uint8_t>(resp_e::OKAY); }
 
@@ -1590,13 +1595,17 @@ template <typename REQ, typename RESP> inline void axi_extension<REQ, RESP>::add
     response_arr.push_back(arr);
 }
 
-template <typename REQ, typename RESP> inline const std::vector<response>& axi_extension<REQ, RESP>::get_response_array() const {
+template <typename REQ, typename RESP>
+inline const std::vector<response>& axi_extension<REQ, RESP>::get_response_array() const {
     return response_arr;
 }
 
-template <typename REQ, typename RESP> inline std::vector<response>& axi_extension<REQ, RESP>::get_response_array() { return response_arr; }
+template <typename REQ, typename RESP> inline std::vector<response>& axi_extension<REQ, RESP>::get_response_array() {
+    return response_arr;
+}
 
-template <typename REQ, typename RESP> inline void axi_extension<REQ, RESP>::set_response_array_complete(bool complete) {
+template <typename REQ, typename RESP>
+inline void axi_extension<REQ, RESP>::set_response_array_complete(bool complete) {
     response_array_complete = complete;
 }
 

@@ -38,8 +38,9 @@ template <typename E> inline E into(typename std::underlying_type<E>::type t);
  * @param t
  * @return
  */
-template <typename E, typename ULT = typename std::underlying_type<E>::type,
-          typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
+template <
+    typename E, typename ULT = typename std::underlying_type<E>::type,
+    typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
 inline constexpr ULT to_int(E t) {
     return static_cast<typename std::underlying_type<E>::type>(t);
 }
@@ -78,8 +79,8 @@ enum class req_optype_e : uint8_t {
     CleanUnique = 0x0B,
     MakeUnique = 0x0C,
     Evict = 0x0D,
-    EOBarrier=0x0E,
-    ECBarrier=0x0F,
+    EOBarrier = 0x0E,
+    ECBarrier = 0x0F,
     ReadNoSnpSep = 0x11,
     DVMOp = 0x14,
     WriteEvictFull = 0x15,
@@ -124,7 +125,7 @@ enum class req_optype_e : uint8_t {
     AtomicCompare = 0x39,
     PrefetchTgt = 0x3A,
     // RESERVED        = 0x3B to 0x3F
-    ILLEGAL=0xFF
+    ILLEGAL = 0xFF
 };
 
 // the Snp_Req channel request type enumeration class acc. Table 12-17 SNP channel opcodes and Page No:321
@@ -411,18 +412,19 @@ struct request {
     that the requested data is likely to be shared by other Request Nodes within the system */
     void set_likely_shared(bool = true);
     bool is_likely_shared() const;
-    /* Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the interconnect
-     is IMPLEMENTATION DEFINED.*/
+    /* Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the
+     interconnect is IMPLEMENTATION DEFINED.*/
     void set_rsvdc(uint32_t);
     uint32_t get_rsvdc() const; // Reserved for customer use.
 
 private:
-    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0}, order{0};
+    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0},
+        order{0};
     bool endian{false}, trace_tag{false};
     uint16_t return_n_id{0}, stash_n_id{0};
     req_optype_e opcode{req_optype_e::ReqLCrdReturn};
-    bool stash_n_id_valid{false}, stash_lp_id_valid{false}, ns{false}, exp_comp_ack{false}, allow_retry{false}, snp_attr{false},
-        excl{false}, snoop_me{false}, likely_shared{false};
+    bool stash_n_id_valid{false}, stash_lp_id_valid{false}, ns{false}, exp_comp_ack{false}, allow_retry{false},
+        snp_attr{false}, excl{false}, snoop_me{false}, likely_shared{false};
     uint32_t rsvdc{0};
 };
 
@@ -527,8 +529,8 @@ struct data {
     sent from the Requester*/
     void set_home_n_id(uint16_t);
     uint16_t get_home_n_id() const;
-    /*Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the interconnect
-    is IMPLEMENTATION DEFINED*/
+    /*Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the
+    interconnect is IMPLEMENTATION DEFINED*/
     void set_rsvdc(uint32_t);
     uint32_t get_rsvdc() const;
     /*Data Check. Detects data errors in the DAT packet*/
@@ -598,7 +600,9 @@ private:
 
 struct credit {
     credit() = default;
-    credit(short unsigned count, chi::credit_type_e type):count(count), type(type){}
+    credit(short unsigned count, chi::credit_type_e type)
+    : count(count)
+    , type(type) {}
     unsigned short count{1};
     credit_type_e type{credit_type_e::LINK};
 };
@@ -622,7 +626,9 @@ struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_ctrl_extension&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) {
+        *this = static_cast<const chi_ctrl_extension&>(ext);
+    } // use assignment operator
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -698,7 +704,9 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_data_extension&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) {
+        *this = static_cast<const chi_data_extension&>(ext);
+    } // use assignment operator
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -722,7 +730,8 @@ struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, p
      */
     chi_credit_extension() = default;
 
-    chi_credit_extension(credit_type_e type, unsigned short count=1) : credit(count, type) {}
+    chi_credit_extension(credit_type_e type, unsigned short count = 1)
+    : credit(count, type) {}
     /**
      * @brief the copy constructor
      * @param the extension to copy from
@@ -737,7 +746,9 @@ struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, p
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_credit_extension&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) {
+        *this = static_cast<const chi_credit_extension&>(ext);
+    } // use assignment operator
 };
 
 //! aliases for payload and phase types
@@ -764,12 +775,13 @@ DECLARE_EXTENDED_PHASE(ACK);
 //! alias declaration for the forward interface
 template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = tlm::tlm_fw_transport_if<TYPES>;
 ////! alias declaration for the backward interface:
-//template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
+// template <typename TYPES = chi::chi_protocol_types> using chi_bw_transport_if = tlm::tlm_bw_transport_if<TYPES>;
 
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload>
+class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -787,14 +799,16 @@ class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
                             public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
 /**
- * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
+ * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to
+ * RN response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
 struct chi_initiator_socket
 : public tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -821,13 +835,16 @@ struct chi_initiator_socket
 };
 
 /**
- * CHI target socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN response)
+ * CHI target socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to RN
+ * response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
+struct chi_target_socket
+: public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
+    using base_type =
+        tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -856,19 +873,16 @@ struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_t
  * free function easing handling of transactions and extensions
  *****************************************************************************/
 
-template<typename EXT>
-inline
-bool is_valid(EXT& ext){return is_valid(&ext);}
+template <typename EXT> inline bool is_valid(EXT& ext) { return is_valid(&ext); }
 
-template<typename EXT>
-bool is_valid(EXT* ext);
+template <typename EXT> bool is_valid(EXT* ext);
 
-inline
-bool is_dataless(const chi::chi_ctrl_extension* req_e) {
+inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     auto opcode = req_e->req.get_opcode();
-    if(opcode == chi::req_optype_e::CleanShared || opcode == chi::req_optype_e::CleanInvalid || opcode == chi::req_optype_e::MakeInvalid ||
-            opcode == chi::req_optype_e::CleanUnique || opcode == chi::req_optype_e::MakeUnique ||
-            opcode == chi::req_optype_e::CleanSharedPersist || opcode == chi::req_optype_e::Evict) {
+    if(opcode == chi::req_optype_e::CleanShared || opcode == chi::req_optype_e::CleanInvalid ||
+       opcode == chi::req_optype_e::MakeInvalid || opcode == chi::req_optype_e::CleanUnique ||
+       opcode == chi::req_optype_e::MakeUnique || opcode == chi::req_optype_e::CleanSharedPersist ||
+       opcode == chi::req_optype_e::Evict) {
         return true;
     }
     return false;

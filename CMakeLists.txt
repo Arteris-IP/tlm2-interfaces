@@ -26,8 +26,10 @@ if(TARGET scc)
        axi/axi_tlm.cpp
        axi/fsm/base.cpp
        axi/pe/simple_initiator.cpp
-       axi/pe/simple_target.cpp
+       axi/pe/axi_target_pe_b.cpp
+       axi/pe/reordering_target.cpp
        axi/pe/axi_initiator.cpp
+       axi/checker/axi_protocol.cpp
     )
     target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)

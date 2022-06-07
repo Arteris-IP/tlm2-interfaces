@@ -19,7 +19,9 @@
 
 namespace axi {
 
-namespace {std::array<std::string, 3> cmd_str{"R", "W", "I"};}
+namespace {
+std::array<std::string, 3> cmd_str{"R", "W", "I"};
+}
 
 template <> const char* to_char<snoop_e>(snoop_e v) {
     switch(v) {
@@ -155,103 +157,95 @@ template <> const char* to_char<resp_e>(resp_e v) {
     }
 }
 
-std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t){
-    char const* ch = t.get_command()==tlm::TLM_READ_COMMAND?"AR":(t.get_command()==tlm::TLM_WRITE_COMMAND?"AW":"");
-    os<<"CMD:"<<cmd_str[t.get_command()]
-                        <<", "<<ch<<"ADDR:0x"<<std::hex<<t.get_address()
-                        <<", TXLEN:0x"<<t.get_data_length();
-    if(auto e = t.get_extension<axi::ace_extension>()){
-        os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
-           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
-           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
-           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
-           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
-           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
-           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
-           <<", "<<ch<<"SNOOP:0x"<<std::hex<<(static_cast<unsigned>(e->get_snoop())&0xf)<<std::dec
-           <<", "<<ch<<"DOMAIN:"<<to_char(e->get_domain())
-           <<", "<<ch<<"BAR:"<<to_char(e->get_barrier())
-           <<", "<<ch<<"UNIQUE:"<<e->get_unique()
-           ;
-    } else if(auto e = t.get_extension<axi::axi4_extension>()){
-        os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
-           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
-           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
-           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
-           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
-           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
-           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
-           ;
-    } else if(auto e = t.get_extension<axi::axi3_extension>()){
-        os <<", "<<ch<<"ID:"<< e->get_id()
-           <<", "<<ch<<"LEN:0x"<<std::hex<<static_cast<unsigned>(e->get_length())
-           <<", "<<ch<<"SIZE:0x"<<static_cast<unsigned>(e->get_size())<<std::dec
-           <<", "<<ch<<"BURST:"<<to_char(e->get_burst())
-           <<", "<<ch<<"PROT:"<<static_cast<unsigned>(e->get_prot())
-           <<", "<<ch<<"CACHE:"<<static_cast<unsigned>(e->get_cache())
-           <<", "<<ch<<"QOS:"<<static_cast<unsigned>(e->get_qos())
-           <<", "<<ch<<"REGION:"<<static_cast<unsigned>(e->get_region())
-           ;
+std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t) {
+    char const* ch =
+        t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
+    os << "CMD:" << cmd_str[t.get_command()] << ", " << ch << "ADDR:0x" << std::hex << t.get_address() << ", TXLEN:0x"
+       << t.get_data_length();
+    if(auto e = t.get_extension<axi::ace_extension>()) {
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
+           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
+           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
+           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
+           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+           << "REGION:" << static_cast<unsigned>(e->get_region()) << ", " << ch << "SNOOP:0x" << std::hex
+           << (static_cast<unsigned>(e->get_snoop()) & 0xf) << std::dec << ", " << ch
+           << "DOMAIN:" << to_char(e->get_domain()) << ", " << ch << "BAR:" << to_char(e->get_barrier()) << ", " << ch
+           << "UNIQUE:" << e->get_unique();
+    } else if(auto e = t.get_extension<axi::axi4_extension>()) {
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
+           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
+           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
+           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
+           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+           << "REGION:" << static_cast<unsigned>(e->get_region());
+    } else if(auto e = t.get_extension<axi::axi3_extension>()) {
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
+           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
+           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
+           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
+           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+           << "REGION:" << static_cast<unsigned>(e->get_region());
     }
-    os <<" [ptr:"<<&t<<"]";
+    os << " [ptr:" << &t << "]";
     return os;
 }
 
 namespace {
-    const std::array<std::array<bool, 4>, 16> rd_valid{{
-            {true, true, true, true},       // ReadNoSnoop/ReadOnce
-            {false, true, true, false},     // ReadShared
-            {false, true, true, false},     // ReadClean
-            {false, true, true, false},     // ReadNotSharedDirty
-            {false, true, true, false},     // ReadOnceCleanInvalid (ACE5)
-            {false, true, true, false},     // ReadOnceMakeInvalid (ACE5)
-            {false, false, false, false},   //
-            {false, true, true, false},     // ReadUnique
-            {true, true, true, false},      // CleanShared
-            {true, true, true, false},      // CleanInvalid
-            {false, true, true, false},     // CleanSharedPersist (ACE5)
-            {false, true, true, false},     // CleanUnique
-            {false, true, true, false},     // MakeUnique
-            {true, true, true, false},      // MakeInvalid
-            {false, true, true, false},     // DVM Complete
-            {false, true, true, false}      // DVM Message
-    }};
-    const std::array<std::array<bool, 4>, 16> wr_valid{{
-            {true, true, true, true},       // WriteNoSnoop/WriteUnique
-            {false, true, true, false},     // WriteLineUnique
-            {true, true, true, false},      // WriteClean
-            {true, true, true, false},      // WriteBack
-            {false, true, true, false},     // Evict
-            {true, true, true, false},      // WriteEvict
-            {false, false, false, false},   // CmoOnWrite (ACE5L)
-            {false, false, false, false},   //
-            {true, true, true, false},      // WriteUniquePtlStash (ACE5L)
-            {true, true, true, false},      // CleanInvalid
-            {false, true, true, false},     // WriteUniqueFullStash (ACE5L)
-            {false, false, false, false},   //
-            {true, true, true, false},      // StashOnceShared (ACE5L)
-            {false, true, true, false},     // StashOnceUnique (ACE5L)
-            {false, true, true, false},     // StashTranslation (ACE5L)
-            {false, false, false, false}    //
-    }};
-}
-template<>
-char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
+const std::array<std::array<bool, 4>, 16> rd_valid{{
+    {true, true, true, true},     // ReadNoSnoop/ReadOnce
+    {false, true, true, false},   // ReadShared
+    {false, true, true, false},   // ReadClean
+    {false, true, true, false},   // ReadNotSharedDirty
+    {false, true, true, false},   // ReadOnceCleanInvalid (ACE5)
+    {false, true, true, false},   // ReadOnceMakeInvalid (ACE5)
+    {false, false, false, false}, //
+    {false, true, true, false},   // ReadUnique
+    {true, true, true, false},    // CleanShared
+    {true, true, true, false},    // CleanInvalid
+    {false, true, true, false},   // CleanSharedPersist (ACE5)
+    {false, true, true, false},   // CleanUnique
+    {false, true, true, false},   // MakeUnique
+    {true, true, true, false},    // MakeInvalid
+    {false, true, true, false},   // DVM Complete
+    {false, true, true, false}    // DVM Message
+}};
+const std::array<std::array<bool, 4>, 16> wr_valid{{
+    {true, true, true, true},     // WriteNoSnoop/WriteUnique
+    {false, true, true, false},   // WriteLineUnique
+    {true, true, true, false},    // WriteClean
+    {true, true, true, false},    // WriteBack
+    {false, true, true, false},   // Evict
+    {true, true, true, false},    // WriteEvict
+    {false, false, false, false}, // CmoOnWrite (ACE5L)
+    {false, false, false, false}, //
+    {true, true, true, false},    // WriteUniquePtlStash (ACE5L)
+    {true, true, true, false},    // CleanInvalid
+    {false, true, true, false},   // WriteUniqueFullStash (ACE5L)
+    {false, false, false, false}, //
+    {true, true, true, false},    // StashOnceShared (ACE5L)
+    {false, true, true, false},   // StashOnceUnique (ACE5L)
+    {false, true, true, false},   // StashTranslation (ACE5L)
+    {false, false, false, false}  //
+}};
+} // namespace
+template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext) {
     auto offset = to_int(ext->get_snoop());
-    if(offset<32){ // a read access
-        if(!rd_valid[offset&0xf][to_int(ext->get_domain())])
+    if(offset < 32) { // a read access
+        if(!rd_valid[offset & 0xf][to_int(ext->get_domain())])
             return "illegal read snoop value";
     } else {
-        if(!wr_valid[offset&0xf][to_int(ext->get_domain())])
-        return "illegal write snoop value";
+        if(!wr_valid[offset & 0xf][to_int(ext->get_domain())])
+            return "illegal write snoop value";
     }
-    //check table ED3-7 and D3-8 of IHI0022H
+    // check table ED3-7 and D3-8 of IHI0022H
     switch(ext->get_snoop()) {
     case snoop_e::READ_NO_SNOOP:
-    case snoop_e::WRITE_NO_SNOOP:    // non coherent access to coherent domain
-        if(ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM){
+    case snoop_e::WRITE_NO_SNOOP: // non coherent access to coherent domain
+        if(ext->get_domain() != domain_e::NON_SHAREABLE && ext->get_domain() != domain_e::SYSTEM) {
             return "illegal domain for no non-coherent access";
         }
         break;
@@ -266,7 +260,7 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case snoop_e::WRITE_UNIQUE:
     case snoop_e::WRITE_LINE_UNIQUE:
     case snoop_e::EVICT:
-        if(ext->get_domain()!=domain_e::INNER_SHAREABLE &&  ext->get_domain()!=domain_e::OUTER_SHAREABLE){
+        if(ext->get_domain() != domain_e::INNER_SHAREABLE && ext->get_domain() != domain_e::OUTER_SHAREABLE) {
             return "illegal domain for coherent access";
         }
         break;
@@ -276,16 +270,17 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     case snoop_e::WRITE_CLEAN:
     case snoop_e::WRITE_BACK:
     case snoop_e::WRITE_EVICT:
-        if(ext->get_domain()==domain_e::SYSTEM){
+        if(ext->get_domain() == domain_e::SYSTEM) {
             return "illegal domain for coherent access";
         }
         break;
     default:
         break;
     }
-    if((ext->get_barrier()==bar_e::MEMORY_BARRIER || ext->get_barrier()==bar_e::SYNCHRONISATION_BARRIER) && (offset&0xf)!=0)
+    if((ext->get_barrier() == bar_e::MEMORY_BARRIER || ext->get_barrier() == bar_e::SYNCHRONISATION_BARRIER) &&
+       (offset & 0xf) != 0)
         return "illegal barrier/snoop value combination";
-    switch(ext->get_cache()){
+    switch(ext->get_cache()) {
     case 4:
     case 5:
     case 8:
@@ -296,14 +291,14 @@ char const*  is_valid_msg<axi::ace_extension>(axi::ace_extension* ext){
     default:
         break;
     }
-    if((ext->get_cache()&2)==0 && ext->get_domain()!=domain_e::NON_SHAREABLE && ext->get_domain()!=domain_e::SYSTEM)
+    if((ext->get_cache() & 2) == 0 && ext->get_domain() != domain_e::NON_SHAREABLE &&
+       ext->get_domain() != domain_e::SYSTEM)
         return "illegal domain for no non-cachable access";
     return nullptr;
 }
 
-template<>
-char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* ext){
-    switch(ext->get_cache()){
+template <> char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* ext) {
+    switch(ext->get_cache()) {
     case 4:
     case 5:
     case 8:
@@ -315,9 +310,8 @@ char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* ext){
     return nullptr;
 }
 
-template<>
-char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
-    switch(ext->get_cache()){
+template <> char const* is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext) {
+    switch(ext->get_cache()) {
     case 4:
     case 5:
     case 8:
@@ -331,14 +325,26 @@ char const*  is_valid_msg<axi::axi3_extension>(axi::axi3_extension* ext){
 } // namespace axi
 
 #include <tlm/scc/scv/tlm_recorder.h>
+#include <tlm/scc/tlm_id.h>
 namespace axi {
 using namespace tlm::scc::scv;
+
+class tlm_id_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+
+    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
+        if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
+            handle.record_attribute("trans.uid", ext->id);
+        }
+    }
+
+    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {
+    }
+};
 
 class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext3 = trans.get_extension<axi3_extension>();
-        if(ext3) { // CTRL, DATA, RESP
+        if(auto ext3 = trans.get_extension<axi3_extension>()) { // CTRL, DATA, RESP
             handle.record_attribute("trans.axi3.id", ext3->get_id());
             handle.record_attribute("trans.axi3.user[CTRL]", ext3->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi3.user[DATA]", ext3->get_user(common::id_type::DATA));
@@ -359,8 +365,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext3 = trans.get_extension<axi3_extension>();
-        if(ext3) {
+        if(auto ext3 = trans.get_extension<axi3_extension>()) {
             handle.record_attribute("trans.axi3.resp", std::string(to_char(ext3->get_resp())));
         }
     }
@@ -368,8 +373,7 @@ class axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<axi4_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<axi4_extension>()) {
             handle.record_attribute("trans.axi4.id", ext4->get_id());
             handle.record_attribute("trans.axi4.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.axi4.user[DATA]", ext4->get_user(common::id_type::DATA));
@@ -390,8 +394,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<axi4_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<axi4_extension>()) {
             handle.record_attribute("trans.axi4.resp", std::string(to_char(ext4->get_resp())));
         }
     }
@@ -399,8 +402,7 @@ class axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types
 class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
 
     void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<ace_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<ace_extension>()) {
             handle.record_attribute("trans.ace.id", ext4->get_id());
             handle.record_attribute("trans.ace.user[CTRL]", ext4->get_user(common::id_type::CTRL));
             handle.record_attribute("trans.ace.user[DATA]", ext4->get_user(common::id_type::DATA));
@@ -424,8 +426,7 @@ class ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types>
     }
 
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        auto ext4 = trans.get_extension<ace_extension>();
-        if(ext4) {
+        if(auto ext4 = trans.get_extension<ace_extension>()) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
             handle.record_attribute("trans.ace.cresp_PassDirty", ext4->is_pass_dirty());
             handle.record_attribute("trans.ace.cresp_IsShared", ext4->is_shared());
@@ -441,13 +442,19 @@ using namespace tlm::scc::scv;
 __attribute__((constructor))
 #endif
 bool register_extensions() {
+    tlm::scc::tlm_id_extension ext(reinterpret_cast<uintptr_t>(0UL)); // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext.ID, new tlm_id_ext_recording()); // NOLINT
     axi::axi3_extension ext3; // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext3.ID, new axi::axi3_ext_recording()); // NOLINT
-    axi::axi4_extension ext4; // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext4.ID, new axi::axi4_ext_recording()); // NOLINT
-    axi::ace_extension extace; // NOLINT
-    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(extace.ID, new axi::ace_ext_recording()); // NOLINT
-    return true; // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext3.ID, new axi::axi3_ext_recording()); // NOLINT
+    axi::axi4_extension ext4;                    // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        ext4.ID, new axi::axi4_ext_recording()); // NOLINT
+    axi::ace_extension extace;                   // NOLINT
+    tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
+        extace.ID, new axi::ace_ext_recording()); // NOLINT
+    return true;                                  // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv

@@ -30,7 +30,8 @@ namespace scv {
  * The transaction recorder is simply bound between an existing pair of
  * initiator and target sockets
  */
-template <unsigned int BUSWIDTH, typename TYPES, typename BASE> class chitlm_recorder_module : public sc_core::sc_module, public BASE {
+template <unsigned int BUSWIDTH, typename TYPES, typename BASE>
+class chitlm_recorder_module : public sc_core::sc_module, public BASE {
 public:
     //! The target socket of the recorder to be bound to the initiator
     typename BASE::template target_socket_type<BUSWIDTH> tsckt{"tsckt"};
@@ -45,7 +46,8 @@ public:
      *        If this database is not initialized (e.g. by not calling
      * scv_tr_db::set_default_db() ) recording is disabled.
      */
-    chitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true, SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
+    chitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true,
+                           SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
     : sc_module(name)
     , BASE(sc_core::sc_object::name(), recording_enabled, tr_db) {
         // bind the sockets to the module
@@ -61,14 +63,14 @@ public:
     tlm::tlm_fw_transport_if<TYPES>* get_fw_if() { return isckt.get_base_port().operator->(); }
 
     tlm::tlm_bw_transport_if<TYPES>* get_bw_if() { return tsckt.get_base_port().operator->(); }
+
 private:
-    void start_of_simulation() override {
-    	BASE::initialize_streams();
-    }
+    void start_of_simulation() override { BASE::initialize_streams(); }
 };
 
 template <unsigned int BUSWIDTH = 32>
-using chi_trx_recorder_module = chitlm_recorder_module<BUSWIDTH, chi::chi_protocol_types, chi_trx_recorder<chi::chi_protocol_types>>;
+using chi_trx_recorder_module =
+    chitlm_recorder_module<BUSWIDTH, chi::chi_protocol_types, chi_trx_recorder<chi::chi_protocol_types>>;
 
 } // namespace scv
 } // namespace chi

@@ -15,8 +15,8 @@
  */
 
 #include "chi_tlm.h"
-#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <iostream>
+#include <tlm/scc/scv/tlm_extension_recording_registry.h>
 
 namespace chi {
 
@@ -305,18 +305,31 @@ template <> const char* to_char<credit_type_e>(credit_type_e v) {
     }
 }
 
-template<>
-bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext){
+template <> bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext) {
     auto sz = ext->req.get_size();
-    if(sz>6) return false;
+    if(sz > 6)
+        return false;
     return true;
 }
 
 } // namespace chi
 
 #include <tlm/scc/scv/tlm_recorder.h>
+#include <tlm/scc/tlm_id.h>
 namespace chi {
 using namespace tlm::scc::scv;
+
+class tlm_id_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
+
+    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+        if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
+            handle.record_attribute("trans.uid", ext->id);
+        }
+    }
+
+    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {
+    }
+};
 
 class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
@@ -445,6 +458,9 @@ using namespace tlm::scc::scv;
 __attribute__((constructor))
 #endif
 bool register_extensions() {
+    tlm::scc::tlm_id_extension ext(reinterpret_cast<uintptr_t>(0UL)); // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+        ext.ID, new tlm_id_ext_recording()); // NOLINT
     chi::chi_ctrl_extension extchi_req; // NOLINT
     tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         extchi_req.ID,

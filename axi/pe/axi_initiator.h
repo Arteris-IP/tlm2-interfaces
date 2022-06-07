@@ -29,7 +29,7 @@ namespace pe {
 
 class axi_initiator_b : public sc_core::sc_module, public axi::ace_bw_transport_if<axi::axi_protocol_types> {
 public:
-    enum class flavor_e{AXI, ACEL, ACE};
+    enum class flavor_e { AXI, ACEL, ACE };
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
@@ -56,11 +56,12 @@ public:
      * @brief Set the snoop callback function
      *
      * This callback is invoked once a snoop transaction arrives. This function shall return the latency
-     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be triggered. This
-     * needs to be done by a call to snoop_resp()
+     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be
+     * triggered. This needs to be done by a call to snoop_resp()
      *
      * @todo refine API
-     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects and should be fixed
+     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects
+     * and should be fixed
      *
      * @param cb the callback function
      */
@@ -89,7 +90,8 @@ public:
     axi_initiator_b& operator=(axi_initiator_b&&) = delete;
 
     // AXI4 does not allow write data interleaving, and ncore3 only supports AXI4.
-    // However, AXI3 allows data interleaving and there may be support for AXI3 in Symphony, so keep it configurable in the testbench.
+    // However, AXI3 allows data interleaving and there may be support for AXI3 in Symphony, so keep it configurable in
+    // the testbench.
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", false};
     //! Read address valid to next read address valid
     sc_core::sc_attribute<unsigned> artv{"artv", 1};
@@ -109,6 +111,7 @@ public:
     sc_core::sc_attribute<bool> enable_id_serializing{"enable_id_serializing", false};
     //! number of snoops which can be handled
     sc_core::sc_attribute<unsigned> outstanding_snoops{"outstanding_snoops", 8};
+
 protected:
     unsigned calculate_beats(payload_type& p) {
         sc_assert(p.get_data_length() > 0);
@@ -119,7 +122,7 @@ protected:
 
     const size_t transfer_width_in_bytes;
 
-    const  flavor_e flavor;
+    const flavor_e flavor;
 
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
 
@@ -130,7 +133,7 @@ protected:
         scc::peq<std::tuple<payload_type*, tlm::tlm_phase>> peq;
     };
     std::unordered_map<void*, tx_state*> tx_state_by_tx;
-    std::unordered_map<unsigned, scc::ordered_semaphore*>  id_mtx;
+    std::unordered_map<unsigned, scc::ordered_semaphore*> id_mtx;
 
     tlm_utils::peq_with_get<payload_type> snp_peq{"snp_peq"};
 
@@ -148,7 +151,7 @@ protected:
 
 private:
     sc_core::sc_clock* clk_if{nullptr};
-	void end_of_elaboration() override;
+    void end_of_elaboration() override;
     void clk_counter() { m_clock_counter++; }
     unsigned get_clk_cnt() { return m_clock_counter; }
 
