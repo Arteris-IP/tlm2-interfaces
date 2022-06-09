@@ -30,8 +30,9 @@ namespace checker {
 class axi_protocol: public checker_if<axi::axi_protocol_types> {
     using payload_type=axi::axi_protocol_types::tlm_payload_type;
     using phase_type=axi::axi_protocol_types::tlm_phase_type;
+    constexpr static unsigned umax = std::numeric_limits<unsigned>::max();
 public:
-    axi_protocol(std::string const& name);
+    axi_protocol(std::string const& name, unsigned bus_width_in_bytes);
     virtual ~axi_protocol();
     axi_protocol(const axi_protocol &other) = delete;
     axi_protocol(axi_protocol &&other) = delete;
@@ -42,13 +43,21 @@ public:
     void bw_pre(payload_type const& trans, phase_type const& phase) override;
     void bw_post(payload_type const& trans, phase_type const& phase, tlm::tlm_sync_enum rstat) override;
     std::string const name;
+    unsigned const bw;
 private:
     std::array<phase_type, 3> req_beat;
     std::array<phase_type, 3> resp_beat;
     phase_type dataless_req;
-    std::array<std::deque<tlm::scc::tlm_gp_shared_ptr>, 3> req;
-    std::unordered_map<unsigned, std::deque<tlm::scc::tlm_gp_shared_ptr>> resp_by_id;
-    bool check_phase_change(tlm::tlm_command cmd, const axi_protocol::phase_type &phase);
+    std::array<unsigned, 3> req_id{{umax, umax, umax}};
+    std::array<unsigned, 3> resp_id{{umax, umax, umax}};
+    unsigned wr_req_beat_count{0};
+    std::array<std::unordered_map<unsigned, std::deque<uintptr_t>>, 3> open_tx_by_id;
+    std::unordered_map<unsigned, std::deque<uintptr_t>> resp_by_id;
+    std::unordered_map<unsigned, unsigned> rd_resp_beat_count;
+    bool check_phase_change(payload_type const& trans, const axi_protocol::phase_type &phase);
+    void request_update(payload_type const& trans);
+    void response_update(payload_type const& trans);
+
 };
 
 } /* namespace checker */

@@ -92,12 +92,13 @@ public:
      *        If this database is not initialized (e.g. by not calling
      * scv_tr_db::set_default_db() ) recording is disabled.
      */
-    axi_recorder(const char* name, bool recording_enabled = true,
+    axi_recorder(const char* name, unsigned bus_width, bool recording_enabled = true,
                  SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
     : enableBlTracing("enableBlTracing", recording_enabled)
     , enableNbTracing("enableNbTracing", recording_enabled)
     , b_timed_peq(this, &axi_recorder::btx_cb)
     , nb_timed_peq(this, &axi_recorder::nbtx_cb)
+    , bus_width(bus_width)
     , m_db(tr_db)
     , fixed_basename(name) {
         register_extensions();
@@ -210,6 +211,7 @@ private:
      * to generate the timed view of non-blocking tx
      */
     void nbtx_cb(tlm_recording_payload& rec_parts, const typename TYPES::tlm_phase_type& phase);
+    const unsigned bus_width{0};
     //! transaction recording database
     SCVNS scv_tr_db* m_db{nullptr};
     //! blocking transaction recording stream handle
@@ -280,7 +282,7 @@ protected:
                 "invalidate", *dmi_streamHandle, "start_addr", "end_addr");
         }
         if(enableProtocolChecker.value) {
-            checker=new axi::checker::axi_protocol(fixed_basename);
+            checker=new axi::checker::axi_protocol(fixed_basename, bus_width);
         }
     }
 
