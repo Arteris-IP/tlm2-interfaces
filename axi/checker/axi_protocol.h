@@ -32,7 +32,12 @@ class axi_protocol: public checker_if<axi::axi_protocol_types> {
     using phase_type=axi::axi_protocol_types::tlm_phase_type;
     constexpr static unsigned umax = std::numeric_limits<unsigned>::max();
 public:
-    axi_protocol(std::string const& name, unsigned bus_width_in_bytes);
+    axi_protocol(std::string const& name, unsigned bus_width_in_bytes, unsigned rd_response_timeout, unsigned wr_response_timeout)
+    : name(name)
+    , bw(bus_width_in_bytes)
+    , rd_response_timeout(rd_response_timeout)
+    , wr_response_timeout(wr_response_timeout)
+    {}
     virtual ~axi_protocol();
     axi_protocol(const axi_protocol &other) = delete;
     axi_protocol(axi_protocol &&other) = delete;
@@ -44,6 +49,8 @@ public:
     void bw_post(payload_type const& trans, phase_type const& phase, tlm::tlm_sync_enum rstat) override;
     std::string const name;
     unsigned const bw;
+    unsigned const rd_response_timeout;
+    unsigned const wr_response_timeout;
 private:
     std::array<phase_type, 3> req_beat;
     std::array<phase_type, 3> resp_beat;
@@ -54,10 +61,10 @@ private:
     std::array<std::unordered_map<unsigned, std::deque<uintptr_t>>, 3> open_tx_by_id;
     std::unordered_map<unsigned, std::deque<uintptr_t>> resp_by_id;
     std::unordered_map<unsigned, unsigned> rd_resp_beat_count;
-    bool check_phase_change(payload_type const& trans, const axi_protocol::phase_type &phase);
+    bool check_phase_change(payload_type const& trans, const phase_type &phase);
     void request_update(payload_type const& trans);
     void response_update(payload_type const& trans);
-
+    void check_properties(payload_type const& trans);
 };
 
 } /* namespace checker */
