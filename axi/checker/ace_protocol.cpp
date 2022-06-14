@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include <axi/checker/axi_protocol.h>
+#include <axi/checker/ace_protocol.h>
 #include <scc/report.h>
 namespace axi {
 namespace checker {
 
-axi_protocol::~axi_protocol() {
+ace_protocol::~ace_protocol() {
 }
 
-void axi_protocol::fw_pre(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase) {
+void ace_protocol::fw_pre(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase) {
     auto cmd = trans.get_command();
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command: tlm::TLM_IGNORE_COMMAND on forward path";
@@ -30,7 +30,7 @@ void axi_protocol::fw_pre(const axi_protocol::payload_type &trans, const axi_pro
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on forward path";
 }
 
-void axi_protocol::fw_post(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
+void ace_protocol::fw_post(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
     auto cmd = trans.get_command();
     if(req_beat[cmd]==tlm::BEGIN_REQ && (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP))
@@ -39,7 +39,7 @@ void axi_protocol::fw_post(const axi_protocol::payload_type &trans, const axi_pr
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in forward path";
 }
 
-void axi_protocol::bw_pre(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase) {
+void ace_protocol::bw_pre(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase) {
     auto cmd = trans.get_command();
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command:  tlm::TLM_IGNORE_COMMAND on forward path";
@@ -47,14 +47,14 @@ void axi_protocol::bw_pre(const axi_protocol::payload_type &trans, const axi_pro
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on backward path";
 }
 
-void axi_protocol::bw_post(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
+void ace_protocol::bw_post(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
     auto cmd = trans.get_command();
     if (check_phase_change(trans, phase))
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in backward path";
 }
 
-bool axi_protocol::check_phase_change(payload_type const& trans, const axi_protocol::phase_type &phase) {
+bool ace_protocol::check_phase_change(payload_type const& trans, const ace_protocol::phase_type &phase) {
     // phase tests
     auto cur_req = req_beat[trans.get_command()];
     auto cur_resp = resp_beat[trans.get_command()];
@@ -91,7 +91,7 @@ bool axi_protocol::check_phase_change(payload_type const& trans, const axi_proto
     return error;
 }
 
-void axi_protocol::request_update(const payload_type &trans) {
+void ace_protocol::request_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
     auto axi_burst_len = axi::get_burst_lenght(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
@@ -112,14 +112,14 @@ void axi_protocol::request_update(const payload_type &trans) {
                 auto mask = bw-1ULL;
                 auto offset = trans.get_address() & mask;
                 if(!offset){
-                    if(trans.get_data_length() != (axi_burst_size * axi_burst_len)) {
+                    if(trans.get_data_length() > (1 << axi_burst_size) * axi_burst_len) {
                         SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
+                                << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
                     }
                 } else {
-                    if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
+                    if((trans.get_data_length() + offset) >= (1 << axi_burst_size) * axi_burst_len) {
                         SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
+                                << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
                     }
                 }
                 wr_req_beat_count=0;
@@ -144,7 +144,7 @@ void axi_protocol::request_update(const payload_type &trans) {
     }
 }
 
-void axi_protocol::response_update(const payload_type &trans) {
+void ace_protocol::response_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
     auto axi_burst_len = axi::get_burst_lenght(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
@@ -184,14 +184,14 @@ void axi_protocol::response_update(const payload_type &trans) {
                 auto mask = bw-1ULL;
                 auto offset = trans.get_address() & mask;
                 if(!offset){
-                    if(trans.get_data_length() != (axi_burst_size * axi_burst_len)) {
+                    if(trans.get_data_length() > (1 << axi_burst_size) * axi_burst_len) {
                         SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
+                                << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
                     }
                 } else {
-                    if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
+                    if((trans.get_data_length() + offset) >= (1 << axi_burst_size) * axi_burst_len) {
                         SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
+                                << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
                     }
                 }
                 open_tx_by_id[tlm::TLM_READ_COMMAND][axi_id].pop_front();
@@ -205,60 +205,48 @@ constexpr unsigned comb(axi::bar_e bar, axi::domain_e domain, axi::snoop_e snoop
     return to_int(bar)<<10|to_int(domain)<<8|to_int(snoop);
 };
 
-void axi_protocol::check_properties(const payload_type &trans) {
-    if(auto* axi4_ext = trans.get_extension<axi::axi4_extension>()){
-        if(axi4_ext->get_cache()&0xc0) {
-            if(!axi4_ext->get_cache())
-                SCCERR(name)<<"Illegal AXI settings: active allocate bit(s) requires modifiable bit set";
-        }
-        if(axi4_ext->get_qos()>15)
-            SCCERR(name)<<"Illegal AXI4 settings: maximum value of QoS is 15, illegal value is "<<axi4_ext->get_qos();
-    } else if(auto* ace_ext = trans.get_extension<axi::ace_extension>()){
+void ace_protocol::check_properties(const payload_type &trans) {
+    if(auto* ace_ext = trans.get_extension<axi::ace_extension>()){
         if(ace_ext->get_cache()&0xc0) {
             if(!ace_ext->get_cache())
                 SCCERR(name)<<"Illegal ACEL settings: active allocate bit(s) requires modifiable bit set";
-            auto snoop = ace_ext->get_snoop();
-            auto domain = ace_ext->get_domain();
-            auto bar = ace_ext->get_barrier();
-            switch(comb(bar, domain, snoop)){
-            case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_SHARED):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_SHARED):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_SHARED):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_INVALID):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_INVALID):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_INVALID):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::MAKE_INVALID):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::MAKE_INVALID):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::MAKE_INVALID):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
-
-            case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
-            case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
-              break;
-            default:
-                SCCERR(name)<<"Illegal ACEL settings: According to D11.2 ACE-Lite signal requirements of ARM IHI 0022H  the following setting is illegal:\n"
-                << "AxBAR:"<<to_char(bar)<<", AxDOMAIN:"<<to_char(domain)<<", AxSNOOP:"<<to_char(snoop);
-            }
         }
-    } else if(auto* axi3_ext = trans.get_extension<axi::axi4_extension>()){
-        if(axi3_ext->get_cache()&0xc0) {
-            if(!axi3_ext->get_cache())
-                SCCERR(name)<<"Illegal AXI settings: active allocate bit(s) requires modifiable bit set";
+        auto snoop = ace_ext->get_snoop();
+        auto domain = ace_ext->get_domain();
+        auto bar = ace_ext->get_barrier();
+        switch(comb(bar, domain, snoop)){
+        case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_SHARED):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_SHARED):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_SHARED):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_INVALID):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_INVALID):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_INVALID):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::MAKE_INVALID):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::MAKE_INVALID):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::MAKE_INVALID):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
+
+        case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
+        break;
+        default:
+            SCCERR(name)<<"Illegal ACEL settings: According to D11.2 ACE-Lite signal requirements of ARM IHI 0022H  the following setting is illegal:\n"
+            << "AxBAR:"<<to_char(bar)<<", AxDOMAIN:"<<to_char(domain)<<", AxSNOOP:"<<to_char(snoop);
         }
     }
 }

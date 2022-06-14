@@ -109,6 +109,10 @@ public:
     //! \brief the attribute to  enable/disable protocol checking
     sc_core::sc_attribute<bool> enableProtocolChecker{"enableProtocolChecker", true};
 
+    sc_core::sc_attribute<unsigned> rd_response_timeout{"rd_response_timeout", 0};
+
+    sc_core::sc_attribute<unsigned> wr_response_timeout{"wr_response_timeout", 0};
+
     //! \brief the port where fw accesses are forwarded to
     virtual tlm::tlm_fw_transport_if<TYPES>* get_fw_if() = 0;
 
@@ -319,6 +323,9 @@ protected:
             dmi_trInvalidateHandle = new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>(
                 "invalidate", *dmi_streamHandle, "start_addr", "end_addr");
         }
+//        if(enableProtocolChecker.value) {
+//            checker=new axi::checker::ace_protocol(fixed_basename, bus_width/8, rd_response_timeout.value, wr_response_timeout.value);
+//        }
     }
 
 private:

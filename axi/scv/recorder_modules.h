@@ -61,6 +61,8 @@ public:
         add_attribute(BASE::enableDmiTracing);
         add_attribute(BASE::enableTrDbgTracing);
         add_attribute(BASE::enableProtocolChecker);
+        add_attribute(BASE::rd_response_timeout);
+        add_attribute(BASE::wr_response_timeout);
     }
 
     ~axitlm_recorder_module() {}
