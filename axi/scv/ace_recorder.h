@@ -107,7 +107,7 @@ public:
     sc_core::sc_attribute<bool> enableTrDbgTracing{"enableTrDbgTracing", false};
 
     //! \brief the attribute to  enable/disable protocol checking
-    sc_core::sc_attribute<bool> enableProtocolChecker{"enableProtocolChecker", true};
+    sc_core::sc_attribute<bool> enableProtocolChecker{"enableProtocolChecker", false};
 
     sc_core::sc_attribute<unsigned> rd_response_timeout{"rd_response_timeout", 0};
 
