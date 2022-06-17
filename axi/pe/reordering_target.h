@@ -35,6 +35,8 @@ public:
 
     sc_core::sc_attribute<unsigned> window_size{"window_size", 2};
 
+    sc_core::sc_attribute<bool> prioritize_by_latency{"prioritize_by_latency", 2};
+
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
@@ -57,7 +59,7 @@ protected:
         unsigned age{0};
         que_entry(tlm::tlm_generic_payload& gp):trans(&gp){}
     };
-    std::unordered_map<unsigned , std::deque<que_entry>> reorder_buffer;
+    std::array<std::unordered_map<unsigned , std::deque<que_entry>>, 3> reorder_buffer;
 };
 /**
  * the target socket protocol engine(s) adapted to a particular target socket configuration,
