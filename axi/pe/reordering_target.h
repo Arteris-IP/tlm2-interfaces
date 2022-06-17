@@ -35,7 +35,7 @@ public:
 
     sc_core::sc_attribute<unsigned> window_size{"window_size", 2};
 
-    sc_core::sc_attribute<bool> prioritize_by_latency{"prioritize_by_latency", 2};
+    sc_core::sc_attribute<bool> prioritize_by_latency{"prioritize_by_latency", false};
 
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**

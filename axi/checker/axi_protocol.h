@@ -65,6 +65,7 @@ private:
     void request_update(payload_type const& trans);
     void response_update(payload_type const& trans);
     void check_properties(payload_type const& trans);
+    void check_datawith_settings(payload_type const&trans);
 };
 
 } /* namespace checker */

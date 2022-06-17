@@ -94,7 +94,6 @@ bool axi_protocol::check_phase_change(payload_type const& trans, const axi_proto
 void axi_protocol::request_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
     auto axi_burst_len = axi::get_burst_lenght(trans);
-    auto axi_burst_size = axi::get_burst_size(trans);
     if(trans.is_write()){
         if(req_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
             req_id[tlm::TLM_WRITE_COMMAND] = umax;
@@ -109,23 +108,10 @@ void axi_protocol::request_update(const payload_type &trans) {
                 if(wr_req_beat_count != axi_burst_len){
                     SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
                 }
-                auto mask = bw-1ULL;
-                auto offset = trans.get_address() & mask;
-                if(!offset){
-                    if(trans.get_data_length() != (axi_burst_size * axi_burst_len)) {
-                        SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
-                    }
-                } else {
-                    if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
-                        SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
-                    }
-                }
                 wr_req_beat_count=0;
                 open_tx_by_id[tlm::TLM_WRITE_COMMAND][axi_id].push_back(reinterpret_cast<uintptr_t>(&trans));
+                check_properties(trans);
             }
-            check_properties(trans);
         }
     } else if(trans.is_read()) {
         if(req_beat[tlm::TLM_READ_COMMAND]==tlm::UNINITIALIZED_PHASE) {
@@ -147,7 +133,6 @@ void axi_protocol::request_update(const payload_type &trans) {
 void axi_protocol::response_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
     auto axi_burst_len = axi::get_burst_lenght(trans);
-    auto axi_burst_size = axi::get_burst_size(trans);
     if(trans.is_write()){
         if(resp_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
             resp_id[tlm::TLM_WRITE_COMMAND] = umax;
@@ -181,19 +166,6 @@ void axi_protocol::response_update(const payload_type &trans) {
                 if(rd_resp_beat_count[axi_id] != axi_burst_len){
                     SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
                 }
-                auto mask = bw-1ULL;
-                auto offset = trans.get_address() & mask;
-                if(!offset){
-                    if(trans.get_data_length() != (axi_burst_size * axi_burst_len)) {
-                        SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
-                    }
-                } else {
-                    if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
-                        SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
-                        << axi_burst_size << "/" << axi_burst_len-1 << ") for " << trans;
-                    }
-                }
                 open_tx_by_id[tlm::TLM_READ_COMMAND][axi_id].pop_front();
                 rd_resp_beat_count[axi_id]=0;
             }
@@ -201,11 +173,31 @@ void axi_protocol::response_update(const payload_type &trans) {
     }
 }
 
+void axi_protocol::check_datawith_settings(payload_type const&trans){
+    auto axi_id = axi::get_axi_id(trans);
+    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_size = axi::get_burst_size(trans);
+    auto mask = bw-1ULL;
+    auto offset = trans.get_address() & mask;
+    if(!offset){
+        if(trans.get_data_length() != (axi_burst_size * axi_burst_len)) {
+            SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
+            << axi_burst_size << "/" << axi_burst_len-1 << ") and buswidth "<<bw<< " for " << trans;
+        }
+    } else {
+        if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
+            SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
+            << axi_burst_size << "/" << axi_burst_len-1 << ") and buswidth "<<bw<< " for " << trans;
+        }
+    }
+
+}
 constexpr unsigned comb(axi::bar_e bar, axi::domain_e domain, axi::snoop_e snoop){
     return to_int(bar)<<10|to_int(domain)<<8|to_int(snoop);
 };
 
 void axi_protocol::check_properties(const payload_type &trans) {
+    check_datawith_settings(trans);
     if(auto* axi4_ext = trans.get_extension<axi::axi4_extension>()){
         if(axi4_ext->get_cache()&0xc0) {
             if(!axi4_ext->get_cache())
