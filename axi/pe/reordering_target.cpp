@@ -53,7 +53,9 @@ void axi::pe::tx_reorderer::clock_cb() {
                 }
             }
             if(r1.size()) {
-                std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
+#ifndef CPPCHECK
+                std::shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
+#endif
                 for(auto& e:r1) {
                     auto& deq = reorder_buffer[i][e];
                     bw_o->transport(*deq.front().trans);

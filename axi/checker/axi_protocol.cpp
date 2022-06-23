@@ -19,8 +19,7 @@
 namespace axi {
 namespace checker {
 
-axi_protocol::~axi_protocol() {
-}
+axi_protocol::~axi_protocol() = default;
 
 void axi_protocol::fw_pre(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase) {
     auto cmd = trans.get_command();
@@ -49,7 +48,6 @@ void axi_protocol::bw_pre(const axi_protocol::payload_type &trans, const axi_pro
 
 void axi_protocol::bw_post(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
-    auto cmd = trans.get_command();
     if (check_phase_change(trans, phase))
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in backward path";
 }
@@ -174,7 +172,6 @@ void axi_protocol::response_update(const payload_type &trans) {
 }
 
 void axi_protocol::check_datawith_settings(payload_type const&trans){
-    auto axi_id = axi::get_axi_id(trans);
     auto axi_burst_len = axi::get_burst_lenght(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
     auto mask = bw-1ULL;

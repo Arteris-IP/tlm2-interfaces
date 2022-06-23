@@ -541,7 +541,6 @@ void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time&
 void chi::pe::chi_rn_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto req_ext = trans.get_extension<chi_snp_extension>();
     sc_assert(req_ext != nullptr);
-    auto const txn_id = req_ext->get_txn_id();
     auto it = tx_state_by_trans.find(to_id(trans));
     sc_assert(it != tx_state_by_trans.end());
     auto* txs = it->second;

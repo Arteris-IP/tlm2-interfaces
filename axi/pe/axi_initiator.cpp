@@ -295,14 +295,12 @@ void axi_initiator_b::snoop_thread() {
         SCCDEBUG(SCMOD) << "start snoop #" << snoops_in_flight;
         auto req_ext = trans->get_extension<ace_extension>();
         sc_assert(req_ext != nullptr);
-        auto const txn_id = req_ext->get_id();
 
         auto it = snp_state_by_id.find(&trans);
         if(it == snp_state_by_id.end()) {
             bool success;
             std::tie(it, success) = snp_state_by_id.insert(std::make_pair(trans.get(), new tx_state()));
         }
-        auto* txs = it->second;
 
         sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
         tlm::tlm_phase phase = tlm::END_REQ;
@@ -324,8 +322,6 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto it = snp_state_by_id.find(&trans);
     sc_assert(it != snp_state_by_id.end());
     auto& txs = it->second;
-    auto timing_e = trans.set_auto_extension<atp::timing_params>(nullptr);
-    auto axi_id = get_axi_id(trans);
     auto data_len=trans.get_data_length();
     auto burst_length = data_len/transfer_width_in_bytes;
     if(burst_length<1)

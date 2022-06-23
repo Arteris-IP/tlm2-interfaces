@@ -92,7 +92,6 @@ void axi_target_pe_b::b_transport(payload_type& trans, sc_time& t) {
     auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
     trans.set_dmi_allowed(false);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
-    auto* i = clk_i.get_interface();
     if(clk_if) {
         t += clk_if->period() * latency;
     }
@@ -232,7 +231,6 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
 }
 
 void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay) {
-    auto e = axi::get_burst_lenght(trans) == 1 || trans.is_write() ? axi::fsm::BegRespE : BegPartRespE;
     if(trans.is_write())
         wr_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
     else if(trans.is_read())
@@ -343,7 +341,6 @@ void axi::pe::axi_target_pe_b::send_wr_resp_beat_thread() {
         while(wr_resp_beat_fifo.nb_read(entry)) {
             // there is something to send
             auto fsm_hndl = std::get<0>(entry);
-            auto tp = std::get<1>(entry);
             sc_time t;
             tlm::tlm_phase phase{tlm::tlm_phase(tlm::BEGIN_RESP)};
             // wait to get ownership of the response channel

@@ -19,8 +19,7 @@
 namespace axi {
 namespace checker {
 
-ace_protocol::~ace_protocol() {
-}
+ace_protocol::~ace_protocol() = default;
 
 void ace_protocol::fw_pre(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase) {
     auto cmd = trans.get_command();
@@ -49,7 +48,6 @@ void ace_protocol::bw_pre(const ace_protocol::payload_type &trans, const ace_pro
 
 void ace_protocol::bw_post(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
-    auto cmd = trans.get_command();
     if (check_phase_change(trans, phase))
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in backward path";
 }
