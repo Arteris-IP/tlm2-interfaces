@@ -53,13 +53,12 @@ void axi::pe::tx_reorderer::clock_cb() {
                 }
             }
             if(r1.size()) {
-#ifndef CPPCHECK
-                std::shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
-#endif
-                for(auto& e:r1) {
-                    auto& deq = reorder_buffer[i][e];
+                while(r1.size()){
+                    auto sel = scc::MT19937::uniform(0, r1.size()-1);
+                    auto& deq = reorder_buffer[i][sel];
                     bw_o->transport(*deq.front().trans);
                     deq.pop_front();
+                    r1.erase(r1.begin()+sel);
                 }
             } else if(r2.size()>window_size.value) {
                 if(prioritize_by_latency.value){

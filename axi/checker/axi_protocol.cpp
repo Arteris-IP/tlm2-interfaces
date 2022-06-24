@@ -182,7 +182,7 @@ void axi_protocol::check_datawith_settings(payload_type const&trans){
             << axi_burst_size << "/" << axi_burst_len-1 << ") and buswidth "<<bw<< " for " << trans;
         }
     } else {
-        if((trans.get_data_length() + offset) >= (axi_burst_size * axi_burst_len)) {
+        if((trans.get_data_length() + offset) > (axi_burst_size * axi_burst_len)) {
             SCCERR(name) << "Illegal AXI settings: transaction data length (" << trans.get_data_length() << ") does not correspond to AxSIZE/AxLEN  setting ("
             << axi_burst_size << "/" << axi_burst_len-1 << ") and buswidth "<<bw<< " for " << trans;
         }
