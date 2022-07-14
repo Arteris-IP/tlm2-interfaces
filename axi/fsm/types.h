@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arteris IP
+ * Copyright 2020 -2022 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,9 +57,9 @@ struct AxiProtocolFsm;
  */
 struct fsm_handle {
     //! pointer to the FSM
-    AxiProtocolFsm* fsm = nullptr;
+    AxiProtocolFsm* const fsm;
     //! pointer to the associated AXITLM payload
-    tlm::scc::tlm_gp_shared_ptr trans = nullptr;
+    tlm::scc::tlm_gp_shared_ptr trans{nullptr};
     //! beat count of this transaction
     size_t beat_count = 0;
     //! indicator if this is a snoop access
@@ -87,6 +87,10 @@ struct fsm_handle {
         aux.i64 = 0;
         start = sc_core::SC_ZERO_TIME;
     }
+
+    fsm_handle();
+
+    ~fsm_handle();
 };
 
 } // namespace fsm

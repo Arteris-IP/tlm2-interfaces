@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arteris IP
+ * Copyright 2020 - 2022 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,21 @@
 #include <systemc>
 #include <tlm/scc/tlm_id.h>
 #include <tlm/scc/tlm_mm.h>
+#include <scc/utilities.h>
 
 using namespace sc_core;
 using namespace tlm;
-using namespace axi;
-using namespace axi::fsm;
+namespace axi {
+namespace fsm {
+
+fsm_handle::fsm_handle():fsm{new AxiProtocolFsm()} {
+    fsm->initiate();
+}
+
+fsm_handle::~fsm_handle(){
+    fsm->terminate();
+    delete fsm;
+}
 
 base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 : transfer_width_in_bytes(transfer_width / 8)
@@ -61,11 +71,9 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         }
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
-            auto fsm = new AxiProtocolFsm();
-            fsm->initiate();
-            fsm_hndl->fsm = fsm;
             setup_callbacks(fsm_hndl);
             idle_fsm.push_back(fsm_hndl);
+            allocated_fsm.emplace_back(fsm_hndl);
         }
         auto fsm_hndl = idle_fsm.front();
         idle_fsm.pop_front();
@@ -178,10 +186,10 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
 tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time& t) {
     SCCTRACE(instance_name) << "base::nb_fw " << phase << " of trans " << trans;
     if(phase == BEGIN_PARTIAL_REQ || phase == BEGIN_REQ) { // read/write
-        auto fsm = find_or_create(&trans);
+        auto fsm_hndl = find_or_create(&trans);
         if(!trans.is_read()) {
             protocol_time_point_e evt = axi::fsm::RequestPhaseBeg;
-            if(fsm->beat_count == 0 && wr_start != RequestPhaseBeg)
+            if(fsm_hndl->beat_count == 0 && wr_start != RequestPhaseBeg)
                 evt = wr_start;
             else
                 evt = phase == BEGIN_PARTIAL_REQ ? BegPartReqE : BegReqE;
@@ -246,4 +254,7 @@ tlm_sync_enum base::nb_bw(payload_type& trans, phase_type const& phase, sc_time&
             schedule(phase == END_RESP ? EndRespE : EndPartRespE, &trans, t);
     }
     return TLM_ACCEPTED;
+}
+
+}
 }
