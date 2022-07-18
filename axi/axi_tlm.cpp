@@ -441,7 +441,7 @@ class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_
 __attribute__((constructor))
 #endif
 bool register_extensions() {
-    tlm::scc::tlm_id_extension ext(reinterpret_cast<uintptr_t>(0UL)); // NOLINT
+    tlm::scc::tlm_id_extension ext(nullptr); // NOLINT
     tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         ext.ID, new tlm_id_ext_recording()); // NOLINT
     axi::axi3_extension ext3; // NOLINT
