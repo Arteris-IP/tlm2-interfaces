@@ -12,6 +12,13 @@ rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm) {
     SC_THREAD(start_rd_resp_thread);
 }
 
+void rate_limiting_buffer::add_attributes() {
+    add_attribute(rd_bw_limit_byte_per_sec);
+    add_attribute(wr_bw_limit_byte_per_sec);
+    add_attribute(rd_resp_delay);
+    add_attribute(wr_resp_delay);
+}
+
 void rate_limiting_buffer::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
     if(clk_if) {
@@ -95,5 +102,6 @@ void rate_limiting_buffer::start_wr_resp_thread() {
             }
     }
 }
+
 }
 }

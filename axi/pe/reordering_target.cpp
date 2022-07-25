@@ -18,14 +18,17 @@
 
 axi::pe::tx_reorderer::tx_reorderer(const sc_core::sc_module_name &nm): sc_core::sc_module(nm) {
     SC_HAS_PROCESS(tx_reorderer);
-    add_attribute(min_latency);
-    add_attribute(max_latency);
-    add_attribute(prioritize_by_latency);
-    add_attribute(use_qos);
     fw_i(*this);
     SC_METHOD(clock_cb);
     sensitive<<clk_i.pos();
     dont_initialize();
+}
+
+void axi::pe::tx_reorderer::add_attributes() {
+    add_attribute(min_latency);
+    add_attribute(max_latency);
+    add_attribute(prioritize_by_latency);
+    add_attribute(use_qos);
 }
 
 void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt_transport) {
@@ -109,3 +112,4 @@ void axi::pe::tx_reorderer::clock_cb() {
             }
         }
 }
+

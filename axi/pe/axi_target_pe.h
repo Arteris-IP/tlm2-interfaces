@@ -133,6 +133,10 @@ public:
     explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, bool register_attrs=true);
 
     void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
+    /**
+     * @brief registers attributes in current sc_object tree context
+     */
+    void add_attributes();
 
 protected:
     axi_target_pe() = delete;

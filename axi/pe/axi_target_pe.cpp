@@ -56,15 +56,8 @@ axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm,
 , bw_intor(new bw_intor_impl(this)) {
     instance_name = name();
 
-    if(register_attrs) {
-        add_attribute(max_outstanding_tx);
-        add_attribute(rd_data_interleaving);
-        add_attribute(wr_data_accept_delay);
-        add_attribute(rd_addr_accept_delay);
-        add_attribute(rd_data_beat_delay);
-        add_attribute(rd_resp_delay);
-        add_attribute(wr_resp_delay);
-    }
+    if(register_attrs)
+        add_attributes();
     bw_i.bind(*bw_intor);
 
     SC_METHOD(fsm_clk_method);
@@ -80,6 +73,16 @@ axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm,
 }
 
 axi_target_pe::~axi_target_pe() = default;
+
+void axi::pe::axi_target_pe::add_attributes() {
+    add_attribute(max_outstanding_tx);
+    add_attribute(rd_data_interleaving);
+    add_attribute(wr_data_accept_delay);
+    add_attribute(rd_addr_accept_delay);
+    add_attribute(rd_data_beat_delay);
+    add_attribute(rd_resp_delay);
+    add_attribute(wr_resp_delay);
+}
 
 void axi_target_pe::b_transport(payload_type& trans, sc_time& t) {
     auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();

@@ -43,6 +43,10 @@ public:
 
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**
+     * @brief registers attributes in current sc_object tree context
+     */
+    void add_attributes();
+    /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
      * @param payload object with (optional) extensions
@@ -93,14 +97,8 @@ public:
         pe.fw_o(reorder_buffer.fw_i);
         reorder_buffer.clk_i(clk_i);
         reorder_buffer.bw_o(pe.bw_i);
-        add_attribute(pe.max_outstanding_tx);
-        add_attribute(pe.rd_data_interleaving);
-        add_attribute(pe.wr_data_accept_delay);
-        add_attribute(pe.rd_addr_accept_delay);
-        add_attribute(pe.rd_data_beat_delay);
-        add_attribute(pe.rd_resp_delay);
-        add_attribute(pe.wr_resp_delay);
-
+        pe.add_attributes();
+        reorder_buffer.add_attributes();
     }
 
     reordering_target() = delete;
