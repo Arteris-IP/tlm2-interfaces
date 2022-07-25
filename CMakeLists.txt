@@ -26,7 +26,8 @@ if(TARGET scc)
        axi/axi_tlm.cpp
        axi/fsm/base.cpp
        axi/pe/simple_initiator.cpp
-       axi/pe/axi_target_pe_b.cpp
+       axi/pe/axi_target_pe.cpp
+       axi/pe/ordered_target.cpp
        axi/pe/reordering_target.cpp
        axi/pe/axi_initiator.cpp
        axi/checker/axi_protocol.cpp
