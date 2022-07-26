@@ -117,6 +117,7 @@ protected:
         sc_assert(ifs!=nullptr);
         pe.set_bw_interface(ifs);
     }
+public:
     axi_target_pe pe;
     tx_reorderer reorder_buffer{"reorder_buffer"};
 };

@@ -79,13 +79,13 @@ void axi::pe::tx_reorderer::clock_cb() {
                 if(use_qos.value) {
                     std::vector<unsigned> res;
                     auto& buf = reorder_buffer[cmd];
-                    std::copy_if(std::begin(r2), std::end(r2), std::begin(res), [max_qos, &buf](unsigned e){
+                    std::copy_if(std::begin(r2), std::end(r2), std::back_inserter(res), [max_qos, &buf](unsigned e){
                         return buf[e].front().trans->get_extension<axi::axi4_extension>()->get_qos() >= max_qos;
                     });
                     if(res.size()==1){
                         auto& deq = reorder_buffer[cmd][res.front()];
-                        bw_o->transport(*deq.front().trans);
-                        deq.pop_front();
+                        auto notok = bw_o->transport(*deq.front().trans);
+                        if(notok==0) deq.pop_front();
                         return;
                     } else {
                         r2=res;
@@ -98,16 +98,16 @@ void axi::pe::tx_reorderer::clock_cb() {
                         auto& deq = reorder_buffer[cmd][e];
                         part_sum+=deq.front().age;
                         if(part_sum>=rnd) {
-                            bw_o->transport(*deq.front().trans);
-                            deq.pop_front();
+                            auto notok = bw_o->transport(*deq.front().trans);
+                            if(notok==0) deq.pop_front();
                             return;
                         }
                     }
                 } else {
                     auto rnd = scc::MT19937::uniform(0, r2.size()-1);
                     auto& deq = reorder_buffer[cmd][r2[rnd]];
-                    bw_o->transport(*deq.front().trans);
-                    deq.pop_front();
+                    auto notok = bw_o->transport(*deq.front().trans);
+                    if(notok==0) deq.pop_front();
                 }
             }
         }

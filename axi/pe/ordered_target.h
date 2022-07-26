@@ -132,6 +132,7 @@ protected:
         sc_assert(ifs!=nullptr);
         pe.set_bw_interface(ifs);
     }
+public:
     axi_target_pe pe;
     rate_limiting_buffer rate_limit_buffer{"rate_limit_buffer"};
 };
