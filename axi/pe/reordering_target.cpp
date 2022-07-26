@@ -28,7 +28,7 @@ void axi::pe::tx_reorderer::add_attributes() {
     add_attribute(min_latency);
     add_attribute(max_latency);
     add_attribute(prioritize_by_latency);
-    add_attribute(use_qos);
+    add_attribute(prioritize_by_qos);
 }
 
 void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt_transport) {
@@ -76,7 +76,7 @@ void axi::pe::tx_reorderer::clock_cb() {
                     deq.pop_front();
                 }
             } else if(r2.size()>window_size.value) {
-                if(use_qos.value) {
+                if(prioritize_by_qos.value) {
                     std::vector<unsigned> res;
                     auto& buf = reorder_buffer[cmd];
                     std::copy_if(std::begin(r2), std::end(r2), std::back_inserter(res), [max_qos, &buf](unsigned e){

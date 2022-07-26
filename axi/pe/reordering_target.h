@@ -39,7 +39,7 @@ public:
     //! the probability becomes to be selected
     sc_core::sc_attribute<bool> prioritize_by_latency{"prioritize_by_latency", false};
     //! use the QoS field for selection.
-    sc_core::sc_attribute<bool> use_qos{"obey_qos", false};
+    sc_core::sc_attribute<bool> prioritize_by_qos{"prioritize_by_qos", false};
 
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**
