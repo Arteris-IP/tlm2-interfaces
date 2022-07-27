@@ -45,7 +45,7 @@ public:
     /**
      * @brief registers attributes in current sc_object tree context
      */
-    void add_attributes();
+    void add_attributes(sc_core::sc_module& parent);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
@@ -97,8 +97,8 @@ public:
         pe.fw_o(reorder_buffer.fw_i);
         reorder_buffer.clk_i(clk_i);
         reorder_buffer.bw_o(pe.bw_i);
-        pe.add_attributes();
-        reorder_buffer.add_attributes();
+        pe.add_attributes(*this);
+        reorder_buffer.add_attributes(*this);
     }
 
     reordering_target() = delete;

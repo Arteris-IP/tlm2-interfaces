@@ -24,11 +24,11 @@ axi::pe::tx_reorderer::tx_reorderer(const sc_core::sc_module_name &nm): sc_core:
     dont_initialize();
 }
 
-void axi::pe::tx_reorderer::add_attributes() {
-    add_attribute(min_latency);
-    add_attribute(max_latency);
-    add_attribute(prioritize_by_latency);
-    add_attribute(prioritize_by_qos);
+void axi::pe::tx_reorderer::add_attributes(sc_core::sc_module& parent) {
+    parent.add_attribute(min_latency);
+    parent.add_attribute(max_latency);
+    parent.add_attribute(prioritize_by_latency);
+    parent.add_attribute(prioritize_by_qos);
 }
 
 void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt_transport) {

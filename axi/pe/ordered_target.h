@@ -53,7 +53,7 @@ public:
     /**
      * @brief registers attributes in current sc_object tree context
      */
-    void add_attributes();
+    void add_attributes(sc_core::sc_module& parent);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
@@ -112,8 +112,8 @@ public:
         rate_limit_buffer.clk_i(clk_i);
         pe.fw_o(rate_limit_buffer.fw_i);
         rate_limit_buffer.bw_o(pe.bw_i);
-        pe.add_attributes();
-        rate_limit_buffer.add_attributes();
+        pe.add_attributes(*this);
+        rate_limit_buffer.add_attributes(*this);
     }
 
     ordered_target() = delete;

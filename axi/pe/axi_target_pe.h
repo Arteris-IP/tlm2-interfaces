@@ -136,7 +136,7 @@ public:
     /**
      * @brief registers attributes in current sc_object tree context
      */
-    void add_attributes();
+    void add_attributes(sc_core::sc_module& parent);
 
 protected:
     axi_target_pe() = delete;
