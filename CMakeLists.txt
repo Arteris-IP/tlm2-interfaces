@@ -19,6 +19,8 @@ endif()
 
 project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
 
+set(SCC_ARCHIVE_DIR_MODIFIER "" CACHE STRING "additional directory levels to store static library archives") 
+
 if(TARGET scc)
     add_library(${PROJECT_NAME} 
        chi/chi_tlm.cpp
@@ -48,7 +50,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 install(TARGETS ${PROJECT_NAME}
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}/static
+        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_ARCHIVE_DIR_MODIFIER}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
     DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/atp
