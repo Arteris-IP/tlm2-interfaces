@@ -38,7 +38,7 @@ public:
     , rd_response_timeout(rd_response_timeout)
     , wr_response_timeout(wr_response_timeout)
     {}
-    virtual ~axi_protocol();
+    virtual ~axi_protocol() = default;
     axi_protocol(const axi_protocol &other) = delete;
     axi_protocol(axi_protocol &&other) = delete;
     axi_protocol& operator=(const axi_protocol &other) = delete;

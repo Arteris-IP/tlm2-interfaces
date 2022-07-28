@@ -19,8 +19,6 @@
 namespace axi {
 namespace checker {
 
-axi_protocol::~axi_protocol() = default;
-
 void axi_protocol::fw_pre(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase) {
     auto cmd = trans.get_command();
     if (cmd == tlm::TLM_IGNORE_COMMAND)
