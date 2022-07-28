@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arteris IP
+ * Copyright 2020 -2022 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,6 +67,10 @@ struct AxiProtocolFsm : bsc::state_machine<AxiProtocolFsm, Idle> {
         if(cb.at(axi::fsm::ResponsePhaseBeg))
             cb.at(axi::fsm::ResponsePhaseBeg)();
     };
+    void terminate(){
+        for(auto& f:cb) f=nullptr;
+        bsc::state_machine<AxiProtocolFsm, Idle>::terminate();
+    }
     axi::fsm::protocol_cb cb;
 };
 //! the idle state

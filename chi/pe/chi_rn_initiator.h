@@ -96,6 +96,8 @@ public:
 
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", true};
 
+    sc_core::sc_attribute<bool> strict_income_order{"strict_income_order", true};
+
     sc_core::sc_attribute<bool> use_legacy_mapping{"use_legacy_mapping", false};
 
 protected:
@@ -128,6 +130,8 @@ protected:
     std::unordered_map<uintptr_t, tx_state*> tx_state_by_trans;
 
     std::unordered_map<unsigned, scc::ordered_semaphore> active_tx_by_id;
+
+    scc::ordered_semaphore strict_order_sem{1};
 
     tlm_utils::peq_with_get<payload_type> snp_peq{"snp_peq"}, snp_dispatch_que{"snp_dispatch_que"};
 

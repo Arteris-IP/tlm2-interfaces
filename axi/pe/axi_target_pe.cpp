@@ -16,7 +16,7 @@
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include "axi_target_pe_b.h"
+#include <axi/pe/axi_target_pe.h>
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
 #include <scc/report.h>
@@ -33,33 +33,31 @@ using namespace axi::pe;
 /******************************************************************************
  * target
  ******************************************************************************/
-struct axi_target_pe_b::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
-    axi_target_pe_b* const that;
-    bw_intor_impl(axi_target_pe_b* that)
+struct axi_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
+    axi_target_pe* const that;
+    bw_intor_impl(axi_target_pe* that)
     : that(that) {}
     unsigned transport(tlm::tlm_generic_payload& payload) override {
-        that->operation_resp(payload);
-        return 0;
+        if((payload.is_read() && that->rd_resp_fifo.num_free())){
+            that->rd_resp_fifo.write(&payload);
+            return 0;
+        } else if((payload.is_write() && that->wr_resp_fifo.num_free())){
+            that->wr_resp_fifo.write(&payload);
+            return 0;
+        }
+        return std::numeric_limits<unsigned>::max();
     }
 };
 
-axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm,
-                                 size_t transfer_width)
+axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm,
+        size_t transfer_width, bool register_attrs)
 : sc_module(nm)
 , base(transfer_width)
 , bw_intor(new bw_intor_impl(this)) {
     instance_name = name();
 
-    add_attribute(max_outstanding_tx);
-    add_attribute(rd_bw_limit_byte_per_sec);
-    add_attribute(wr_bw_limit_byte_per_sec);
-    add_attribute(rd_data_interleaving);
-    add_attribute(wr_data_accept_delay);
-    add_attribute(rd_addr_accept_delay);
-    add_attribute(rd_data_beat_delay);
-    add_attribute(rd_resp_delay);
-    add_attribute(wr_resp_delay);
-
+    if(register_attrs)
+        add_attributes(*this);
     bw_i.bind(*bw_intor);
 
     SC_METHOD(fsm_clk_method);
@@ -74,52 +72,49 @@ axi_target_pe_b::axi_target_pe_b(const sc_core::sc_module_name& nm,
     SC_THREAD(send_rd_resp_beat_thread);
 }
 
-axi_target_pe_b::~axi_target_pe_b() = default;
+axi_target_pe::~axi_target_pe() = default;
 
-void axi_target_pe_b::end_of_elaboration() {
-    clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
-    if(clk_if) {
-        if(rd_bw_limit_byte_per_sec.value > 0.0) {
-            time_per_byte_rd = sc_core::sc_time(1.0 / rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
-        }
-        if(wr_bw_limit_byte_per_sec.value > 0.0) {
-            time_per_byte_wr = sc_core::sc_time(1.0 / wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
-        }
-    }
+void axi::pe::axi_target_pe::add_attributes(sc_core::sc_module& parent) {
+    parent.add_attribute(max_outstanding_tx);
+    parent.add_attribute(rd_data_interleaving);
+    parent.add_attribute(wr_data_accept_delay);
+    parent.add_attribute(rd_addr_accept_delay);
+    parent.add_attribute(rd_data_beat_delay);
+    parent.add_attribute(rd_resp_delay);
+    parent.add_attribute(wr_resp_delay);
 }
 
-void axi_target_pe_b::b_transport(payload_type& trans, sc_time& t) {
+void axi_target_pe::b_transport(payload_type& trans, sc_time& t) {
     auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
     trans.set_dmi_allowed(false);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
-    auto* i = clk_i.get_interface();
     if(clk_if) {
         t += clk_if->period() * latency;
     }
 }
 
-tlm_sync_enum axi_target_pe_b::nb_transport_fw(payload_type& trans, phase_type& phase, sc_time& t) {
+tlm_sync_enum axi_target_pe::nb_transport_fw(payload_type& trans, phase_type& phase, sc_time& t) {
     fw_peq.notify(trans, phase, t);
     return tlm::TLM_ACCEPTED;
 }
 
-bool axi_target_pe_b::get_direct_mem_ptr(payload_type& trans, tlm_dmi& dmi_data) {
+bool axi_target_pe::get_direct_mem_ptr(payload_type& trans, tlm_dmi& dmi_data) {
     trans.set_dmi_allowed(false);
     return false;
 }
 
-unsigned int axi_target_pe_b::transport_dbg(payload_type& trans) { return 0; }
+unsigned int axi_target_pe::transport_dbg(payload_type& trans) { return 0; }
 
-fsm_handle* axi_target_pe_b::create_fsm_handle() { return new fsm_handle(); }
+fsm_handle* axi_target_pe::create_fsm_handle() { return new fsm_handle(); }
 
-void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
+void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
     fsm_hndl->fsm->cb[RequestPhaseBeg] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count = 0;
         outstanding_cnt[fsm_hndl->trans->get_command()]++;
     };
     fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value &&
-           outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
+                outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else { // accepted, schedule response
@@ -138,7 +133,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value &&
-           outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
+                outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
             stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
         } else { // accepted, schedule response
@@ -168,7 +163,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
             fw_o->transport(*(fsm_hndl->trans));
         else {
             auto latency = operation_cb ? operation_cb(*fsm_hndl->trans)
-                                        : fsm_hndl->trans->is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
+                    : fsm_hndl->trans->is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
             if(latency < std::numeric_limits<unsigned>::max()) {
                 if(fsm_hndl->trans->is_write())
                     wr_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
@@ -207,7 +202,7 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         }
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
-        fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
+        fsm_hndl->trans->is_read() ? rd_resp_ch.post()   : wr_resp_ch.post();
         if(rd_resp.get_value() < rd_resp.get_capacity()) {
             SCCTRACE(SCMOD) << "finishing exclusive read response for trans " << *fsm_hndl->trans;
             rd_resp.post();
@@ -231,51 +226,46 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
 }
 
-void axi::pe::axi_target_pe_b::operation_resp(payload_type& trans, unsigned clk_delay) {
-    auto e = axi::get_burst_lenght(trans) == 1 || trans.is_write() ? axi::fsm::BegRespE : BegPartRespE;
+void axi::pe::axi_target_pe::operation_resp(payload_type& trans, unsigned clk_delay) {
     if(trans.is_write())
         wr_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
     else if(trans.is_read())
         rd_req2resp_fifo.push_back(std::make_tuple(&trans, clk_delay));
 }
 
-void axi::pe::axi_target_pe_b::process_req2resp_fifos() {
-    while(rd_req2resp_fifo.avail()) {
+void axi::pe::axi_target_pe::process_req2resp_fifos() {
+    if(!rd_req2resp_fifo.empty()){
         auto& entry = rd_req2resp_fifo.front();
         if(std::get<1>(entry) == 0) {
-            sc_assert(rd_resp_fifo.num_free());
-            rd_resp_fifo.write(std::get<0>(entry));
+            if(rd_resp_fifo.num_free()){
+                rd_resp_fifo.write(std::get<0>(entry));
+                rd_req2resp_fifo.pop_front();
+            }
         } else {
             std::get<1>(entry) -= 1;
             rd_req2resp_fifo.push_back(entry);
+            rd_req2resp_fifo.pop_front();
         }
-        rd_req2resp_fifo.pop_front();
     }
-    while(wr_req2resp_fifo.avail()) {
+    if(!wr_req2resp_fifo.empty()) {
         auto& entry = wr_req2resp_fifo.front();
         if(std::get<1>(entry) == 0) {
-            wr_resp_fifo.write(std::get<0>(entry));
+            if(rd_resp_fifo.num_free()){
+                wr_resp_fifo.write(std::get<0>(entry));
+                wr_req2resp_fifo.pop_front();
+            }
         } else {
             std::get<1>(entry) -= 1;
             wr_req2resp_fifo.push_back(entry);
+            wr_req2resp_fifo.pop_front();
         }
-        wr_req2resp_fifo.pop_front();
     }
 }
 
-void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
+void axi::pe::axi_target_pe::start_rd_resp_thread() {
     auto residual_clocks = 0.0;
     while(true) {
         auto* trans = rd_resp_fifo.read();
-        if(clk_if && time_per_byte_rd.value()) {
-            auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
-            auto delay = static_cast<unsigned>(clocks);
-            residual_clocks = clocks - delay;
-            while(delay) {
-                wait(clk_i.posedge_event());
-                delay--;
-            }
-        }
         if(!rd_data_interleaving.value || rd_data_beat_delay.get_value() == 0) {
             while(!rd_resp.get_value())
                 wait(clk_i.posedge_event());
@@ -295,24 +285,15 @@ void axi::pe::axi_target_pe_b::start_rd_resp_thread() {
     }
 }
 
-void axi::pe::axi_target_pe_b::start_wr_resp_thread() {
+void axi::pe::axi_target_pe::start_wr_resp_thread() {
     auto residual_clocks = 0.0;
     while(true) {
         auto* trans = wr_resp_fifo.read();
-        if(clk_if && time_per_byte_wr.value()) {
-            auto clocks = trans->get_data_length() * time_per_byte_wr / clk_if->period() + residual_clocks;
-            auto delay = static_cast<unsigned>(clocks);
-            residual_clocks = clocks - delay;
-            while(delay) {
-                wait(clk_i.posedge_event());
-                delay--;
-            }
-        }
         schedule(axi::fsm::BegRespE, trans, SC_ZERO_TIME);
     }
 }
 
-void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
+void axi::pe::axi_target_pe::send_rd_resp_beat_thread() {
     std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
     while(true) {
         // waiting for responses to send
@@ -335,7 +316,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
     }
 }
 
-void axi::pe::axi_target_pe_b::send_wr_resp_beat_thread() {
+void axi::pe::axi_target_pe::send_wr_resp_beat_thread() {
     std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
     while(true) {
         // waiting for responses to send
@@ -343,7 +324,6 @@ void axi::pe::axi_target_pe_b::send_wr_resp_beat_thread() {
         while(wr_resp_beat_fifo.nb_read(entry)) {
             // there is something to send
             auto fsm_hndl = std::get<0>(entry);
-            auto tp = std::get<1>(entry);
             sc_time t;
             tlm::tlm_phase phase{tlm::tlm_phase(tlm::BEGIN_RESP)};
             // wait to get ownership of the response channel

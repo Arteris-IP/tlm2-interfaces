@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _AXI_CHECKER_AXI_PROTOCOL_H_
-#define _AXI_CHECKER_AXI_PROTOCOL_H_
+#ifndef _AXI_CHECKER_ACE_PROTOCOL_H_
+#define _AXI_CHECKER_ACE_PROTOCOL_H_
 
 #include <axi/axi_tlm.h>
 #include "checker_if.h"
@@ -27,22 +27,22 @@
 namespace axi {
 namespace checker {
 
-class axi_protocol: public checker_if<axi::axi_protocol_types> {
+class ace_protocol: public checker_if<axi::axi_protocol_types> {
     using payload_type=axi::axi_protocol_types::tlm_payload_type;
     using phase_type=axi::axi_protocol_types::tlm_phase_type;
     constexpr static unsigned umax = std::numeric_limits<unsigned>::max();
 public:
-    axi_protocol(std::string const& name, unsigned bus_width_in_bytes, unsigned rd_response_timeout, unsigned wr_response_timeout)
+    ace_protocol(std::string const& name, unsigned bus_width_in_bytes, unsigned rd_response_timeout, unsigned wr_response_timeout)
     : name(name)
     , bw(bus_width_in_bytes)
     , rd_response_timeout(rd_response_timeout)
     , wr_response_timeout(wr_response_timeout)
     {}
-    virtual ~axi_protocol() = default;
-    axi_protocol(const axi_protocol &other) = delete;
-    axi_protocol(axi_protocol &&other) = delete;
-    axi_protocol& operator=(const axi_protocol &other) = delete;
-    axi_protocol& operator=(axi_protocol &&other) = delete;
+    virtual ~ace_protocol();
+    ace_protocol(const ace_protocol &other) = delete;
+    ace_protocol(ace_protocol &&other) = delete;
+    ace_protocol& operator=(const ace_protocol &other) = delete;
+    ace_protocol& operator=(ace_protocol &&other) = delete;
     void fw_pre(payload_type const& trans, phase_type const& phase) override;
     void fw_post(payload_type const& trans, phase_type const& phase, tlm::tlm_sync_enum rstat) override;
     void bw_pre(payload_type const& trans, phase_type const& phase) override;
@@ -65,10 +65,9 @@ private:
     void request_update(payload_type const& trans);
     void response_update(payload_type const& trans);
     void check_properties(payload_type const& trans);
-    void check_datawith_settings(payload_type const&trans);
 };
 
 } /* namespace checker */
 } /* namespace axi */
 
-#endif /* _AXI_CHECKER_AXI_PROTOCOL_H_ */
+#endif /* _AXI_CHECKER_ACE_PROTOCOL_H_ */

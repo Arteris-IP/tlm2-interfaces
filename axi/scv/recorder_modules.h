@@ -51,7 +51,7 @@ public:
     axitlm_recorder_module(sc_core::sc_module_name name, bool recording_enabled = true,
                            SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
     : sc_module(name)
-    , BASE(this->name(), recording_enabled, tr_db) {
+    , BASE(this->name(), BUSWIDTH, recording_enabled, tr_db) {
         // bind the sockets to the module
         tsckt.bind(*this);
         isckt.bind(*this);
@@ -60,6 +60,9 @@ public:
         add_attribute(BASE::enableTimedTracing);
         add_attribute(BASE::enableDmiTracing);
         add_attribute(BASE::enableTrDbgTracing);
+        add_attribute(BASE::enableProtocolChecker);
+        add_attribute(BASE::rd_response_timeout);
+        add_attribute(BASE::wr_response_timeout);
     }
 
     ~axitlm_recorder_module() {}

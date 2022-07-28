@@ -21,11 +21,12 @@
 namespace axi {
 namespace checker {
 template <typename TYPES>
-struct checker_if { // @suppress("Class has a virtual method and non-virtual destructor")
+struct checker_if {
     virtual void fw_pre(typename TYPES::tlm_payload_type const& trans, typename TYPES::tlm_phase_type const& phase) = 0;
     virtual void fw_post(typename TYPES::tlm_payload_type const& trans, typename TYPES::tlm_phase_type const& phase, tlm::tlm_sync_enum rstat) = 0;
     virtual void bw_pre(typename TYPES::tlm_payload_type const& trans, typename TYPES::tlm_phase_type const& phase) = 0;
     virtual void bw_post(typename TYPES::tlm_payload_type const& trans, typename TYPES::tlm_phase_type const& phase, tlm::tlm_sync_enum rstat) = 0;
+    virtual ~checker_if() = default;
 };
 }
 }

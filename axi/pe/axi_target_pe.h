@@ -36,13 +36,12 @@ namespace pe {
 /**
  * the target protocol engine base class
  */
-class axi_target_pe_b : public sc_core::sc_module,
+class axi_target_pe : public sc_core::sc_module,
                         protected axi::fsm::base,
                         public axi::axi_fw_transport_if<axi::axi_protocol_types> {
     struct bw_intor_impl;
-
 public:
-    SC_HAS_PROCESS(axi_target_pe_b);
+    SC_HAS_PROCESS(axi_target_pe);
 
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
@@ -58,14 +57,6 @@ public:
      * back-pressure
      */
     sc_core::sc_attribute<unsigned> max_outstanding_tx{"max_outstanding_tx", 0};
-    /**
-     * @brief the bandwidth limit for read accesses
-     */
-    sc_core::sc_attribute<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
-    /**
-     * @brief the bandwidth limit for write accesses
-     */
-    sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
     /**
      * @brief enable data interleaving on read responses if rd_data_beat_delay is greater than 0
      */
@@ -132,27 +123,31 @@ public:
      */
     const sc_core::sc_event& tx_finish_event() { return finish_evt; }
 
-    ~axi_target_pe_b();
+    ~axi_target_pe();
 
-protected:
     /**
      * the constructor. Protected as it should only be called by derived classes
      * @param port
      * @param transfer_width
      */
-    explicit axi_target_pe_b(const sc_core::sc_module_name& nm, size_t transfer_width);
-
-    axi_target_pe_b() = delete;
-
-    axi_target_pe_b(axi_target_pe_b const&) = delete;
-
-    axi_target_pe_b(axi_target_pe_b&&) = delete;
-
-    axi_target_pe_b& operator=(axi_target_pe_b const&) = delete;
-
-    axi_target_pe_b& operator=(axi_target_pe_b&&) = delete;
+    explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, bool register_attrs=true);
 
     void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
+    /**
+     * @brief registers attributes in current sc_object tree context
+     */
+    void add_attributes(sc_core::sc_module& parent);
+
+protected:
+    axi_target_pe() = delete;
+
+    axi_target_pe(axi_target_pe const&) = delete;
+
+    axi_target_pe(axi_target_pe&&) = delete;
+
+    axi_target_pe& operator=(axi_target_pe const&) = delete;
+
+    axi_target_pe& operator=(axi_target_pe&&) = delete;
 
     void start_of_simulation() {
         if(!socket_bw) SCCFATAL(SCMOD)<<"No backward interface registered!";
@@ -172,11 +167,10 @@ protected:
 
     axi::axi_bw_transport_if<axi_protocol_types>* socket_bw{nullptr};
     std::function<unsigned(payload_type& trans)> operation_cb;
-    scc::fifo_w_cb<std::tuple<payload_type*, unsigned>> rd_req2resp_fifo{"rd_req2resp_fifo"},
-        wr_req2resp_fifo{"wr_req2resp_fifo"};
+    scc::fifo_w_cb<std::tuple<payload_type*, unsigned>> rd_req2resp_fifo{"rd_req2resp_fifo"};
+    scc::fifo_w_cb<std::tuple<payload_type*, unsigned>> wr_req2resp_fifo{"wr_req2resp_fifo"};
     void process_req2resp_fifos();
-    sc_core::sc_fifo<payload_type*> rd_resp_fifo{128}, wr_resp_fifo{128};
-    sc_core::sc_time time_per_byte_rd, time_per_byte_wr;
+    sc_core::sc_fifo<payload_type*> rd_resp_fifo{1}, wr_resp_fifo{1};
     void start_rd_resp_thread();
     void start_wr_resp_thread();
     sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> wr_resp_beat_fifo{128},
@@ -186,7 +180,6 @@ protected:
     void send_rd_resp_beat_thread();
 
     sc_core::sc_clock* clk_if{nullptr};
-    void end_of_elaboration() override;
     std::unique_ptr<bw_intor_impl> bw_intor;
     std::array<unsigned, 3> outstanding_cnt{{0, 0, 0}}; // count for limiting
     scc::sc_variable<unsigned> outstanding_rd_tx{"OutstandingRd", 0};
@@ -218,7 +211,7 @@ protected:
         auto delay = sc_core::SC_ZERO_TIME;
         base::nb_fw(trans, phase, delay);
     }
-    tlm_utils::peq_with_cb_and_phase<axi_target_pe_b> fw_peq{this, &axi_target_pe_b::nb_fw};
+    tlm_utils::peq_with_cb_and_phase<axi_target_pe> fw_peq{this, &axi_target_pe::nb_fw};
     std::unordered_set<unsigned> active_rdresp_id;
 };
 

@@ -515,6 +515,7 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
     add_attribute(home_node_id);
     add_attribute(src_id);
     add_attribute(data_interleaving);
+    add_attribute(strict_income_order);
     add_attribute(use_legacy_mapping);
 
     SC_METHOD(clk_counter);
@@ -541,7 +542,6 @@ void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time&
 void chi::pe::chi_rn_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto req_ext = trans.get_extension<chi_snp_extension>();
     sc_assert(req_ext != nullptr);
-    auto const txn_id = req_ext->get_txn_id();
     auto it = tx_state_by_trans.find(to_id(trans));
     sc_assert(it != tx_state_by_trans.end());
     auto* txs = it->second;
@@ -923,7 +923,9 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         }
         auto& txs = it->second;
         auto const txn_id = req_ext->get_txn_id();
+        if(strict_income_order.value) strict_order_sem.wait();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
+        if(strict_income_order.value) strict_order_sem.post();
         tx_outstanding++;
         tx_waiting--;
         // Check if Link-credits are available for sending this transactionand wait if not

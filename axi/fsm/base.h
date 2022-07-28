@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arteris IP
+ * Copyright 2020 - 2022 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +163,8 @@ struct base {
     std::unordered_map<payload_type*, axi::fsm::fsm_handle*> active_fsm;
 
     std::deque<axi::fsm::fsm_handle*> idle_fsm;
+
+    std::vector<std::unique_ptr<axi::fsm::fsm_handle>> allocated_fsm;
 
     std::string instance_name;
 

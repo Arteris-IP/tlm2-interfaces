@@ -106,6 +106,13 @@ public:
     //! \brief the attribute to selectively enable/disable transport dbg recording
     sc_core::sc_attribute<bool> enableTrDbgTracing{"enableTrDbgTracing", false};
 
+    //! \brief the attribute to  enable/disable protocol checking
+    sc_core::sc_attribute<bool> enableProtocolChecker{"enableProtocolChecker", false};
+
+    sc_core::sc_attribute<unsigned> rd_response_timeout{"rd_response_timeout", 0};
+
+    sc_core::sc_attribute<unsigned> wr_response_timeout{"wr_response_timeout", 0};
+
     //! \brief the port where fw accesses are forwarded to
     virtual tlm::tlm_fw_transport_if<TYPES>* get_fw_if() = 0;
 
@@ -120,7 +127,7 @@ public:
      *        If this database is not initialized (e.g. by not calling
      * scv_tr_db::set_default_db() ) recording is disabled.
      */
-    ace_recorder(const char* name, bool recording_enabled = true,
+    ace_recorder(const char* name, unsigned bus_width, bool recording_enabled = true,
                  SCVNS scv_tr_db* tr_db = SCVNS scv_tr_db::get_default_db())
     : enableBlTracing("enableBlTracing", recording_enabled)
     , enableNbTracing("enableNbTracing", recording_enabled)
@@ -316,6 +323,9 @@ protected:
             dmi_trInvalidateHandle = new SCVNS scv_tr_generator<sc_dt::uint64, sc_dt::uint64>(
                 "invalidate", *dmi_streamHandle, "start_addr", "end_addr");
         }
+//        if(enableProtocolChecker.value) {
+//            checker=new axi::checker::ace_protocol(fixed_basename, bus_width/8, rd_response_timeout.value, wr_response_timeout.value);
+//        }
     }
 
 private:
