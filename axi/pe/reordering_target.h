@@ -43,10 +43,6 @@ public:
 
     tx_reorderer(const sc_core::sc_module_name& nm);
     /**
-     * @brief registers attributes in current sc_object tree context
-     */
-    void add_attributes(sc_core::sc_module& parent);
-    /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
      * @param payload object with (optional) extensions
@@ -91,14 +87,12 @@ public:
 
     reordering_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
-    , pe("pe", BUSWIDTH, false) {
+    , pe("pe", BUSWIDTH) {
         sckt(pe);
         pe.clk_i(clk_i);
         pe.fw_o(reorder_buffer.fw_i);
         reorder_buffer.clk_i(clk_i);
         reorder_buffer.bw_o(pe.bw_i);
-        pe.add_attributes(*this);
-        reorder_buffer.add_attributes(*this);
     }
 
     reordering_target() = delete;

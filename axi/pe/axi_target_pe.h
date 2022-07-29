@@ -41,7 +41,6 @@ class axi_target_pe : public sc_core::sc_module,
                         public axi::axi_fw_transport_if<axi::axi_protocol_types> {
     struct bw_intor_impl;
 public:
-    SC_HAS_PROCESS(axi_target_pe);
 
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
@@ -130,13 +129,9 @@ public:
      * @param port
      * @param transfer_width
      */
-    explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, bool register_attrs=true);
+    explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width);
 
     void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
-    /**
-     * @brief registers attributes in current sc_object tree context
-     */
-    void add_attributes(sc_core::sc_module& parent);
 
 protected:
     axi_target_pe() = delete;
