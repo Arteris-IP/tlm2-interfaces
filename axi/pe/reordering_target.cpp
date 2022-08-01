@@ -37,7 +37,7 @@ void axi::pe::tx_reorderer::transport(tlm::tlm_generic_payload &payload, bool lt
 }
 
 void axi::pe::tx_reorderer::clock_cb() {
-    for(unsigned cmd=tlm::TLM_READ_COMMAND; cmd<tlm::TLM_IGNORE_COMMAND; ++cmd)
+    for(unsigned cmd=tlm::TLM_READ_COMMAND; cmd<tlm::TLM_IGNORE_COMMAND; ++cmd) {
         if(!reorder_buffer[cmd].empty()) {
             std::vector<unsigned> r1{}, r2{};
             r1.reserve(reorder_buffer[cmd].size());
@@ -57,20 +57,16 @@ void axi::pe::tx_reorderer::clock_cb() {
                 }
             }
             if(r1.size()) {
-#if 0
-                while(r1.size()){
-                    auto sel = r1.size()==1?0:scc::MT19937::uniform(0, r1.size()-1);
-                    auto& deq = reorder_buffer[cmd][r1[sel]];
-                    bw_o->transport(*deq.front().trans);
-                    deq.pop_front();
-                    r1.erase(r1.begin()+sel);
+                //std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
+                for (auto i = r1.begin() + 1; i != r1.end(); ++i) {
+                    auto j = r1.begin() + scc::MT19937::uniform(0, i - r1.begin()) + 1;
+                    if (i != j) std::iter_swap(i, j);
                 }
-#endif
-                std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
+
                 for(auto& e:r1) {
                     auto& deq = reorder_buffer[cmd][e];
-                    bw_o->transport(*deq.front().trans);
-                    deq.pop_front();
+                    auto notok = bw_o->transport(*deq.front().trans);
+                    if(notok==0) deq.pop_front();
                 }
             } else if(r2.size()>window_size.value) {
                 if(prioritize_by_qos.value) {
@@ -108,5 +104,6 @@ void axi::pe::tx_reorderer::clock_cb() {
                 }
             }
         }
+    }
 }
 
