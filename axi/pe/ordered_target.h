@@ -74,7 +74,7 @@ protected:
     scc::fifo_w_cb<tlm::tlm_generic_payload*> rd_resp_fifo{"rd_resp_fifo"};
     scc::fifo_w_cb<tlm::tlm_generic_payload*> wr_resp_fifo{"wr_resp_fifo"};
 
-    void end_of_elaboration();
+    void end_of_elaboration() override;
 
     void process_req2resp_fifos();
     void start_rd_resp_thread();

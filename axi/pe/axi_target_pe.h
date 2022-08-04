@@ -144,7 +144,7 @@ protected:
 
     axi_target_pe& operator=(axi_target_pe&&) = delete;
 
-    void start_of_simulation() {
+    void start_of_simulation() override {
         if(!socket_bw) SCCFATAL(SCMOD)<<"No backward interface registered!";
     }
 
