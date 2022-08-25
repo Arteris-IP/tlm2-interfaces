@@ -4,19 +4,16 @@ namespace pe {
 
 rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm) {
     fw_i.bind(*this);
+    add_attribute(rd_bw_limit_byte_per_sec);
+    add_attribute(wr_bw_limit_byte_per_sec);
+    add_attribute(rd_resp_delay);
+    add_attribute(wr_resp_delay);
     SC_HAS_PROCESS(rate_limiting_buffer);
     SC_METHOD(process_req2resp_fifos);
     dont_initialize();
     sensitive << clk_i.pos();
     SC_THREAD(start_wr_resp_thread);
     SC_THREAD(start_rd_resp_thread);
-}
-
-void rate_limiting_buffer::add_attributes(sc_core::sc_module& parent) {
-    parent.add_attribute(rd_bw_limit_byte_per_sec);
-    parent.add_attribute(wr_bw_limit_byte_per_sec);
-    parent.add_attribute(rd_resp_delay);
-    parent.add_attribute(wr_resp_delay);
 }
 
 void rate_limiting_buffer::end_of_elaboration() {

@@ -51,10 +51,6 @@ public:
 
     rate_limiting_buffer(const sc_core::sc_module_name& nm);
     /**
-     * @brief registers attributes in current sc_object tree context
-     */
-    void add_attributes(sc_core::sc_module& parent);
-    /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
      * @param payload object with (optional) extensions
@@ -78,7 +74,7 @@ protected:
     scc::fifo_w_cb<tlm::tlm_generic_payload*> rd_resp_fifo{"rd_resp_fifo"};
     scc::fifo_w_cb<tlm::tlm_generic_payload*> wr_resp_fifo{"wr_resp_fifo"};
 
-    void end_of_elaboration();
+    void end_of_elaboration() override;
 
     void process_req2resp_fifos();
     void start_rd_resp_thread();
@@ -106,14 +102,12 @@ public:
      */
     ordered_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
-    , pe("pe", BUSWIDTH, false) {
+    , pe("pe", BUSWIDTH) {
         sckt(pe);
         pe.clk_i(clk_i);
         rate_limit_buffer.clk_i(clk_i);
         pe.fw_o(rate_limit_buffer.fw_i);
         rate_limit_buffer.bw_o(pe.bw_i);
-        pe.add_attributes(*this);
-        rate_limit_buffer.add_attributes(*this);
     }
 
     ordered_target() = delete;
