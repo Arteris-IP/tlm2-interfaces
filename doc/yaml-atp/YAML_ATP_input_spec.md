@@ -360,6 +360,7 @@ Those signals map to the respective AMBA AXI/ACE channel signals.
 ###  Section `exec_stl`
 
 The exec_stl key allows to specify tjhe execution of another STL file. If the filename is given relative it is relative to the YAML file.
+Execution of the YAML continues once all statements in the STL are executed and finished.
 
 |Syntax|Comment
 |------|-----------------|
