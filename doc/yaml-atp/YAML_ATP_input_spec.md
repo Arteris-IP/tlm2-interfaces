@@ -140,9 +140,13 @@ A _profile-list_ consist of a list of key-value pairs where the following keys a
   
     a nested profile list.
 
+* exec_stl - string
+
+    execute a STL file as part of the profile
+    
 ###  Section `include`
 
-The include key allows to include other YAML files containg profile settings. There are 2 forms availabl
+The include key allows to include other YAML files containg profile settings. There are 2 forms available
 
 |Syntax|Comment
 |------|-----------------|
@@ -352,6 +356,26 @@ The following signal names are supported:
 * AWSTASHLPID
 
 Those signals map to the respective AMBA AXI/ACE channel signals.
+
+###  Section `exec_stl`
+
+The exec_stl key allows to specify tjhe execution of another STL file. If the filename is given relative it is relative to the YAML file.
+
+|Syntax|Comment
+|------|-----------------|
+|- exec_stl:&nbsp;&lt;name>| simply execute the given file at this point |
+
+The following example shows the various variants:
+
+```yaml
+- profile_list:
+  - parallel_execution: false
+  - exec_stl: file1.stl
+    
+```
+
+Variables are expanded in the included files similar to shell variables, `${var1}` from the example above expands to `val1`.
+Variable expansion happens before the file is parsed as YAML.
 
 # Appendix
 
