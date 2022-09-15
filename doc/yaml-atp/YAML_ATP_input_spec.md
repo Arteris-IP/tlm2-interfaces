@@ -144,6 +144,10 @@ A _profile-list_ consist of a list of key-value pairs where the following keys a
 
     execute a STL file as part of the profile
     
+* loop - number
+
+    execute a profile repeatedly
+    
 ###  Section `include`
 
 The include key allows to include other YAML files containg profile settings. There are 2 forms available
@@ -375,8 +379,14 @@ The following example shows the various variants:
     
 ```
 
-Variables are expanded in the included files similar to shell variables, `${var1}` from the example above expands to `val1`.
-Variable expansion happens before the file is parsed as YAML.
+###  Section `loop`
+
+The loop key allows to specify the number of repetitions of a profile.
+
+|Syntax|Comment
+|------|-----------------|
+|- loop:&nbsp;&lt;n>| execute the actual profile n times |
+
 
 # Appendix
 
