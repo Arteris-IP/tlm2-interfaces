@@ -213,10 +213,25 @@ void ace_protocol::check_properties(const payload_type &trans) {
         auto domain = ace_ext->get_domain();
         auto bar = ace_ext->get_barrier();
         switch(comb(bar, domain, snoop)){
+        // Non-snooping
         case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
         case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
+        // Coherent
         case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
         case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_SHARED):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_SHARED):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_CLEAN):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_CLEAN):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_NOT_SHARED_DIRTY):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_NOT_SHARED_DIRTY):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::MAKE_UNIQUE):
+        case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::MAKE_UNIQUE):
+        // Cache maintenance
         case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_SHARED):
         case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_SHARED):
         case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_SHARED):
@@ -226,25 +241,91 @@ void ace_protocol::check_properties(const payload_type &trans) {
         case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::MAKE_INVALID):
         case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::MAKE_INVALID):
         case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::MAKE_INVALID):
+        // Barrier
         case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
         case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
         case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
         case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
-
+        // Non-snooping
         case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
         case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
+        // Coherent
         case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
         case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
         case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
         case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_LINE_UNIQUE):
+        // Memory update
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_CLEAN):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_CLEAN):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_CLEAN):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_BACK):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_BACK):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_BACK):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::EVICT):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::EVICT):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_EVICT):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_EVICT):
+        case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_EVICT):
+        // Barrier
         case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
         case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
         case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
         case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
         break;
         default:
-            SCCERR(name)<<"Illegal ACEL settings: According to D11.2 ACE-Lite signal requirements of ARM IHI 0022H  the following setting is illegal:\n"
+            SCCERR(name)<<"Illegal ACE settings: According to D3.1.1 Read and write Shareable transaction types of ARM IHI 0022H  the following setting is illegal:\n"
             << "AxBAR:"<<to_char(bar)<<", AxDOMAIN:"<<to_char(domain)<<", AxSNOOP:"<<to_char(snoop);
+        }
+        switch(snoop) {
+        default:break;
+        case  snoop_e::READ_CLEAN:
+        case snoop_e::READ_NOT_SHARED_DIRTY:
+        case snoop_e::READ_SHARED:
+        case snoop_e::READ_UNIQUE:
+        case snoop_e::CLEAN_UNIQUE:
+        case snoop_e::MAKE_UNIQUE:
+        case snoop_e::WRITE_LINE_UNIQUE:
+        case snoop_e::EVICT:
+            if(ace_ext->get_domain()==domain_e::NON_SHAREABLE) {
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxDOMAIN:"<<to_char(ace_ext->get_domain());
+            }
+            /* no break */
+        case snoop_e::CLEAN_SHARED:
+        case snoop_e::CLEAN_INVALID:
+        case snoop_e::MAKE_INVALID:
+        case snoop_e::WRITE_EVICT:
+            if(ace_ext->get_domain()==domain_e::SYSTEM) {
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxDOMAIN:"<<to_char(ace_ext->get_domain());
+            }
+            if(ace_ext->get_length() && (1u<<ace_ext->get_size()) != bw) {
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxLEN:"<<to_char(ace_ext->get_length())<<", AxSIZE:"<<to_char(ace_ext->get_size())<<" with bus with:"<<bw;
+            }
+            auto width = bw;
+            switch(ace_ext->get_burst()) {
+            case burst_e::INCR:
+                width=(1+ace_ext->get_length())*(1u<<ace_ext->get_size());
+                /* no break */
+            case burst_e::WRAP:
+                if(trans.get_address()&(width-1)){
+                    SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                    << "AxBURST:"<<to_char(ace_ext->get_burst())<<", ADDR:0x"<<std::hex<<trans.get_address();
+                }
+                break;
+            case burst_e::FIXED:
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxBURST:"<<to_char(ace_ext->get_burst());
+            }
+            if(ace_ext->get_barrier()!= bar_e::IGNORE_BARRIER) {
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxBAR:"<<to_char(ace_ext->get_barrier());
+            }
+            if(!ace_ext->is_modifiable()) {
+                SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
+                << "AxCACHE:"<<static_cast<unsigned>(ace_ext->get_cache());
+            }
         }
     }
 }
