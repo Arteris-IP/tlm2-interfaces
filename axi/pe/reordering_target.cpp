@@ -59,7 +59,7 @@ void axi::pe::tx_reorderer::clock_cb() {
             if(r1.size()) {
                 //std::random_shuffle(r1.begin(), r1.end(), [](unsigned l) -> unsigned { return scc::MT19937::uniform(0, l);});
                 for (auto i = r1.begin() + 1; i != r1.end(); ++i) {
-                    auto j = r1.begin() + scc::MT19937::uniform(0, i - r1.begin()) + 1;
+                    auto j = r1.begin() + scc::MT19937::uniform(0, i - r1.begin());
                     if (i != j) std::iter_swap(i, j);
                 }
 

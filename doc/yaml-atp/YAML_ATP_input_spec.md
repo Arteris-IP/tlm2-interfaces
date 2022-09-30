@@ -140,9 +140,17 @@ A _profile-list_ consist of a list of key-value pairs where the following keys a
   
     a nested profile list.
 
+* exec_stl - string
+
+    execute a STL file as part of the profile
+    
+* loop - number
+
+    execute a profile repeatedly
+    
 ###  Section `include`
 
-The include key allows to include other YAML files containg profile settings. There are 2 forms availabl
+The include key allows to include other YAML files containg profile settings. There are 2 forms available
 
 |Syntax|Comment
 |------|-----------------|
@@ -352,6 +360,33 @@ The following signal names are supported:
 * AWSTASHLPID
 
 Those signals map to the respective AMBA AXI/ACE channel signals.
+
+###  Section `exec_stl`
+
+The exec_stl key allows to specify tjhe execution of another STL file. If the filename is given relative it is relative to the YAML file.
+Execution of the YAML continues once all statements in the STL are executed and finished.
+
+|Syntax|Comment
+|------|-----------------|
+|- exec_stl:&nbsp;&lt;name>| simply execute the given file at this point |
+
+The following example shows the various variants:
+
+```yaml
+- profile_list:
+  - parallel_execution: false
+  - exec_stl: file1.stl
+    
+```
+
+###  Section `loop`
+
+The loop key allows to specify the number of repetitions of a profile.
+
+|Syntax|Comment
+|------|-----------------|
+|- loop:&nbsp;&lt;n>| execute the actual profile n times |
+
 
 # Appendix
 

@@ -84,11 +84,12 @@ enum class domain_e : uint8_t { NON_SHAREABLE = 0x0, INNER_SHAREABLE = 0x1, OUTE
  * the barrier type enumeration class
  */
 enum class bar_e : uint8_t {
-    RESPECT_BARRIER = 0x0,
-    MEMORY_BARRIER = 0x1,
-    IGNORE_BARRIER = 0x2,
-    SYNCHRONISATION_BARRIER = 0x3
+    RESPECT_BARRIER = 0x0,          //! Normal access, respecting barriers
+    MEMORY_BARRIER = 0x1,           //! Memory barrier
+    IGNORE_BARRIER = 0x2,           //! Normal access, ignoring barriers
+    SYNCHRONISATION_BARRIER = 0x3   //!Synchronization barrier
 };
+
 /**
  * the snoop type enumeration class. Since the interpretation depends of other setting there are double defined entries
  */
