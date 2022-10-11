@@ -180,7 +180,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
-        auto size = get_burst_lenght(*fsm_hndl->trans) - 1;
+        auto size = get_burst_length(*fsm_hndl->trans) - 1;
         fsm_hndl->beat_count++;
         if(rd_data_beat_delay.get_value())
             schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.get_value());
@@ -268,7 +268,7 @@ void axi::pe::axi_target_pe::start_rd_resp_thread() {
             rd_resp.wait();
         }
         SCCTRACE(SCMOD) << __FUNCTION__ << " starting exclusive read response for trans " << *trans;
-        auto e = axi::get_burst_lenght(trans) == 1 || trans->is_write() ? axi::fsm::BegRespE : BegPartRespE;
+        auto e = axi::get_burst_length(trans) == 1 || trans->is_write() ? axi::fsm::BegRespE : BegPartRespE;
         auto id = axi::get_axi_id(trans);
         while(active_rdresp_id.size() && active_rdresp_id.find(id) != active_rdresp_id.end()) {
             wait(clk_i.posedge_event());

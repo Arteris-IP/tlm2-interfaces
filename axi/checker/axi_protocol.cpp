@@ -89,7 +89,7 @@ bool axi_protocol::check_phase_change(payload_type const& trans, const axi_proto
 
 void axi_protocol::request_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
-    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_len = axi::get_burst_length(trans);
     if(trans.is_write()){
         if(req_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
             req_id[tlm::TLM_WRITE_COMMAND] = umax;
@@ -102,7 +102,7 @@ void axi_protocol::request_update(const payload_type &trans) {
             }
             if(req_beat[tlm::TLM_WRITE_COMMAND]==tlm::BEGIN_REQ) {
                 if(wr_req_beat_count != axi_burst_len){
-                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
+                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_length(trans)-1;
                 }
                 wr_req_beat_count=0;
                 open_tx_by_id[tlm::TLM_WRITE_COMMAND][axi_id].push_back(reinterpret_cast<uintptr_t>(&trans));
@@ -128,7 +128,7 @@ void axi_protocol::request_update(const payload_type &trans) {
 
 void axi_protocol::response_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
-    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_len = axi::get_burst_length(trans);
     if(trans.is_write()){
         if(resp_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
             resp_id[tlm::TLM_WRITE_COMMAND] = umax;
@@ -160,7 +160,7 @@ void axi_protocol::response_update(const payload_type &trans) {
             }
             if(resp_beat[tlm::TLM_READ_COMMAND]==tlm::BEGIN_RESP)  {
                 if(rd_resp_beat_count[axi_id] != axi_burst_len){
-                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
+                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_length(trans)-1;
                 }
                 open_tx_by_id[tlm::TLM_READ_COMMAND][axi_id].pop_front();
                 rd_resp_beat_count[axi_id]=0;
@@ -170,7 +170,7 @@ void axi_protocol::response_update(const payload_type &trans) {
 }
 
 void axi_protocol::check_datawith_settings(payload_type const&trans){
-    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_len = axi::get_burst_length(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
     auto mask = bw-1ULL;
     auto offset = trans.get_address() & mask;
