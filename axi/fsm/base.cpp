@@ -67,7 +67,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp) {
             SCCTRACE(instance_name) << "creating fsm for trans " << *gp;
         } else {
-            SCCTRACE(instance_name) << "creating fsm for undefined transaction";
+            SCCTRACE(instance_name) << "creating fsm for new transaction";
         }
         if(idle_fsm.empty()) {
             auto fsm_hndl = create_fsm_handle();
