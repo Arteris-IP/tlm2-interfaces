@@ -24,7 +24,11 @@ void axi_protocol::fw_pre(const axi_protocol::payload_type &trans, const axi_pro
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command: tlm::TLM_IGNORE_COMMAND on forward path";
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on forward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on forward path";
+#endif
 }
 
 void axi_protocol::fw_post(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
@@ -33,7 +37,11 @@ void axi_protocol::fw_post(const axi_protocol::payload_type &trans, const axi_pr
     if(req_beat[cmd]==tlm::BEGIN_REQ && (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP))
         req_beat[cmd]= tlm::UNINITIALIZED_PHASE;
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in forward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on return in forward path";
+#endif
 }
 
 void axi_protocol::bw_pre(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase) {
@@ -41,13 +49,21 @@ void axi_protocol::bw_pre(const axi_protocol::payload_type &trans, const axi_pro
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command:  tlm::TLM_IGNORE_COMMAND on forward path";
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on backward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on backward path";
+#endif
 }
 
 void axi_protocol::bw_post(const axi_protocol::payload_type &trans, const axi_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in backward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on return in backward path";
+#endif
 }
 
 bool axi_protocol::check_phase_change(payload_type const& trans, const axi_protocol::phase_type &phase) {
