@@ -2,12 +2,12 @@
 namespace axi {
 namespace pe {
 
-rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm) {
+rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, scc::sc_attribute_randomized<int>& rd_resp_delay, scc::sc_attribute_randomized<int>& wr_resp_delay)
+: rd_resp_delay(rd_resp_delay)
+, wr_resp_delay(wr_resp_delay){
     fw_i.bind(*this);
     add_attribute(rd_bw_limit_byte_per_sec);
     add_attribute(wr_bw_limit_byte_per_sec);
-    add_attribute(rd_resp_delay);
-    add_attribute(wr_resp_delay);
     SC_HAS_PROCESS(rate_limiting_buffer);
     SC_METHOD(process_req2resp_fifos);
     dont_initialize();

@@ -34,12 +34,12 @@ public:
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> RIV
      */
-    scc::sc_attribute_randomized<int> rd_resp_delay{"rd_resp_delay", 0};
+    scc::sc_attribute_randomized<int>& rd_resp_delay;
     /**
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> BV
      */
-    scc::sc_attribute_randomized<int> wr_resp_delay{"wr_resp_delay", 0};
+    scc::sc_attribute_randomized<int>& wr_resp_delay;
     /**
      * @brief the bandwidth limit for read accesses
      */
@@ -49,7 +49,7 @@ public:
      */
     sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
 
-    rate_limiting_buffer(const sc_core::sc_module_name& nm);
+    rate_limiting_buffer(const sc_core::sc_module_name& nm, scc::sc_attribute_randomized<int>& rd_resp_delay, scc::sc_attribute_randomized<int>& wr_resp_delay);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
@@ -102,7 +102,8 @@ public:
      */
     ordered_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
-    , pe("pe", BUSWIDTH) {
+    , pe("pe", BUSWIDTH)
+    , rate_limit_buffer("rate_limit_buffer", pe.rd_resp_delay, pe.wr_resp_delay){
         sckt(pe);
         pe.clk_i(clk_i);
         rate_limit_buffer.clk_i(clk_i);
@@ -128,7 +129,7 @@ protected:
     }
 public:
     axi_target_pe pe;
-    rate_limiting_buffer rate_limit_buffer{"rate_limit_buffer"};
+    rate_limiting_buffer rate_limit_buffer;
 };
 } // namespace pe
 } // namespace axi
