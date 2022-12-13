@@ -529,6 +529,8 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
         SCCERR(SCMOD) << "is still waiting for unfinished transactions";
     for(auto& e : tx_state_by_trans)
         delete e.second;
+    for(auto p: tx_state_pool)
+    	delete p;
 }
 
 void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
