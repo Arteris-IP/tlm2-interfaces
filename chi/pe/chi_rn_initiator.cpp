@@ -1001,7 +1001,8 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
 
         trans.set_response_status(tlm::TLM_OK_RESPONSE);
         wait(clk_i.posedge_event()); // sync to clock
-        tx_state_by_trans.erase(to_id(trans));
+        delete it->second;
+        tx_state_by_trans.erase(it);
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
         any_tx_finished.notify(SC_ZERO_TIME);
         tx_outstanding--;
