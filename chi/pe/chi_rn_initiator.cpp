@@ -917,9 +917,11 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         tx_waiting++;
         auto it = tx_state_by_trans.find(to_id(trans));
         if(it == tx_state_by_trans.end()) {
+        	if(!tx_state_pool.size())
+        		tx_state_pool.push_back(new tx_state(util::strprintf("peq_%d", ++peq_cnt)));
             bool success;
-            std::tie(it, success) =
-                tx_state_by_trans.insert({to_id(trans), new tx_state(util::strprintf("peq_%d", ++peq_cnt))});
+            std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), tx_state_pool.back()});
+            tx_state_pool.pop_back();
         }
         auto& txs = it->second;
         auto const txn_id = req_ext->get_txn_id();
@@ -1001,7 +1003,8 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
 
         trans.set_response_status(tlm::TLM_OK_RESPONSE);
         wait(clk_i.posedge_event()); // sync to clock
-        delete it->second;
+        tx_state_pool.push_back(it->second);
+        tx_state_pool.back()->peq.clear();
         tx_state_by_trans.erase(it);
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
         any_tx_finished.notify(SC_ZERO_TIME);
@@ -1123,8 +1126,11 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
 
     auto it = tx_state_by_trans.find(to_id(trans));
     if(it == tx_state_by_trans.end()) {
+    	if(!tx_state_pool.size())
+    		tx_state_pool.push_back(new tx_state(util::strprintf("peq_%d", ++peq_cnt)));
         bool success;
-        std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), new tx_state("snp_peq")});
+        std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), tx_state_pool.back()});
+        tx_state_pool.pop_back();
     }
     auto* txs = it->second;
 
@@ -1140,6 +1146,8 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
             wait(clk_i.posedge_event());
         handle_snoop_response(*trans, txs);
     }
+    tx_state_pool.push_back(it->second);
+    tx_state_pool.back()->peq.clear();
     tx_state_by_trans.erase(to_id(trans));
     if(trans->has_mm())
         trans->release();

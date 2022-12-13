@@ -129,6 +129,8 @@ protected:
     };
     std::unordered_map<uintptr_t, tx_state*> tx_state_by_trans;
 
+    std::vector<tx_state*> tx_state_pool;
+
     std::unordered_map<unsigned, scc::ordered_semaphore> active_tx_by_id;
 
     scc::ordered_semaphore strict_order_sem{1};
