@@ -81,17 +81,16 @@ enum class req_optype_e : uint8_t {
     Evict = 0x0D,
     EOBarrier = 0x0E,
     ECBarrier = 0x0F,
+    // RESERVED    0x10
     ReadNoSnpSep = 0x11,
+    // RESERVED    0x12
+	CleanSharedPersistSep = 0x13, //CHI-E
     DVMOp = 0x14,
     WriteEvictFull = 0x15,
+    WriteCleanPtl = 0x16, // As per CHI issue-A
     WriteCleanFull = 0x17,
     WriteUniquePtl = 0x18,
     WriteUniqueFull = 0x19,
-    // mahi: discuss with suresh sir
-    // Reserved=0x10
-    // Reserved=0x12-0x13
-    // Reserved (WriteCleanPtl)=0x16    // As per CHI issue-C
-    WriteCleanPtl = 0x16, // As per CHI issue-A
     WriteBackPtl = 0x1A,
     WriteBackFull = 0x1B,
     WriteNoSnpPtl = 0x1C,
@@ -124,8 +123,42 @@ enum class req_optype_e : uint8_t {
     AtomicSwap = 0x38,
     AtomicCompare = 0x39,
     PrefetchTgt = 0x3A,
-    // RESERVED        = 0x3B to 0x3F
-    ILLEGAL = 0xFF
+    // RESERVED        = 0x3B to 0x40
+	MakeReadUnique = 0x41,
+	WriteEvictOrEvict = 0x42,
+	WriteUniqueZero = 0x43,
+	WriteNoSnpZero = 0x44,
+    // RESERVED        = 0x45 to 0x46
+	StashOnceSepShared = 0x47,
+	StashOnceSepUnique = 0x48,
+    // RESERVED        = 0x49 to 0x4b
+	ReadPreferUnique = 0x4c,
+    // RESERVED        = 0x4d to 0x4F
+	WriteNoSnpFullCleanSh = 0x50,
+	WriteNoSnpFullCleanInv = 0x51,
+	WriteNoSnpFullCleanShPerSep = 0x52,
+    // RESERVED        = 0x52
+	WriteUniqueFullCleanSh = 0x54,
+    // RESERVED        = 0x55
+	WriteUniqueFullCleanShPerSep = 0x56,
+    // RESERVED        = 0x57
+	WriteBackFullCleanSh = 0x58,
+	WriteBackFullCleanInv = 0x59,
+	WriteBackFullCleanShPerSep = 0x5A,
+    // RESERVED        = 0x5B
+	WriteCleanFullCleanSh = 0x5c,
+    // RESERVED        = 0x5d
+	WriteCleanFullCleanShPerSep = 0x5e,
+    // RESERVED        = 0x3f
+	WriteNoSnpPtlCleanSh = 0x60,
+	WriteNoSnpPtlCleanInv = 0x61,
+	WriteNoSnpPtlCleanShPerSep = 0x62,
+    // RESERVED        = 0x63
+	WriteUniquePtlCleanSh = 0x64,
+    // RESERVED        = 0x3B to 0x40
+	WriteUniquePtlCleanShPerSep = 0x66,
+    // RESERVED        = 0x67 to 0x7f
+	ILLEGAL = 0xFF
 };
 
 // the Snp_Req channel request type enumeration class acc. Table 12-17 SNP channel opcodes and Page No:321
@@ -140,18 +173,19 @@ enum class snp_optype_e : uint8_t {
     SnpUnique = 0x07,
     SnpCleanShared = 0x08,
     SnpCleanInvalid = 0x09,
-    SnpMakeInvalid = 0x0A,
+	SnpMakeInvalid = 0x0A,
     SnpStashUnique = 0x0B,
     SnpStashShared = 0x0c,
     SnpDVMOp = 0x0D,
+	SnpQuery = 0x10,
     SnpSharedFwd = 0x11,
     SnpCleanFwd = 0x12,
     SnpOnceFwd = 0x13,
     SnpNotSharedDirtyFwd = 0x14,
-    SnpUniqueFwd = 0x17,
+	SnpPreferUnique = 0x15,
+	SnpPreferUniqueFwd = 0x16,
+	SnpUniqueFwd = 0x17,
     // Reserved           = 0x0E-0x0F
-    // Reserved           = 0x10
-    // Reserved           = 0x15-0x16
     // Reserved           = 0x18-0x1F
 };
 
@@ -245,10 +279,18 @@ enum class rsp_optype_e : uint8_t {
     PCrdGrant = 0x7,
     ReadReceipt = 0x8,
     SnpRespFwded = 0x9,
+	TagMatch = 0xA,
     RespSepData = 0xB,
-    // Reserved     = 0xA,
-    // Reserved     = 0xC-0xF
-    Invalid = 0x10
+	Persist =0xC,
+	CompPersist = 0xD,
+	DBIDRespOrd = 0xE,
+	// Reserved = 0xF
+	StashDone = 0x10,
+	CompStashDone = 0x11,
+	// Reserved = 0x12-0x13
+	CompCMO = 0x14,
+	// Reserved = 0x15-0x1f
+	Invalid = 0x20
 };
 
 enum class rsp_resptype_e : uint8_t {
@@ -412,6 +454,18 @@ struct request {
     that the requested data is likely to be shared by other Request Nodes within the system */
     void set_likely_shared(bool = true);
     bool is_likely_shared() const;
+    /* Indicates the operation to be performed on the tags present in
+	the corresponding DAT channel */
+    void set_tag_op(uint8_t);
+    uint8_t get_tag_op() const;
+    /* Precise contents are IMPLEMENTATION DEFINED. Typically
+	expected to contain Exception Level, TTBR value, and CPU identifier */
+    void set_tag_group_id(uint32_t);
+    uint32_t get_tag_group_id() const;
+    /* Memory System Performance Resource Partitioning and Monitoring.
+	Efficiently utilizes the memory resources among users and monitors their use */
+    void set_mpam(uint16_t);
+    uint16_t get_mpam() const;
     /* Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the
      interconnect is IMPLEMENTATION DEFINED.*/
     void set_rsvdc(uint32_t);
@@ -425,7 +479,9 @@ private:
     req_optype_e opcode{req_optype_e::ReqLCrdReturn};
     bool stash_n_id_valid{false}, stash_lp_id_valid{false}, ns{false}, exp_comp_ack{false}, allow_retry{false},
         snp_attr{false}, excl{false}, snoop_me{false}, likely_shared{false};
-    uint32_t rsvdc{0};
+    uint32_t rsvdc{0}, tag_group_id{0};
+    uint16_t mpam{0};
+    uint8_t tag_op{0};
 };
 
 /**
@@ -540,6 +596,16 @@ struct data {
     performance measurement of systems*/
     void set_trace_tag(bool);
     bool is_trace_tag() const;
+    /* Indicates the operation to be performed on the tags present in
+	the corresponding DAT channel */
+    void set_tag_op(uint8_t);
+    uint8_t get_tag_op() const;
+    /* Provides up to 8 sets of 4-bit tags, each associated with a 16-byte, aligned address location. */
+    void set_tag(uint64_t);
+    uint64_t get_tag() const;
+    /* Indicates which of the Allocation Tags must be updated*/
+    void set_tu(uint16_t);
+    uint16_t get_tu() const;
 
 private:
     uint8_t db_id{0}, resp_err{0};
@@ -549,6 +615,9 @@ private:
     dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
     uint32_t rsvdc{0};
     uint64_t data_check{0};
+    uint64_t tag{0};
+    uint16_t tu{0};
+    uint8_t tag_op{0};
     bool trace_tag{false};
 };
 
@@ -580,11 +649,17 @@ struct response {
     /*Data Pull. Indicates the inclusion of an implied Read request in the Data response*/
     void set_data_pull(bool);
     bool get_data_pull() const;
-
     /*A transaction request includes a TgtID that identifies the target node*/
     void set_tgt_id(uint16_t);
     uint16_t get_tgt_id() const;
-
+    /* Indicates the operation to be performed on the tags present in
+	the corresponding DAT channel */
+    void set_tag_op(uint8_t);
+    uint8_t get_tag_op() const;
+    /* Precise contents are IMPLEMENTATION DEFINED. Typically
+	expected to contain Exception Level, TTBR value, and CPU identifier */
+    void set_tag_group_id(uint32_t);
+    uint32_t get_tag_group_id() const;
     /*Trace Tag. Provides additional support for the debugging, tracing, and performance measurement of systems*/
     void set_trace_tag(bool);
     bool is_trace_tag() const;
@@ -594,7 +669,9 @@ private:
     bool data_pull{false};
     rsp_optype_e opcode{rsp_optype_e::Invalid};
     rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
+    uint32_t tag_group_id{0};
     uint16_t tgt_id{0};
+    uint8_t tag_op{0};
     bool trace_tag{false};
 };
 
@@ -1082,6 +1159,13 @@ inline bool request::is_likely_shared() const { return likely_shared; }
 inline void request::set_rsvdc(uint32_t rsvdc) { this->rsvdc = rsvdc; }
 inline uint32_t request::get_rsvdc() const { return rsvdc; }
 
+inline void request::set_tag_op(uint8_t tag_op){ this->tag_op = tag_op; }
+inline uint8_t request::get_tag_op() const { return tag_op; }
+inline void request::set_tag_group_id(uint32_t tag_group_id){ this->tag_group_id = tag_group_id; }
+inline uint32_t request::get_tag_group_id() const { return tag_group_id; }
+inline void request::set_mpam(uint16_t mpam){ this->mpam = mpam; }
+inline uint16_t request::get_mpam() const  { return mpam; }
+
 //===== End of [2] request
 
 //==== [3] Starting of snp_request
@@ -1212,6 +1296,13 @@ inline dat_optype_e data::get_opcode() const { return opcode; }
 inline void data::set_trace_tag(bool trace_tag) { this->trace_tag = trace_tag; }
 inline bool data::is_trace_tag() const { return trace_tag; }
 
+inline void data::set_tag_op(uint8_t tag_op) { this->tag_op = tag_op; }
+inline uint8_t data::get_tag_op() const { return tag_op; }
+inline void data::set_tag(uint64_t tag) { this->tag = tag; }
+inline uint64_t data::get_tag() const { return tag; }
+inline void data::set_tu(uint16_t tu) { this->tu = tu; }
+inline uint16_t data::get_tu() const { return tu; }
+
 //===== End of [4] data
 
 //==== [5] Starting of structure 'response' member functions
@@ -1248,6 +1339,11 @@ inline void response::set_tgt_id(uint16_t tgt_id) { this->tgt_id = tgt_id; }
 inline uint16_t response::get_tgt_id() const { return tgt_id; }
 inline void response::set_opcode(rsp_optype_e opcode) { this->opcode = opcode; }
 inline rsp_optype_e response::get_opcode() const { return opcode; }
+
+inline void response::set_tag_op(uint8_t tag_op) { this->tag_op = tag_op; }
+inline uint8_t response::get_tag_op() const{ return tag_op; }
+inline void response::set_tag_group_id(uint32_t tag_group_id) { this->tag_group_id = tag_group_id; }
+inline uint32_t response::get_tag_group_id() const{ return tag_group_id; }
 /*Trace Tag. Provides additional support for the debugging, tracing, and
 performance measurement of systems*/
 inline void response::set_trace_tag(bool trace_tag) { this->trace_tag = trace_tag; }

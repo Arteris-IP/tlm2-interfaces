@@ -768,17 +768,25 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         if(phase == tlm::BEGIN_RESP) {
             cresp_response(trans);
             not_finish &= 0x1; // clear bit1
-            auto resp_ext = trans.get_extension<chi::chi_ctrl_extension>();
-            if(trans.is_write() && (resp_ext->resp.get_opcode() == chi::rsp_optype_e::DBIDResp ||
-                                    resp_ext->resp.get_opcode() == chi::rsp_optype_e::CompDBIDResp)) {
+            auto ctrl_ext = trans.get_extension<chi::chi_ctrl_extension>();
+            if(trans.is_write() && (ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::DBIDResp ||
+                                    ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::CompDBIDResp)) {
                 send_wdata(trans, txs);
                 not_finish &= 0x2; // clear bit0
-            } else if(chi::is_dataless(resp_ext) && resp_ext->resp.get_opcode() == chi::rsp_optype_e::Comp &&
-                      (resp_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
-                       resp_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_UC ||
-                       resp_ext->resp.get_resp() ==
-                           chi::rsp_resptype_e::Comp_SC)) { // Response to dataless makeUnique request
-                not_finish &= 0x2;                          // clear bit0
+            } else if(chi::is_dataless(ctrl_ext)){
+            	switch(ctrl_ext->resp.get_opcode()) {
+            	case chi::rsp_optype_e::Comp: // Response to dataless makeUnique request
+            		if(ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
+                            ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_UC ||
+                            ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_SC) {
+            			not_finish &= 0x2;                          // clear bit0
+            		}
+            		break;
+            	case chi::rsp_optype_e::CompPersist:
+            	case chi::rsp_optype_e::Persist:
+            		not_finish &= 0x2;                          // clear bit0
+            		break;
+            	}
             }
         } else if(trans.is_read() && (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
             SCCTRACE(SCMOD) << "RDAT flit received. Beat count: " << beat_cnt << ", addr: 0x" << std::hex
@@ -796,7 +804,6 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                 if(beat_cnt != exp_beat_cnt)
                     SCCERR(SCMOD) << "Wrong beat count, expected " << exp_beat_cnt << ", got " << beat_cnt;
             }
-
         } else {
             SCCFATAL(SCMOD) << "Illegal protocol state (maybe just not implemented?)";
         }

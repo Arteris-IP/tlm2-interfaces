@@ -19,123 +19,116 @@
 #include <tlm/scc/scv/tlm_extension_recording_registry.h>
 
 namespace chi {
-
+std::array<char const*, 103> opc2str = {
+	    "ReqLCrdReturn",
+	    "ReadShared",
+	    "ReadClean",
+	    "ReadOnce",
+	    "ReadNoSnp",
+	    "PCrdReturn",
+	    "Reserved",
+	    "ReadUnique",
+	    "CleanShared",
+	    "CleanInvalid",
+	    "MakeInvalid",
+	    "CleanUnique",
+	    "MakeUnique",
+	    "Evict",
+	    "EOBarrier",
+	    "ECBarrier",
+	    "RESERVED",
+	    "ReadNoSnpSep",
+		"RESERVED",
+		"CleanSharedPersistSep",
+	    "DVMOp",
+	    "WriteEvictFull",
+	    "WriteCleanPtl",
+	    "WriteCleanFull",
+	    "WriteUniquePtl",
+	    "WriteUniqueFull",
+	    "WriteBackPtl",
+	    "WriteBackFull",
+	    "WriteNoSnpPtl",
+	    "WriteNoSnpFull",
+		"RESERVED",
+		"RESERVED",
+	    "WriteUniqueFullStash",
+	    "WriteUniquePtlStash",
+	    "StashOnceShared",
+	    "StashOnceUnique",
+	    "ReadOnceCleanInvalid",
+	    "ReadOnceMakeInvalid",
+	    "ReadNotSharedDirty",
+	    "CleanSharedPersist",
+	    "AtomicStoreAdd",
+	    "AtomicStoreClr",
+	    "AtomicStoreEor",
+	    "AtomicStoreSet",
+	    "AtomicStoreSmax",
+	    "AtomicStoreSmin",
+	    "AtomicStoreUmax",
+	    "AtomicStoreUmin",
+	    "AtomicLoadAdd",
+	    "AtomicLoadClr",
+	    "AtomicLoadEor",
+	    "AtomicLoadSet",
+	    "AtomicLoadSmax",
+	    "AtomicLoadSmin",
+	    "AtomicLoadUmax",
+	    "AtomicLoadUmin",
+	    "AtomicSwap",
+	    "AtomicCompare",
+	    "PrefetchTgt",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"MakeReadUnique",
+		"WriteEvictOrEvict",
+		"WriteUniqueZero",
+		"WriteNoSnpZero",
+		"RESERVED",
+		"RESERVED",
+		"StashOnceSepShared",
+		"StashOnceSepUnique",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"ReadPreferUnique",
+		"RESERVED",
+		"RESERVED",
+		"RESERVED",
+		"WriteNoSnpFullCleanSh",
+		"WriteNoSnpFullCleanInv",
+		"WriteNoSnpFullCleanShPerSep",
+		"RESERVED",
+		"WriteUniqueFullCleanSh",
+		"RESERVED",
+		"WriteUniqueFullCleanShPerSep",
+		"RESERVED",
+		"WriteBackFullCleanSh",
+		"WriteBackFullCleanInv",
+		"WriteBackFullCleanShPerSep",
+		"RESERVED",
+		"WriteCleanFullCleanSh",
+		"RESERVED",
+		"WriteCleanFullCleanShPerSep",
+		"RESERVED",
+		"WriteNoSnpPtlCleanSh",
+		"WriteNoSnpPtlCleanInv",
+		"WriteNoSnpPtlCleanShPerSep",
+		"RESERVED",
+		"WriteUniquePtlCleanSh",
+		"RESERVED",
+		"WriteUniquePtlCleanShPerSep",
+};
 template <> const char* to_char<req_optype_e>(req_optype_e v) {
-    switch(v) {
-    case req_optype_e::ReqLCrdReturn:
-        return "ReqLCrdReturn";
-    case req_optype_e::ReadShared:
-        return "ReadShared";
-    case req_optype_e::ReadClean:
-        return "ReadClean";
-    case req_optype_e::ReadOnce:
-        return "ReadOnce";
-    case req_optype_e::ReadNoSnp:
-        return "ReadNoSnp";
-    case req_optype_e::PCrdReturn:
-        return "PCrdReturn";
-    case req_optype_e::Reserved:
-        return "Reserved";
-    case req_optype_e::ReadUnique:
-        return "ReadUnique";
-    case req_optype_e::CleanShared:
-        return "CleanShared";
-    case req_optype_e::CleanInvalid:
-        return "CleanInvalid";
-    case req_optype_e::MakeInvalid:
-        return "MakeInvalid";
-    case req_optype_e::CleanUnique:
-        return "CleanUnique";
-    case req_optype_e::MakeUnique:
-        return "MakeUnique";
-    case req_optype_e::Evict:
-        return "Evict";
-    case req_optype_e::ReadNoSnpSep:
-        return "ReadNoSnpSep";
-    case req_optype_e::DVMOp:
-        return "DVMOp";
-    case req_optype_e::WriteEvictFull:
-        return "WriteEvictFull";
-    case req_optype_e::WriteCleanFull:
-        return "WriteCleanFull";
-    case req_optype_e::WriteCleanPtl:
-        return "WriteCleanPtl";
-    case req_optype_e::WriteUniquePtl:
-        return "WriteUniquePtl";
-    case req_optype_e::WriteUniqueFull:
-        return "WriteUniqueFull";
-    // mahi: discuss with suresh sir
-    // Reserved(EOBarrier)=0x0E
-    // Reserved(ECBarrier)=0x0F
-    // Reserved=0x10
-    // Reserved=0x12-0x13
-    // Reserved (WriteCleanPtl)=0x16
-    case req_optype_e::WriteBackPtl:
-        return "WriteBackPtl";
-    case req_optype_e::WriteBackFull:
-        return "WriteBackFull";
-    case req_optype_e::WriteNoSnpPtl:
-        return "WriteNoSnpPtl";
-    case req_optype_e::WriteNoSnpFull:
-        return "WriteNoSnpFull";
-    // RESERVED    0x1E-0x1F
-    case req_optype_e::WriteUniqueFullStash:
-        return "WriteUniqueFullStash";
-    case req_optype_e::WriteUniquePtlStash:
-        return "WriteUniquePtlStash";
-    case req_optype_e::StashOnceShared:
-        return "StashOnceShared";
-    case req_optype_e::StashOnceUnique:
-        return "StashOnceUnique";
-    case req_optype_e::ReadOnceCleanInvalid:
-        return "ReadOnceCleanInvalid";
-    case req_optype_e::ReadOnceMakeInvalid:
-        return "ReadOnceMakeInvalid";
-    case req_optype_e::ReadNotSharedDirty:
-        return "ReadNotSharedDirty";
-    case req_optype_e::CleanSharedPersist:
-        return "CleanSharedPersist";
-    case req_optype_e::AtomicLoadAdd:
-        return "AtomicLoadAdd";
-    case req_optype_e::AtomicLoadClr:
-        return "AtomicLoadClr";
-    case req_optype_e::AtomicLoadEor:
-        return "AtomicLoadEor";
-    case req_optype_e::AtomicLoadSet:
-        return "AtomicLoadSet";
-    case req_optype_e::AtomicLoadSmax:
-        return "AtomicLoadSmax";
-    case req_optype_e::AtomicLoadSmin:
-        return "AtomicLoadSmin";
-    case req_optype_e::AtomicLoadUmax:
-        return "AtomicLoadUmax";
-    case req_optype_e::AtomicLoadUmin:
-        return "AtomicLoadUmin";
-    case req_optype_e::AtomicStoreAdd:
-        return "AtomicStoreAdd";
-    case req_optype_e::AtomicStoreClr:
-        return "AtomicStoreClr";
-    case req_optype_e::AtomicStoreEor:
-        return "AtomicStoreEor";
-    case req_optype_e::AtomicStoreSet:
-        return "AtomicStoreSet";
-    case req_optype_e::AtomicStoreSmax:
-        return "AtomicStoreSmax";
-    case req_optype_e::AtomicStoreSmin:
-        return "AtomicStoreSmin";
-    case req_optype_e::AtomicStoreUmax:
-        return "AtomicStoreUmax";
-    case req_optype_e::AtomicStoreUmin:
-        return "AtomicStoreUmin";
-    case req_optype_e::AtomicSwap:
-        return "AtomicSwap";
-    case req_optype_e::AtomicCompare:
-        return "AtomicCompare";
-    case req_optype_e::PrefetchTgt:
-        return "PrefetchTgt";
-    default:
-        return "UNKNOWN";
-    }
+	auto idx = static_cast<unsigned>(v);
+	if(idx<opc2str.size())
+		return opc2str[idx];
+	else return "RESERVED";
 }
 
 template <> const char* to_char<dat_optype_e>(dat_optype_e v) {
@@ -187,8 +180,22 @@ template <> const char* to_char<rsp_optype_e>(rsp_optype_e v) {
         return "ReadReceipt";
     case rsp_optype_e::SnpRespFwded:
         return "SnpRespFwded";
+    case rsp_optype_e::TagMatch:
+    	return "TagMatch";
     case rsp_optype_e::RespSepData:
         return "RespSepData";
+    case rsp_optype_e::Persist:
+    	return "Persist";
+    case rsp_optype_e::CompPersist:
+    	return "CompPersist";
+    case rsp_optype_e::DBIDRespOrd:
+    	return "DBIDRespOrd";
+    case rsp_optype_e::StashDone:
+    	return "StashDone";
+    case rsp_optype_e::CompStashDone:
+    	return "CompStashDone";
+    case rsp_optype_e::CompCMO:
+    	return "CompCMO";
     case rsp_optype_e::Invalid:
         return "---";
     default:
@@ -362,6 +369,9 @@ class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_c.snoop_me", ext->req.is_snoop_me());
             handle.record_attribute("trans.chi_c.likely_shared", ext->req.is_likely_shared());
             handle.record_attribute("trans.chi_c.txn_rsvdc", ext->req.get_rsvdc()); // Reserved for customer use.
+            handle.record_attribute("trans.chi_c.tag_op", ext->req.get_tag_op());
+            handle.record_attribute("trans.chi_c.tag_group_id", ext->req.get_tag_group_id());
+            handle.record_attribute("trans.chi_c.mpam", ext->req.get_mpam());
             handle.record_attribute("trans.chi_c.rsp.db_id", ext->resp.get_db_id());
             handle.record_attribute("trans.chi_c.rsp.pcrd_type", ext->resp.get_pcrd_type());
             handle.record_attribute("trans.chi_c.rsp.resp_err", ext->resp.get_resp_err());
@@ -371,6 +381,8 @@ class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_c.rsp.resp", std::string(to_char(ext->resp.get_resp())));
             handle.record_attribute("trans.chi_c.rsp.tgt_id", ext->resp.get_tgt_id());
             handle.record_attribute("trans.chi_c.rsp.trace_tag", ext->resp.is_trace_tag());
+            handle.record_attribute("trans.chi_c.rsp.tag_op", ext->resp.get_tag_op());
+            handle.record_attribute("trans.chi_c.rsp.tag_group_id", ext->resp.get_tag_group_id());
         }
     }
 
@@ -400,6 +412,11 @@ class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_d.rsvdc", ext->dat.get_rsvdc());
             handle.record_attribute("trans.chi_d.data_check", ext->dat.get_data_check());
             handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
+            handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
+            handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
+            handle.record_attribute("trans.chi_d.tag_op", ext->dat.get_tag_op());
+            handle.record_attribute("trans.chi_c.tag", ext->dat.get_tag());
+            handle.record_attribute("trans.chi_c.tu", ext->dat.get_tu());
         }
     }
 
