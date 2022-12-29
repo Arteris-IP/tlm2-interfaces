@@ -36,6 +36,7 @@ if(TARGET scc)
        axi/checker/ace_protocol.cpp
     )
     target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
 else()
     add_library(${PROJECT_NAME} INTERFACE) 

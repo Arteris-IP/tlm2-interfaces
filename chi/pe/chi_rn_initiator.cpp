@@ -776,9 +776,10 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
             } else if(chi::is_dataless(ctrl_ext)){
             	switch(ctrl_ext->resp.get_opcode()) {
             	case chi::rsp_optype_e::Comp: // Response to dataless makeUnique request
-            		if(ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
+            		if(ctrl_ext->req.get_opcode() != chi::req_optype_e::CleanSharedPersistSep &&
+            			   (ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
                             ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_UC ||
-                            ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_SC) {
+                            ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_SC)) {
             			not_finish &= 0x2;                          // clear bit0
             		}
             		break;
