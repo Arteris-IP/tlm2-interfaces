@@ -14,8 +14,6 @@
  * limitations under the License.axi_util.cpp
  */
 
-#define SC_INCLUDE_DYNAMIC_PROCESSES
-
 #include "simple_initiator.h"
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
