@@ -63,6 +63,7 @@ protected:
     axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
 
     void end_of_elaboration(){
+        base::end_of_elaboration();
         set_bw_interface(socket.get_base_port().operator -> ());
     }
 };

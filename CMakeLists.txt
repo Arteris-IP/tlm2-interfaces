@@ -32,6 +32,8 @@ if(TARGET scc)
        axi/pe/ordered_target.cpp
        axi/pe/reordering_target.cpp
        axi/pe/axi_initiator.cpp
+       axi/scv/axi_ace_scv.cpp
+       axi/lwtr/axi_ace_lwtr.cpp
        axi/checker/axi_protocol.cpp
        axi/checker/ace_protocol.cpp
     )
