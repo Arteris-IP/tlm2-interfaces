@@ -222,7 +222,7 @@ private:
 	//! blocking transaction recording stream handle
 	tx_fiber* b_streamHandle{nullptr};
 	//! transaction generator handle for blocking transactions
-	std::array<tx_generator<sc_dt::uint64, sc_dt::uint64>*, 3> b_trHandle{{nullptr, nullptr, nullptr}};
+	std::array<tx_generator<sc_core::sc_time, sc_core::sc_time>*, 3> b_trHandle{{nullptr, nullptr, nullptr}};
 	//! timed blocking transaction recording stream handle
 	tx_fiber* b_streamHandleTimed{nullptr};
 	//! transaction generator handle for blocking transactions with annotated
@@ -329,7 +329,7 @@ void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 		return;
 	}
 	// Get a handle for the new transaction
-	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay.value(), sc_core::sc_time_stamp());
+	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay, sc_core::sc_time_stamp());
 	tx_handle htim;
 	/*************************************************************************
 	 * do the timed notification
@@ -379,7 +379,7 @@ void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 					extensionRecording->recordEndTx(htim, trans);
 			}
 	// End the transaction
-	h.end_tx(delay.value());
+	h.end_tx(delay);
 	// and now the stuff for the timed tx
 	if(htim.is_valid()) {
 		htim.record_attribute("trans", trans);
@@ -394,7 +394,7 @@ void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::
         return;
     }
     // Get a handle for the new transaction
-    tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay.value(), sc_core::sc_time_stamp());
+    tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay, sc_core::sc_time_stamp());
     tx_handle htim;
     /*************************************************************************
      * do the timed notification
@@ -440,7 +440,7 @@ void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::
 					extensionRecording->recordEndTx(htim, trans);
 			}
     // End the transaction
-    h.end_tx(delay.value());
+    h.end_tx(delay);
     // and now the stuff for the timed tx
 	if(htim.is_valid()) {
 		htim.record_attribute("trans", trans);
