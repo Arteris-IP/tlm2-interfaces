@@ -46,6 +46,9 @@ using namespace tlm::scc::lwtr;
 
 struct nb_ace_rec_entry: public nb_rec_entry {
 	bool snoop;
+	nb_ace_rec_entry(tlm::scc::tlm_gp_shared_ptr tr,tlm::tlm_phase const ph, uintptr_t const id, tx_handle parent, bool snoop)
+	: nb_rec_entry{tr, ph, id, parent}
+		, snoop(snoop) {}
 };
 extern bool registered;
 
@@ -256,11 +259,11 @@ protected:
 		}
 		if(isRecordingBlockingTxEnabled() && !b_streamHandle) {
 			b_streamHandle = new tx_fiber((full_name + "_bl").c_str(), "[TLM][ace][b]", m_db);
-			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"read", *b_streamHandle, "start_delay", "end_delay");
-			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"write", *b_streamHandle, "start_delay", "end_delay");
-			b_trHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"ignore", *b_streamHandle, "start_delay", "end_delay");
 			if(enableTimedTracing.get_value()) {
 				b_streamHandleTimed =
@@ -329,13 +332,13 @@ void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 		return;
 	}
 	// Get a handle for the new transaction
-	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay, sc_core::sc_time_stamp());
+	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay);
 	tx_handle htim;
 	/*************************************************************************
 	 * do the timed notification
 	 *************************************************************************/
 	if(b_streamHandleTimed)
-		htim = b_trTimedHandle[trans.get_command()]->begin_tx(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
+		htim = b_trTimedHandle[trans.get_command()]->begin_tx_delayed(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
 
 	if(registered)
 		for(auto& extensionRecording : lwtr4tlm2_extension_registry<TYPES>::inst().get())
@@ -383,7 +386,7 @@ void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 	// and now the stuff for the timed tx
 	if(htim.is_valid()) {
 		htim.record_attribute("trans", trans);
-		htim.end_tx(::lwtr::no_data(), sc_core::sc_time_stamp()+delay);
+		htim.end_tx_delayed(sc_core::sc_time_stamp()+delay);
 	}
 }
 
@@ -394,13 +397,13 @@ void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::
         return;
     }
     // Get a handle for the new transaction
-    tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay, sc_core::sc_time_stamp());
+    tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay);
     tx_handle htim;
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
 	if(b_streamHandleTimed)
-		htim = b_trTimedHandle[trans.get_command()]->begin_tx(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
+		htim = b_trTimedHandle[trans.get_command()]->begin_tx_delayed(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
 
 	if(registered)
 		for(auto& extensionRecording : lwtr4tlm2_extension_registry<TYPES>::inst().get())
@@ -444,7 +447,7 @@ void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::
     // and now the stuff for the timed tx
 	if(htim.is_valid()) {
 		htim.record_attribute("trans", trans);
-		htim.end_tx(::lwtr::no_data(), sc_core::sc_time_stamp()+delay);
+		htim.end_tx_delayed(sc_core::sc_time_stamp()+delay);
 	}
 }
 
@@ -485,7 +488,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	 * do the timed notification
 	 *************************************************************************/
 	if(nb_streamHandleTimed) {
-		nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP)};
+		nb_ace_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP));
 		rec.tr->deep_copy_from(trans);
 		nb_timed_peq.notify(rec, delay);
 	}

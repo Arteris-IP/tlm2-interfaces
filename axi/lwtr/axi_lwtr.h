@@ -245,11 +245,11 @@ protected:
 		}
 		if(isRecordingBlockingTxEnabled() && !b_streamHandle) {
 			b_streamHandle = new tx_fiber((full_name + "_bl").c_str(), "[TLM][axi][b]", m_db);
-			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"read", *b_streamHandle, "start_delay", "end_delay");
-			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"write", *b_streamHandle, "start_delay", "end_delay");
-			b_trHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
+			b_trHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"ignore", *b_streamHandle, "start_delay", "end_delay");
 			if(enableTimedTracing.get_value()) {
 				b_streamHandleTimed =
@@ -326,7 +326,7 @@ void axi_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 	 * do the timed notification
 	 *************************************************************************/
 	if(b_streamHandleTimed)
-		htim = b_trTimedHandle[trans.get_command()]->begin_tx(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
+		htim = b_trTimedHandle[trans.get_command()]->begin_tx_delayed(sc_core::sc_time_stamp()+delay, par_chld_hndl, h);
 
 	if(registered)
 		for(auto& extensionRecording : lwtr4tlm2_extension_registry<TYPES>::inst().get())
@@ -374,7 +374,7 @@ void axi_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 	// and now the stuff for the timed tx
 	if(htim.is_valid()) {
 		htim.record_attribute("trans", trans);
-		htim.end_tx(::lwtr::no_data(), sc_core::sc_time_stamp()+delay);
+		htim.end_tx_delayed(sc_core::sc_time_stamp()+delay);
 	}
 }
 
