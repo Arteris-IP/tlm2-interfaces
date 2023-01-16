@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021 Arteris IP
+ * Copyright 2023 Arteris IP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,6 @@
  */
 
 #pragma once
-
-#ifndef SC_INCLUDE_DYNAMIC_PROCESSES
-#define SC_INCLUDE_DYNAMIC_PROCESSES
-#endif
 
 #include <tlm/scc/lwtr/tlm2_lwtr.h>
 #include <cci_configuration>
@@ -48,14 +44,14 @@ extern bool registered;
 
 /*! \brief The TLM2 transaction recorder
  *
- * This module records all TLM transaction to a SCV transaction stream for
+ * This module records all TLM transaction to a LWTR transaction stream for
  * further viewing and analysis.
- * The handle of the created transaction is storee in an tlm_extension so that
+ * The handle of the created transaction is stored in an tlm_extension so that
  * another instance of the axi_lwtr
  * e.g. further down the path can link to it.
  */
 template <typename TYPES = axi::axi_protocol_types>
-class axi_lwtr : public sc_core::sc_object, public virtual axi::axi_fw_transport_if<TYPES>, public virtual axi::axi_bw_transport_if<TYPES> {
+class axi_lwtr : public virtual axi::axi_fw_transport_if<TYPES>, public virtual axi::axi_bw_transport_if<TYPES> {
 public:
 	//! \brief the attribute to selectively enable/disable recording of blocking protocol tx
 	cci::cci_param<bool> enableBlTracing;
@@ -76,43 +72,27 @@ public:
 
 	cci::cci_param<unsigned> wr_response_timeout{"wr_response_timeout", 0};
 
-	//! \brief the port where fw accesses are forwarded to
-	sc_core::sc_port<tlm::tlm_fw_transport_if<TYPES>> fw_port{"fw_port"};
-
-	//! \brief the export where bw accesses are forwarded to
-	sc_core::sc_export<tlm::tlm_bw_transport_if<TYPES>> bw_export{"bw_export"};
-
-	//! \brief the port where bw accesses are forwarded to
-	sc_core::sc_port<tlm::tlm_bw_transport_if<TYPES>> bw_port{"bw_port"};
-
-	//! \brief the port where fw accesses are forwarded to
-	sc_core::sc_export<tlm::tlm_fw_transport_if<TYPES>> fw_export{"fw_export"};
-
 	/*! \brief The constructor of the component
 	 *
 	 * \param name is the SystemC module name of the recorder
 	 * \param tr_db is a pointer to a transaction recording database. If none is
 	 * provided the default one is retrieved.
 	 *        If this database is not initialized (e.g. by not calling
-	 * scv_tr_db::set_default_db() ) recording is disabled.
+	 * lwtr_tr_db::set_default_db() ) recording is disabled.
 	 */
-	axi_lwtr(const char* name, unsigned bus_width, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
-	: sc_core::sc_object(name)
-	, enableBlTracing("enableBlTracing", recording_enabled)
+	axi_lwtr(char const* full_name, unsigned bus_width, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
+	: enableBlTracing("enableBlTracing", recording_enabled)
 	, enableNbTracing("enableNbTracing", recording_enabled)
+	, full_name(full_name)
 	, nb_timed_peq()
 	, bus_width(bus_width)
 	, m_db(tr_db)
 	{
-		fw_export(*this);
-		bw_export(*this);
 		sc_core::sc_spawn_options opts;
 		opts.spawn_method();
 		opts.dont_initialize();
 		opts.set_sensitivity(&nb_timed_peq.event());
-		sc_core::sc_spawn([this](){
-			nbtx_cb();
-		}, nullptr, &opts);
+		sc_core::sc_spawn([this](){nbtx_cb();}, nullptr, &opts);
 		initialize_streams();
 	}
 
@@ -207,25 +187,15 @@ public:
 	 */
 	inline bool isRecordingNonBlockingTxEnabled() const { return m_db && enableNbTracing.get_value(); }
 
-	template <unsigned int BUSWIDTH = 32,
-			typename FW_IF = tlm::tlm_fw_transport_if<TYPES>,
-			typename BW_IF = tlm::tlm_bw_transport_if<TYPES>,
-			int N = 1,
-			sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-	void bind(tlm::tlm_base_initiator_socket<BUSWIDTH, FW_IF, BW_IF, N, POL>& sck){
-		sck.get_base_port().bind(fw_export);
-		bw_port.bind(sck.get_base_export());
-	}
-	template <unsigned int BUSWIDTH = 32,
-			typename FW_IF = tlm::tlm_fw_transport_if<TYPES>,
-			typename BW_IF = tlm::tlm_bw_transport_if<TYPES>,
-			int N = 1,
-			sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-	void bind(tlm::tlm_base_target_socket<BUSWIDTH, FW_IF, BW_IF, N, POL>& sck){
-		sck.get_base_port().bind(bw_export);
-		fw_port.bind(sck.get_base_export());
-	}
+protected:
+	//! \brief the port where fw accesses are forwarded to
+	sc_core::sc_port<axi::axi_fw_transport_if<TYPES>> fw_port{"fw_port"};
+
+	//! \brief the port where bw accesses are forwarded to
+	sc_core::sc_port<axi::axi_bw_transport_if<TYPES>> bw_port{"bw_port"};
+
 private:
+	std::string const full_name;
 	//! event queue to hold time points of non-blocking transactions
 	::scc::peq<nb_rec_entry> nb_timed_peq;
 	/*! \brief The thread processing the non-blocking requests with their
@@ -274,7 +244,7 @@ protected:
 			par_chld_hndl = m_db->create_relation("PARENT_CHILD");
 		}
 		if(isRecordingBlockingTxEnabled() && !b_streamHandle) {
-			b_streamHandle = new tx_fiber((std::string(name()) + "_bl").c_str(), "[TLM][axi][b]", m_db);
+			b_streamHandle = new tx_fiber((full_name + "_bl").c_str(), "[TLM][axi][b]", m_db);
 			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
 					"read", *b_streamHandle, "start_delay", "end_delay");
 			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
@@ -283,33 +253,33 @@ protected:
 					"ignore", *b_streamHandle, "start_delay", "end_delay");
 			if(enableTimedTracing.get_value()) {
 				b_streamHandleTimed =
-						new tx_fiber((std::string(name()) + "_bl_timed").c_str(), "[TLM][axi][b][timed]", m_db);
+						new tx_fiber((full_name + "_bl_timed").c_str(), "[TLM][axi][b][timed]", m_db);
 				b_trTimedHandle[tlm::TLM_READ_COMMAND] = new tx_generator<>("read", *b_streamHandleTimed);
 				b_trTimedHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<>("write", *b_streamHandleTimed);
 				b_trTimedHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<>("ignore", *b_streamHandleTimed);
 			}
 		}
 		if(isRecordingNonBlockingTxEnabled() && !nb_streamHandle) {
-			nb_streamHandle = new tx_fiber((std::string(name()) + "_nb").c_str(), "[TLM][axi][nb]", m_db);
+			nb_streamHandle = new tx_fiber((full_name + "_nb").c_str(), "[TLM][axi][nb]", m_db);
 			nb_trHandle[FW] = new tx_generator<std::string, std::string>("fw", *nb_streamHandle, "tlm_phase",
 					"tlm_phase[return_path]");
 			nb_trHandle[BW] = new tx_generator<std::string, std::string>("bw", *nb_streamHandle, "tlm_phase",
 					"tlm_phase[return_path]");
 			if(enableTimedTracing.get_value()) {
 				nb_streamHandleTimed =
-						new tx_fiber((std::string(name()) + "_nb_timed").c_str(), "[TLM][axi][nb][timed]", m_db);
+						new tx_fiber((full_name + "_nb_timed").c_str(), "[TLM][axi][nb][timed]", m_db);
 				nb_trTimedHandle[FW] = new tx_generator<>("request", *nb_streamHandleTimed);
 				nb_trTimedHandle[BW] = new tx_generator<>("response", *nb_streamHandleTimed);
 			}
 		}
 		if(m_db && enableDmiTracing.get_value() && !dmi_streamHandle) {
-			dmi_streamHandle = new tx_fiber((std::string(name()) + "_dmi").c_str(), "[TLM][axi][dmi]", m_db);
+			dmi_streamHandle = new tx_fiber((full_name + "_dmi").c_str(), "[TLM][axi][dmi]", m_db);
 			dmi_trGetHandle = new tx_generator<>("get", *dmi_streamHandle);
 			dmi_trInvalidateHandle = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
 					"invalidate", *dmi_streamHandle, "start_addr", "end_addr");
 		}
 		if(enableProtocolChecker.get_value()) {
-			checker=new axi::checker::axi_protocol(basename(), bus_width/8, rd_response_timeout.get_value(), wr_response_timeout.get_value());
+			checker=new axi::checker::axi_protocol(full_name, bus_width/8, rd_response_timeout.get_value(), wr_response_timeout.get_value());
 		}
 	}
 
@@ -322,6 +292,23 @@ private:
 	}
 };
 
+template <unsigned BUSWIDTH=32, typename TYPES = axi::axi_protocol_types, int N = 1,
+        sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
+class axi_lwtr_recorder : public sc_core::sc_module, public axi_lwtr<TYPES> {
+public:
+	axi::axi_target_socket<BUSWIDTH, TYPES, N, POL> tsckt{"tsckt"};
+	axi::axi_initiator_socket<BUSWIDTH, TYPES, N, POL> isckt{"isckt"};
+
+ 	axi_lwtr_recorder(sc_core::sc_module_name nm, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
+	: sc_core::sc_module(nm)
+	, axi_lwtr<TYPES>(name(), BUSWIDTH, recording_enabled, tr_db)
+	{
+ 		isckt(*this);
+ 		tsckt(*this);
+ 		this->bw_port(tsckt.get_base_port());
+ 		this->fw_port(isckt.get_base_port());
+	}
+};
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementations of functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,7 +320,7 @@ void axi_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 		return;
 	}
 	// Get a handle for the new transaction
-	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay.value(), sc_core::sc_time_stamp());
+	tx_handle h = b_trHandle[trans.get_command()]->begin_tx(delay.value());
 	tx_handle htim;
 	/*************************************************************************
 	 * do the timed notification
@@ -360,7 +347,7 @@ void axi_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 	} else {
 		h.add_relation(pred_succ_hndl, preExt->txHandle);
 	}
-	tx_handle preTx(preExt->txHandle);
+	tx_handle preTx{preExt->txHandle};
 	preExt->txHandle = h;
 	fw_port->b_transport(trans, delay);
 	trans.get_extension(preExt);
@@ -434,12 +421,8 @@ tlm::tlm_sync_enum axi_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	 * do the timed notification
 	 *************************************************************************/
 	if(nb_streamHandleTimed) {
-		nb_rec_entry rec;
-		rec.tr = mm::get().allocate();
+		nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 		rec.tr->deep_copy_from(trans);
-		rec.ph = phase;
-		rec.id = reinterpret_cast<uint64_t>(&trans);
-		rec.parent = h;
 		nb_timed_peq.notify(rec, delay);
 	}
 	/*************************************************************************
@@ -471,21 +454,13 @@ tlm::tlm_sync_enum axi_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 		 * do the timed notification if req. finished here
 		 *************************************************************************/
 		if(nb_streamHandleTimed) {
-			nb_rec_entry rec;
-			rec.tr = mm::get().allocate();
+			nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 			rec.tr->deep_copy_from(trans);
-			rec.ph = phase;
-			rec.id = reinterpret_cast<uint64_t>(&trans);
-			rec.parent = h;
 			nb_timed_peq.notify(rec, delay);
 		}
 	} else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-		nb_rec_entry rec;
-		rec.tr = mm::get().allocate();
+		nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 		rec.tr->deep_copy_from(trans);
-		rec.ph = phase;
-		rec.id = reinterpret_cast<uint64_t>(&trans);
-		rec.parent = h;
 		nb_timed_peq.notify(rec, delay);
 	}
 	// End the transaction
@@ -535,12 +510,8 @@ tlm::tlm_sync_enum axi_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 	 * do the timed notification
 	 *************************************************************************/
 	if(nb_streamHandleTimed) {
-		nb_rec_entry rec;
-		rec.tr = mm::get().allocate();
+		nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 		rec.tr->deep_copy_from(trans);
-		rec.ph = phase;
-		rec.id = reinterpret_cast<uint64_t>(&trans);
-		rec.parent = h;
 		nb_timed_peq.notify(rec, delay);
 	}
 	/*************************************************************************
@@ -575,21 +546,13 @@ tlm::tlm_sync_enum axi_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 		 * do the timed notification if req. finished here
 		 *************************************************************************/
 		if(nb_streamHandleTimed) {
-			nb_rec_entry rec;
-			rec.tr = mm::get().allocate();
+			nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 			rec.tr->deep_copy_from(trans);
-			rec.ph = phase;
-			rec.id = reinterpret_cast<uint64_t>(&trans);
-			rec.parent = h;
 			nb_timed_peq.notify(rec, delay);
 		}
 	} else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-		nb_rec_entry rec;
-		rec.tr = mm::get().allocate();
+		nb_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 		rec.tr->deep_copy_from(trans);
-		rec.ph = phase;
-		rec.id = reinterpret_cast<uint64_t>(&trans);
-		rec.parent = h;
 		nb_timed_peq.notify(rec, delay);
 	}
 	return status;
@@ -604,13 +567,13 @@ void axi_lwtr<TYPES>::nbtx_cb() {
 		// Now process outstanding recordings
 		if(e.ph == tlm::BEGIN_REQ || e.ph == axi::BEGIN_PARTIAL_REQ) {
 			h = nb_trTimedHandle[REQ]->begin_tx(par_chld_hndl, e.parent);
-			h.record_attribute(*e.tr);
 			nbtx_req_handle_map[e.id] = h;
 		} else if(e.ph == tlm::END_REQ || e.ph == axi::END_PARTIAL_REQ) {
 			auto it = nbtx_req_handle_map.find(e.id);
 			if(it != nbtx_req_handle_map.end()) {
 				h = it->second;
 				nbtx_req_handle_map.erase(it);
+				h.record_attribute("trans", *e.tr);
 				h.end_tx();
 				nbtx_last_req_handle_map[e.id] = h;
 			}
@@ -619,11 +582,11 @@ void axi_lwtr<TYPES>::nbtx_cb() {
 			if(it != nbtx_req_handle_map.end()) {
 				h = it->second;
 				nbtx_req_handle_map.erase(it);
+				h.record_attribute("trans", *e.tr);
 				h.end_tx();
 				nbtx_last_req_handle_map[e.id] = h;
 			}
 			h = nb_trTimedHandle[RESP]->begin_tx(par_chld_hndl, e.parent);
-			h.record_attribute(*e.tr);
 			nbtx_resp_handle_map[e.id] = h;
 			it = nbtx_last_req_handle_map.find(e.id);
 			if(it != nbtx_last_req_handle_map.end()) {
@@ -642,6 +605,7 @@ void axi_lwtr<TYPES>::nbtx_cb() {
 			auto it = nbtx_resp_handle_map.find(e.id);
 			if(it != nbtx_resp_handle_map.end()) {
 				h = it->second;
+				h.record_attribute("trans", *e.tr);
 				nbtx_resp_handle_map.erase(it);
 				h.end_tx();
 				if(e.ph == axi::END_PARTIAL_RESP) {
@@ -691,5 +655,5 @@ void axi_lwtr<TYPES>::invalidate_direct_mem_ptr(sc_dt::uint64 start_addr, sc_dt:
 template <typename TYPES> unsigned int axi_lwtr<TYPES>::transport_dbg(typename TYPES::tlm_payload_type& trans) {
 	return fw_port->transport_dbg(trans);
 }
-} // namespace scv
+} // namespace lwtr
 } // namespace axi
