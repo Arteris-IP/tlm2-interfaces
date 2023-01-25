@@ -976,7 +976,7 @@ template <> struct enable_for_enum<rsp_optype_e> { static const bool enable = tr
 template <> struct enable_for_enum<rsp_resptype_e> { static const bool enable = true; };
 
 template <> inline req_optype_e into<req_optype_e>(typename std::underlying_type<req_optype_e>::type t) {
-    assert(t <= static_cast<std::underlying_type<req_optype_e>::type>(req_optype_e::PrefetchTgt));
+    assert(t <= static_cast<std::underlying_type<req_optype_e>::type>(req_optype_e::ILLEGAL));
     return static_cast<req_optype_e>(t);
 }
 
