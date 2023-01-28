@@ -1097,11 +1097,7 @@ inline uint8_t request::get_order() const { return this->order; }
 inline void request::set_trace_tag(bool trace_tag) { this->trace_tag = trace_tag; }
 inline bool request::is_trace_tag() const { return trace_tag; }
 
-inline void request::set_opcode(req_optype_e opcode) {
-    // Check opcode validity
-    assert(to_int(opcode) <= 0x3F);
-    this->opcode = opcode;
-}
+inline void request::set_opcode(req_optype_e opcode) { this->opcode = opcode; }
 inline req_optype_e request::get_opcode() const { return opcode; }
 
 // Return Node ID. The node ID that the response with Data is to be sent to.
