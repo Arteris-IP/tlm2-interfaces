@@ -602,15 +602,25 @@ void chi::pe::chi_rn_initiator_b::update_data_extension(chi::chi_data_extension*
     case chi::req_optype_e::WriteUniqueFull:
     case chi::req_optype_e::WriteUniquePtlStash:
     case chi::req_optype_e::WriteUniqueFullStash:
+    // CHE-E 
+    case chi::req_optype_e::WriteNoSnpFullCleanSh:
+    case chi::req_optype_e::WriteBackFullCleanInv:
+    case chi::req_optype_e::WriteBackFullCleanSh:
+    case chi::req_optype_e::WriteBackFullCleanShPerSep:
         data_ext->dat.set_opcode(chi::dat_optype_e::NonCopyBackWrData);
         break;
+
     case chi::req_optype_e::WriteBackFull:
     case chi::req_optype_e::WriteBackPtl:
     case chi::req_optype_e::WriteCleanFull:
     case chi::req_optype_e::WriteCleanPtl:
+    // CHI-E
+    case chi::req_optype_e::WriteCleanFullCleanSh:
+    case chi::req_optype_e::WriteCleanFullCleanShPerSep:
     case chi::req_optype_e::WriteEvictFull:
         data_ext->dat.set_opcode(chi::dat_optype_e::CopyBackWrData);
         break;
+
     case chi::req_optype_e::AtomicStoreAdd:
     case chi::req_optype_e::AtomicStoreClr:
     case chi::req_optype_e::AtomicStoreEor:
