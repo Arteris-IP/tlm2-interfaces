@@ -791,6 +791,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                         not_finish &= 0x2;                          // clear bit0
                     }
                     break;
+                case chi::rsp_optype_e::CompDBIDResp:
                 case chi::rsp_optype_e::CompPersist:
                 case chi::rsp_optype_e::Persist:
                     not_finish &= 0x2;                          // clear bit0
