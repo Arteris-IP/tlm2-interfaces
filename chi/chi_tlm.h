@@ -187,6 +187,7 @@ enum class snp_optype_e : uint8_t {
             SnpUniqueFwd = 0x17,
             // Reserved           = 0x0E-0x0F
             // Reserved           = 0x18-0x1F
+            ILLEGAL = 0x20
 };
 
 // the Dat type enumeration class acc. Table 12-18 DAT channel opcodes and Page No:322
@@ -290,7 +291,7 @@ enum class rsp_optype_e : uint8_t {
             // Reserved = 0x12-0x13
             CompCMO = 0x14,
             // Reserved = 0x15-0x1f
-            Invalid = 0x20
+            INVALID = 0x20
 };
 
 enum class rsp_resptype_e : uint8_t {
@@ -667,7 +668,7 @@ struct response {
 private:
     uint8_t db_id{0}, pcrd_type{0}, resp_err{0}, fwd_state{0};
     bool data_pull{false};
-    rsp_optype_e opcode{rsp_optype_e::Invalid};
+    rsp_optype_e opcode{rsp_optype_e::INVALID};
     rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
     uint32_t tag_group_id{0};
     uint16_t tgt_id{0};
@@ -992,7 +993,7 @@ template <> inline req_optype_e into<req_optype_e>(typename std::underlying_type
 }
 
 template <> inline snp_optype_e into<snp_optype_e>(typename std::underlying_type<snp_optype_e>::type t) {
-    assert(t <= static_cast<std::underlying_type<snp_optype_e>::type>(snp_optype_e::SnpUniqueFwd));
+    assert(t <= static_cast<std::underlying_type<snp_optype_e>::type>(snp_optype_e::ILLEGAL));
     return static_cast<snp_optype_e>(t);
 }
 
@@ -1008,7 +1009,7 @@ template <> inline dat_resptype_e into<dat_resptype_e>(typename std::underlying_
 
 template <> inline rsp_optype_e into<rsp_optype_e>(typename std::underlying_type<rsp_optype_e>::type t) {
     assert(t >= static_cast<typename std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::RespLCrdReturn) &&
-            t <= static_cast<std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::RespSepData));
+            t < static_cast<std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::INVALID));
     return static_cast<rsp_optype_e>(t);
 }
 

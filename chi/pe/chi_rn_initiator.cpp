@@ -407,11 +407,14 @@ void setExpCompAck(chi::chi_ctrl_extension* const req_e) {
     case chi::req_optype_e::StashOnceShared:
     case chi::req_optype_e::CleanShared:
     case chi::req_optype_e::CleanSharedPersist:
+    case chi::req_optype_e::CleanSharedPersistSep:
     case chi::req_optype_e::CleanInvalid:
     case chi::req_optype_e::MakeInvalid:
         // write case
+    case chi::req_optype_e::WriteNoSnpZero:
     case chi::req_optype_e::WriteNoSnpFull:
     case chi::req_optype_e::WriteNoSnpPtl:
+    case chi::req_optype_e::WriteUniqueZero:
     case chi::req_optype_e::WriteUniquePtl:
     case chi::req_optype_e::WriteUniqueFull:
     case chi::req_optype_e::WriteUniqueFullStash:
@@ -778,34 +781,38 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         sc_assert(std::get<0>(entry) == &trans);
         auto phase = std::get<1>(entry);
         if(phase == tlm::BEGIN_RESP) {
-            cresp_response(trans);
-            not_finish &= 0x1; // clear bit1
+            not_finish &= 0x1; // clear data bit
             auto ctrl_ext = trans.get_extension<chi::chi_ctrl_extension>();
             if(chi::is_dataless(ctrl_ext)){
                 switch(ctrl_ext->resp.get_opcode()) {
                 case chi::rsp_optype_e::Comp: // Response to dataless makeUnique request
-                    if(ctrl_ext->req.get_opcode() != chi::req_optype_e::CleanSharedPersistSep &&
-                            (ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_I ||
-                                    ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_UC ||
-                                    ctrl_ext->resp.get_resp() == chi::rsp_resptype_e::Comp_SC)) {
-                        not_finish &= 0x2;                          // clear bit0
+                    if(ctrl_ext->req.get_opcode() != chi::req_optype_e::CleanSharedPersistSep) {
+                        switch(ctrl_ext->resp.get_resp()) {
+                        case chi::rsp_resptype_e::Comp_I:
+                        case chi::rsp_resptype_e::Comp_UC:
+                        case chi::rsp_resptype_e::Comp_SC:
+                            not_finish &= 0x2; // clear ctrl bit
+                            break;
+                        }
                     }
                     break;
                 case chi::rsp_optype_e::CompDBIDResp:
                 case chi::rsp_optype_e::CompPersist:
                 case chi::rsp_optype_e::Persist:
-                    not_finish &= 0x2;                          // clear bit0
+                    not_finish &= 0x2; // clear ctrl bit
                     break;
                 }
+                send_cresp_response(trans);
             } else if(trans.is_write() && (ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::DBIDResp ||
                     ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::CompDBIDResp)) {
+                send_cresp_response(trans);
                 send_wdata(trans, txs);
-                not_finish &= 0x2; // clear bit0
+                not_finish &= 0x2; // clear ctrl bit
             }
         } else if(trans.is_read() && (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
             SCCTRACE(SCMOD) << "RDAT flit received. Beat count: " << beat_cnt << ", addr: 0x" << std::hex
                     << trans.get_address();
-            not_finish &= 0x1; // clear bit1
+            not_finish &= 0x1; // clear data bit
             if(phase == chi::BEGIN_PARTIAL_DATA)
                 phase = chi::END_PARTIAL_DATA;
             else
@@ -824,7 +831,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
     }
 }
 
-void chi::pe::chi_rn_initiator_b::cresp_response(payload_type& trans) {
+void chi::pe::chi_rn_initiator_b::send_cresp_response(payload_type& trans) {
     auto resp_ext = trans.get_extension<chi::chi_ctrl_extension>();
     sc_assert(resp_ext != nullptr);
     auto id = (unsigned)(resp_ext->get_txn_id());
@@ -847,7 +854,7 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
     sc_assert(std::get<0>(entry) == &trans);
     auto phase = std::get<1>(entry);
     if(phase == tlm::BEGIN_RESP) {
-        cresp_response(trans);
+        send_cresp_response(trans);
         auto resp_ext = trans.get_extension<chi::chi_ctrl_extension>();
         if(resp_ext->resp.get_opcode() == chi::rsp_optype_e::DBIDResp) {
             SCCERR(SCMOD) << "CRESP illegal response opcode: " << to_char(resp_ext->resp.get_opcode());

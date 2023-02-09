@@ -196,7 +196,7 @@ template <> const char* to_char<rsp_optype_e>(rsp_optype_e v) {
     	return "CompStashDone";
     case rsp_optype_e::CompCMO:
     	return "CompCMO";
-    case rsp_optype_e::Invalid:
+    case rsp_optype_e::INVALID:
         return "---";
     default:
         return "UNKNOWN_rsp_optype_e";
