@@ -82,7 +82,7 @@ enum class req_optype_e : uint8_t {
             EOBarrier = 0x0E,
             ECBarrier = 0x0F,
             // RESERVED    0x10
-            ReadNoSnpSep = 0x11,
+            ReadNoSnpSep = 0x11, //CHI-E
             // RESERVED    0x12
             CleanSharedPersistSep = 0x13, //CHI-E
             DVMOp = 0x14,
@@ -124,6 +124,7 @@ enum class req_optype_e : uint8_t {
             AtomicCompare = 0x39,
             PrefetchTgt = 0x3A,
             // RESERVED        = 0x3B to 0x40
+            // all CHI-E from here on
             MakeReadUnique = 0x41,
             WriteEvictOrEvict = 0x42,
             WriteUniqueZero = 0x43,

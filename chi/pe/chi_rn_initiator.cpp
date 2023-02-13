@@ -599,17 +599,24 @@ void chi::pe::chi_rn_initiator_b::update_data_extension(chi::chi_data_extension*
     auto req_e = trans.get_extension<chi::chi_ctrl_extension>();
     sc_assert(req_e != nullptr);
     switch(req_e->req.get_opcode()) {
-    case chi::req_optype_e::WriteNoSnpFull:
     case chi::req_optype_e::WriteNoSnpPtl:
+    case chi::req_optype_e::WriteNoSnpFull:
     case chi::req_optype_e::WriteUniquePtl:
     case chi::req_optype_e::WriteUniqueFull:
     case chi::req_optype_e::WriteUniquePtlStash:
     case chi::req_optype_e::WriteUniqueFullStash:
         // CHE-E
     case chi::req_optype_e::WriteNoSnpFullCleanSh:
-    case chi::req_optype_e::WriteBackFullCleanInv:
-    case chi::req_optype_e::WriteBackFullCleanSh:
+    case chi::req_optype_e::WriteNoSnpFullCleanInv:
+    case chi::req_optype_e::WriteNoSnpFullCleanShPerSep:
+    case chi::req_optype_e::WriteUniqueFullCleanSh:
+    case chi::req_optype_e::WriteUniqueFullCleanShPerSep:
     case chi::req_optype_e::WriteBackFullCleanShPerSep:
+    case chi::req_optype_e::WriteNoSnpPtlCleanSh:
+    case chi::req_optype_e::WriteNoSnpPtlCleanInv:
+    case chi::req_optype_e::WriteNoSnpPtlCleanShPerSep:
+    case chi::req_optype_e::WriteUniquePtlCleanSh:
+    case chi::req_optype_e::WriteUniquePtlCleanShPerSep:
         data_ext->dat.set_opcode(chi::dat_optype_e::NonCopyBackWrData);
         break;
 
@@ -618,6 +625,8 @@ void chi::pe::chi_rn_initiator_b::update_data_extension(chi::chi_data_extension*
     case chi::req_optype_e::WriteCleanFull:
     case chi::req_optype_e::WriteCleanPtl:
         // CHI-E
+    case chi::req_optype_e::WriteBackFullCleanSh:
+    case chi::req_optype_e::WriteBackFullCleanInv:
     case chi::req_optype_e::WriteCleanFullCleanSh:
     case chi::req_optype_e::WriteCleanFullCleanShPerSep:
     case chi::req_optype_e::WriteEvictFull:
@@ -768,11 +777,46 @@ void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& 
     }
 }
 
+bool expectCompCMO(chi::chi_ctrl_extension* ext){
+    switch(ext->req.get_opcode()){
+    case req_optype_e::WriteBackFullCleanSh:
+    case req_optype_e::WriteBackFullCleanInv:
+    case req_optype_e::WriteBackFullCleanShPerSep:
+    case req_optype_e::WriteCleanFullCleanSh:
+    case req_optype_e::WriteCleanFullCleanShPerSep:
+    case req_optype_e::WriteNoSnpFullCleanSh:
+    case req_optype_e::WriteNoSnpFullCleanInv:
+    case req_optype_e::WriteNoSnpFullCleanShPerSep:
+    case req_optype_e::WriteUniquePtlCleanSh:
+    case req_optype_e::WriteUniqueFullCleanSh:
+    case req_optype_e::WriteUniquePtlCleanShPerSep:
+    case req_optype_e::WriteUniqueFullCleanShPerSep:
+        return true;
+    }
+    return false;
+}
+bool expectPersist(chi::chi_ctrl_extension* ext){
+    switch(ext->req.get_opcode()){
+    case req_optype_e::WriteBackFullCleanShPerSep:
+    case req_optype_e::WriteCleanFullCleanShPerSep:
+    case req_optype_e::WriteNoSnpFullCleanShPerSep:
+    case req_optype_e::WriteUniquePtlCleanShPerSep:
+    case req_optype_e::WriteUniqueFullCleanShPerSep:
+    case req_optype_e::CleanSharedPersistSep:
+        return true;
+    }
+    return false;
+}
+enum { WAIT_CTRL=0x1, WAIT_DATA=0x2, WAIT_COMPCMO=4, WAIT_PERSIST=8};
 void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int txn_id, payload_type& trans,
         chi::pe::chi_rn_initiator_b::tx_state*& txs) {
     // TODO: in write case CAIU does not send BEGIN_RESP;
     sc_core::sc_time delay;
-    auto not_finish = 0b11U; // bit0: data is ongoing, bit1: ctrl resp. is ongoing
+    auto ctrl_ext = trans.get_extension<chi::chi_ctrl_extension>();
+    unsigned not_finish = WAIT_CTRL;
+    not_finish |= is_dataless(ctrl_ext)?0:WAIT_DATA;
+    not_finish |= expectCompCMO(ctrl_ext)?WAIT_COMPCMO:0;
+    not_finish |= expectPersist(ctrl_ext)?WAIT_PERSIST:0;
     auto exp_beat_cnt = calculate_beats(trans);
     auto beat_cnt = 0U;
     while(not_finish) {
@@ -781,38 +825,59 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         sc_assert(std::get<0>(entry) == &trans);
         auto phase = std::get<1>(entry);
         if(phase == tlm::BEGIN_RESP) {
-            not_finish &= 0x1; // clear data bit
-            auto ctrl_ext = trans.get_extension<chi::chi_ctrl_extension>();
             if(chi::is_dataless(ctrl_ext)){
                 switch(ctrl_ext->resp.get_opcode()) {
                 case chi::rsp_optype_e::Comp: // Response to dataless makeUnique request
-                    if(ctrl_ext->req.get_opcode() != chi::req_optype_e::CleanSharedPersistSep) {
-                        switch(ctrl_ext->resp.get_resp()) {
-                        case chi::rsp_resptype_e::Comp_I:
-                        case chi::rsp_resptype_e::Comp_UC:
-                        case chi::rsp_resptype_e::Comp_SC:
-                            not_finish &= 0x2; // clear ctrl bit
-                            break;
-                        }
+                    switch(ctrl_ext->resp.get_resp()) {
+                    case chi::rsp_resptype_e::Comp_I:
+                    case chi::rsp_resptype_e::Comp_UC:
+                    case chi::rsp_resptype_e::Comp_SC:
+                        not_finish &= ~WAIT_CTRL;
+                        break;
                     }
                     break;
-                case chi::rsp_optype_e::CompDBIDResp:
+                case chi::rsp_optype_e::CompDBIDResp: // in case of WriteNoSnpZero, which is dataless
                 case chi::rsp_optype_e::CompPersist:
+                    not_finish &= ~WAIT_CTRL;
+                    break;
                 case chi::rsp_optype_e::Persist:
-                    not_finish &= 0x2; // clear ctrl bit
+                    not_finish &= ~WAIT_PERSIST;
                     break;
                 }
                 send_cresp_response(trans);
-            } else if(trans.is_write() && (ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::DBIDResp ||
-                    ctrl_ext->resp.get_opcode() == chi::rsp_optype_e::CompDBIDResp)) {
+            } else if(trans.is_write()) {
+                switch(ctrl_ext->resp.get_opcode()) {
+                case chi::rsp_optype_e::CompCMO:
+                    not_finish &= ~WAIT_COMPCMO;
+                    send_cresp_response(trans);
+                    break;
+                case chi::rsp_optype_e::Persist:
+                    not_finish &= ~WAIT_PERSIST;
+                    send_cresp_response(trans);
+                    break;
+                case chi::rsp_optype_e::CompDBIDResp:
+                    not_finish &= ~WAIT_CTRL;
+                    /* no break */
+                case chi::rsp_optype_e::DBIDResp:
+                case chi::rsp_optype_e::DBIDRespOrd:
+                    send_cresp_response(trans);
+                    send_wdata(trans, txs);
+                    not_finish &= ~WAIT_DATA;
+                    break;
+                case chi::rsp_optype_e::Comp:
+                    not_finish &= ~WAIT_CTRL;
+                    send_cresp_response(trans);
+                    break;
+                default:
+                    SCCFATAL(SCMOD) << "Illegal opcode received: " << to_char(ctrl_ext->resp.get_opcode());
+                }
+            } else if(trans.is_read()) {
+                not_finish &= ~WAIT_CTRL;
                 send_cresp_response(trans);
-                send_wdata(trans, txs);
-                not_finish &= 0x2; // clear ctrl bit
             }
         } else if(trans.is_read() && (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
             SCCTRACE(SCMOD) << "RDAT flit received. Beat count: " << beat_cnt << ", addr: 0x" << std::hex
                     << trans.get_address();
-            not_finish &= 0x1; // clear data bit
             if(phase == chi::BEGIN_PARTIAL_DATA)
                 phase = chi::END_PARTIAL_DATA;
             else
@@ -821,7 +886,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
             if(phase == chi::END_DATA) {
-                not_finish &= 0x2; // clear bit0
+                not_finish &= ~(WAIT_CTRL | WAIT_DATA); // clear data bit
                 if(beat_cnt != exp_beat_cnt)
                     SCCERR(SCMOD) << "Wrong beat count, expected " << exp_beat_cnt << ", got " << beat_cnt;
             }
