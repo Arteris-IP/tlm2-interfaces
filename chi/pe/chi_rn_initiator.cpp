@@ -1086,7 +1086,18 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             case req_optype_e::WriteBackPtl:
             case req_optype_e::WriteBackFull:
             case req_optype_e::WriteCleanFull:
+            case req_optype_e::WriteCleanPtl:
+            case req_optype_e::CleanSharedPersistSep:
             case req_optype_e::WriteEvictFull:
+            case req_optype_e::WriteUniqueZero:
+            case req_optype_e::WriteNoSnpZero:
+            case req_optype_e::StashOnceSepShared:
+            case req_optype_e::StashOnceSepUnique:
+            case req_optype_e::WriteBackFullCleanSh:
+            case req_optype_e::WriteBackFullCleanInv:
+            case req_optype_e::WriteBackFullCleanShPerSep:
+            case req_optype_e::WriteCleanFullCleanSh :
+            case req_optype_e::WriteCleanFullCleanShPerSep:
                 compack_allowed = false;
                 break;
             default:
