@@ -6,8 +6,6 @@ rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, sc
 : rd_resp_delay(rd_resp_delay)
 , wr_resp_delay(wr_resp_delay){
     fw_i.bind(*this);
-    add_attribute(rd_bw_limit_byte_per_sec);
-    add_attribute(wr_bw_limit_byte_per_sec);
     SC_HAS_PROCESS(rate_limiting_buffer);
     SC_METHOD(process_req2resp_fifos);
     dont_initialize();
@@ -18,12 +16,24 @@ rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, sc
 
 void rate_limiting_buffer::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
+}
+
+void rate_limiting_buffer::start_of_simulation() {
     if(clk_if) {
-        if(rd_bw_limit_byte_per_sec.value > 0.0) {
-            time_per_byte_rd = sc_core::sc_time(1.0 / rd_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        if(total_bw_limit_byte_per_sec.get_value()>0.0) {
+            time_per_byte_total = sc_core::sc_time(1.0 / total_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
+            if(rd_bw_limit_byte_per_sec.get_value() > 0.0 || wr_bw_limit_byte_per_sec.get_value() > 0.0) {
+                SCCWARN(SCMOD)<<"total bandwidth is specified, ignoring settings of rd_bw_limit_byte_per_sec and wr_bw_limit_byte_per_sec";
+                rd_bw_limit_byte_per_sec.set_value(-1);
+                wr_bw_limit_byte_per_sec.set_value(-1);
+            }
+
         }
-        if(wr_bw_limit_byte_per_sec.value > 0.0) {
-            time_per_byte_wr = sc_core::sc_time(1.0 / wr_bw_limit_byte_per_sec.value, sc_core::SC_SEC);
+        if(rd_bw_limit_byte_per_sec.get_value() > 0.0) {
+            time_per_byte_rd = sc_core::sc_time(1.0 / rd_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
+        }
+        if(wr_bw_limit_byte_per_sec.get_value() > 0.0) {
+            time_per_byte_wr = sc_core::sc_time(1.0 / wr_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
         }
     }
 }
@@ -64,13 +74,20 @@ void rate_limiting_buffer::start_rd_resp_thread() {
         wait(rd_resp_fifo.data_written_event());
         while(rd_resp_fifo.avail())
             if(auto* trans = rd_resp_fifo.front()){
-                if(clk_if && time_per_byte_rd.value()) {
-                    auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
-                    auto delay = static_cast<unsigned>(clocks);
-                    residual_clocks = clocks - delay;
-                    while(delay) {
+                if(clk_if) {
+                    if(time_per_byte_total.value()) {
+                        scc::ordered_semaphore::lock lck(total_arb);
+                        auto clocks = trans->get_data_length() * time_per_byte_total / clk_if->period() + total_residual_clocks;
+                        auto delay = static_cast<unsigned>(clocks);
+                        total_residual_clocks = clocks - delay;
+                        wait(delay*clk_if->period());
                         wait(clk_i.posedge_event());
-                        delay--;
+                    } else if(time_per_byte_rd.value()) {
+                        auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
+                        auto delay = static_cast<unsigned>(clocks);
+                        residual_clocks = clocks - delay;
+                        wait(delay*clk_if->period());
+                        wait(clk_i.posedge_event());
                     }
                 }
                 while(bw_o->transport(*trans)!=0) wait(clk_i.posedge_event());
@@ -85,13 +102,20 @@ void rate_limiting_buffer::start_wr_resp_thread() {
         wait(wr_resp_fifo.data_written_event());
         while(wr_resp_fifo.avail())
             if(auto* trans = wr_resp_fifo.front()){
-                if(clk_if && time_per_byte_rd.value()) {
-                    auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
-                    auto delay = static_cast<unsigned>(clocks);
-                    residual_clocks = clocks - delay;
-                    while(delay) {
+                if(clk_if) {
+                    if(time_per_byte_total.value()) {
+                        scc::ordered_semaphore::lock lck(total_arb);
+                        auto clocks = trans->get_data_length() * time_per_byte_total / clk_if->period() + total_residual_clocks;
+                        auto delay = static_cast<unsigned>(clocks);
+                        total_residual_clocks = clocks - delay;
+                        wait(delay*clk_if->period());
                         wait(clk_i.posedge_event());
-                        delay--;
+                    } else if(time_per_byte_rd.value()) {
+                        auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
+                        auto delay = static_cast<unsigned>(clocks);
+                        residual_clocks = clocks - delay;
+                        wait(delay*clk_if->period());
+                        wait(clk_i.posedge_event());
                     }
                 }
                 while(bw_o->transport(*trans)!=0) wait(clk_i.posedge_event());
