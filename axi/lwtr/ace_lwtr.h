@@ -308,17 +308,17 @@ template <unsigned BUSWIDTH=32, typename TYPES = axi::axi_protocol_types, int N 
         sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
 class ace_lwtr_recorder : public sc_core::sc_module, public ace_lwtr<TYPES> {
 public:
-	axi::ace_target_socket<BUSWIDTH, TYPES, N, POL> tsckt{"tsckt"};
-	axi::ace_initiator_socket<BUSWIDTH, TYPES, N, POL> isckt{"isckt"};
+	axi::ace_target_socket<BUSWIDTH, TYPES, N, POL> ts{"ts"};
+	axi::ace_initiator_socket<BUSWIDTH, TYPES, N, POL> is{"is"};
 
 	ace_lwtr_recorder(sc_core::sc_module_name nm, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
 	: sc_core::sc_module(nm)
 	, ace_lwtr<TYPES>(name(), BUSWIDTH, recording_enabled, tr_db)
 	{
- 		isckt(*this);
- 		tsckt(*this);
- 		this->bw_port(tsckt.get_base_port());
- 		this->fw_port(isckt.get_base_port());
+ 		is(*this);
+ 		ts(*this);
+ 		this->bw_port(ts.get_base_port());
+ 		this->fw_port(is.get_base_port());
 	}
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
