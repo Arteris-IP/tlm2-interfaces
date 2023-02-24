@@ -25,6 +25,7 @@ if(TARGET scc)
     add_library(${PROJECT_NAME} 
        chi/chi_tlm.cpp
        chi/pe/chi_rn_initiator.cpp
+       chi/lwtr/chi_lwtr.cpp
        axi/axi_tlm.cpp
        axi/fsm/base.cpp
        axi/pe/simple_initiator.cpp

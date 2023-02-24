@@ -22,18 +22,17 @@
 
 #include <tlm/scc/lwtr/tlm2_lwtr.h>
 #include <cci_configuration>
-#include <axi/checker/axi_protocol.h>
 #include <tlm/scc/tlm_mm.h>
 #include <array>
-#include <axi/axi_tlm.h>
+#include <chi/chi_tlm.h>
 #include <regex>
 #include <string>
 #include <scc/peq.h>
 #include <unordered_map>
 #include <vector>
 
-//! @brief LWTR components for AXI/ACE
-namespace axi {
+//! @brief LWTR components for CHI
+namespace chi {
 namespace lwtr {
 
 using tx_db = ::lwtr::tx_db;
@@ -44,11 +43,12 @@ using tx_handle = ::lwtr::tx_handle;
 using mm = tlm::scc::tlm_mm<>;
 using namespace tlm::scc::lwtr;
 
-struct nb_ace_rec_entry: public nb_rec_entry {
-	bool snoop;
-	nb_ace_rec_entry(tlm::scc::tlm_gp_shared_ptr tr,tlm::tlm_phase const ph, uintptr_t const id, tx_handle parent, bool snoop)
+struct nb_chi_rec_entry: public nb_rec_entry {
+	const bool snoop;
+	const bool credit;
+	nb_chi_rec_entry(tlm::scc::tlm_gp_shared_ptr tr,tlm::tlm_phase const ph, uintptr_t const id, tx_handle parent, bool snoop=false, bool credit=false)
 	: nb_rec_entry{tr, ph, id, parent}
-		, snoop(snoop) {}
+		, snoop(snoop), credit(credit) {}
 };
 extern bool registered;
 
@@ -57,11 +57,11 @@ extern bool registered;
  * This module records all TLM transaction to a LWTR transaction fiber for
  * further viewing and analysis.
  * The handle of the created transaction is stored in an tlm_extension so that
- * another instance of the ace_lwtr
+ * another instance of the chi_lwtr
  * e.g. further down the path can link to it.
  */
-template <typename TYPES = axi::axi_protocol_types>
-class ace_lwtr : public virtual axi::ace_fw_transport_if<TYPES>, public virtual axi::ace_bw_transport_if<TYPES> {
+template <typename TYPES = chi::chi_protocol_types>
+class chi_lwtr : public virtual chi::chi_fw_transport_if<TYPES>, public virtual chi::chi_bw_transport_if<TYPES> {
 public:
 	//! \brief the attribute to selectively enable/disable recording of blocking protocol tx
 	cci::cci_param<bool> enableBlTracing;
@@ -83,7 +83,7 @@ public:
 	 *        If this database is not initialized (e.g. by not calling
 	 * lwtr::set_default_db() ) recording is disabled.
 	 */
-	ace_lwtr(char const* full_name, unsigned bus_width, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
+	chi_lwtr(char const* full_name, unsigned bus_width, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
 	: enableBlTracing("enableBlTracing", recording_enabled)
 	, enableNbTracing("enableNbTracing", recording_enabled)
 	, full_name(full_name)
@@ -101,27 +101,25 @@ public:
 		initialize_streams();
 	}
 
-	virtual ~ace_lwtr() override {
+    virtual ~chi_lwtr() override {
 		nbtx_req_handle_map.clear();
 		nbtx_last_req_handle_map.clear();
 		nbtx_resp_handle_map.clear();
 		nbtx_last_resp_handle_map.clear();
-		delete b_streamHandle;
-		for(auto* p : b_trHandle)
-			delete p; // NOLINT
-			delete b_streamHandleTimed;
-			for(auto* p : b_trTimedHandle)
-				delete p; // NOLINT
-			delete nb_streamHandle;
-			for(auto* p : nb_trHandle)
-				delete p; // NOLINT
-			delete nb_streamHandleTimed;
-			for(auto* p : nb_trTimedHandle)
-				delete p; // NOLINT
-			delete dmi_streamHandle;
-			delete dmi_trGetHandle;
-			delete dmi_trInvalidateHandle;
-			delete checker;
+        nbtx_data_handle_map.clear();
+        nbtx_last_data_handle_map.clear();
+        nbtx_ack_handle_map.clear();
+        delete dmi_trInvalidateHandle;
+        delete dmi_trGetHandle;
+        delete dmi_streamHandle;
+        for(auto* p : nb_trTimedHandle) delete p; // NOLINT
+        delete nb_streamHandleTimed;
+        for(auto* p : nb_trHandle) delete p; // NOLINT
+        delete nb_streamHandle;
+        for(auto* p : b_trTimedHandle) delete p; // NOLINT
+        delete b_streamHandleTimed;
+        for(auto* p : b_trHandle) delete p; // NOLINT
+        delete b_streamHandle;
 	}
 
 	// TLM-2.0 interface methods for initiator and target sockets, surrounded with
@@ -203,15 +201,15 @@ public:
 
 protected:
 	//! \brief the port where fw accesses are forwarded to
-	sc_core::sc_port<axi::ace_fw_transport_if<TYPES>> fw_port{"fw_port"};
+	sc_core::sc_port<chi::chi_fw_transport_if<TYPES>> fw_port{"fw_port"};
 
 	//! \brief the port where bw accesses are forwarded to
-	sc_core::sc_port<axi::ace_bw_transport_if<TYPES>> bw_port{"bw_port"};
+	sc_core::sc_port<chi::chi_bw_transport_if<TYPES>> bw_port{"bw_port"};
 
 private:
 	std::string const full_name;
 	//! event queue to hold time points of non-blocking transactions
-	::scc::peq<nb_ace_rec_entry> nb_timed_peq;
+	::scc::peq<nb_chi_rec_entry> nb_timed_peq;
 	/*! \brief The thread processing the non-blocking requests with their
 	 * annotated times
 	 * to generate the timed view of non-blocking tx
@@ -232,19 +230,29 @@ private:
 	//! delays
 	std::array<tx_generator<>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
 
-    enum DIR { FW, BW, REQ = FW, RESP = BW, ACK };
+    enum DIR { FW, BW, DATA, ACK, CREDIT, REQ = FW, RESP = BW };
+    enum TYPE {
+        READ = tlm::TLM_READ_COMMAND,
+        WRITE = tlm::TLM_WRITE_COMMAND,
+        OTHER = tlm::TLM_IGNORE_COMMAND,
+        SNOOP,
+        NO_OF_TYPES
+    };
 	//! non-blocking transaction recording stream handle
 	tx_fiber* nb_streamHandle{nullptr};
 	//! non-blocking transaction recording stream handle with timing
 	tx_fiber* nb_streamHandleTimed{nullptr};
 	//! transaction generator handle for non-blocking transactions
-	std::array<tx_generator<std::string, std::string>*, 3> nb_trHandle{{nullptr, nullptr, nullptr}};
+	std::array<tx_generator<std::string, std::string>*, 5> nb_trHandle{{nullptr, nullptr, nullptr, nullptr, nullptr}};
 	//! transaction generator handle for non-blocking transactions with annotated delays
-	std::array<tx_generator<>*, 3> nb_trTimedHandle{{nullptr, nullptr, nullptr}};
+	std::array<tx_generator<>*, 5> nb_trTimedHandle{{nullptr, nullptr}};
 	std::unordered_map<uint64_t, tx_handle> nbtx_req_handle_map;
 	std::unordered_map<uint64_t, tx_handle> nbtx_last_req_handle_map;
 	std::unordered_map<uint64_t, tx_handle> nbtx_resp_handle_map;
 	std::unordered_map<uint64_t, tx_handle> nbtx_last_resp_handle_map;
+    std::unordered_map<uint64_t, tx_handle> nbtx_data_handle_map;
+    std::unordered_map<uint64_t, tx_handle> nbtx_last_data_handle_map;
+    std::unordered_map<uint64_t, tx_handle> nbtx_ack_handle_map;
 	//! dmi transaction recording stream handle
 	tx_fiber* dmi_streamHandle{nullptr};
 	//! transaction generator handle for DMI transactions
@@ -258,7 +266,7 @@ protected:
 			par_chld_hndl = m_db->create_relation("PARENT_CHILD");
 		}
 		if(isRecordingBlockingTxEnabled() && !b_streamHandle) {
-			b_streamHandle = new tx_fiber((full_name + "_bl").c_str(), "[TLM][ace][b]", m_db);
+			b_streamHandle = new tx_fiber((full_name + "_bl").c_str(), "[TLM][chi][b]", m_db);
 			b_trHandle[tlm::TLM_READ_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
 					"read", *b_streamHandle, "start_delay", "end_delay");
 			b_trHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<sc_core::sc_time, sc_core::sc_time>(
@@ -267,28 +275,29 @@ protected:
 					"ignore", *b_streamHandle, "start_delay", "end_delay");
 			if(enableTimedTracing.get_value()) {
 				b_streamHandleTimed =
-						new tx_fiber((full_name + "_bl_timed").c_str(), "[TLM][ace][b][timed]", m_db);
+						new tx_fiber((full_name + "_bl_timed").c_str(), "[TLM][chi][b][timed]", m_db);
 				b_trTimedHandle[tlm::TLM_READ_COMMAND] = new tx_generator<>("read", *b_streamHandleTimed);
 				b_trTimedHandle[tlm::TLM_WRITE_COMMAND] = new tx_generator<>("write", *b_streamHandleTimed);
 				b_trTimedHandle[tlm::TLM_IGNORE_COMMAND] = new tx_generator<>("ignore", *b_streamHandleTimed);
 			}
 		}
 		if(isRecordingNonBlockingTxEnabled() && !nb_streamHandle) {
-			nb_streamHandle = new tx_fiber((full_name + "_nb").c_str(), "[TLM][ace][nb]", m_db);
+			nb_streamHandle = new tx_fiber((full_name + "_nb").c_str(), "[TLM][chi][nb]", m_db);
 			nb_trHandle[FW] = new tx_generator<std::string, std::string>("fw", *nb_streamHandle, "tlm_phase",
 					"tlm_phase[return_path]");
 			nb_trHandle[BW] = new tx_generator<std::string, std::string>("bw", *nb_streamHandle, "tlm_phase",
 					"tlm_phase[return_path]");
 			if(enableTimedTracing.get_value()) {
-				nb_streamHandleTimed =
-						new tx_fiber((full_name + "_nb_timed").c_str(), "[TLM][ace][nb][timed]", m_db);
-				nb_trTimedHandle[FW] = new tx_generator<>("request", *nb_streamHandleTimed);
-				nb_trTimedHandle[BW] = new tx_generator<>("response", *nb_streamHandleTimed);
+				nb_streamHandleTimed = new tx_fiber((full_name + "_nb_timed").c_str(), "[TLM][chi][nb][timed]", m_db);
+				nb_trTimedHandle[REQ] = new tx_generator<>("request", *nb_streamHandleTimed);
+				nb_trTimedHandle[RESP] = new tx_generator<>("response", *nb_streamHandleTimed);
+                nb_trTimedHandle[DATA] = new tx_generator<>("data", *nb_streamHandleTimed);
                 nb_trTimedHandle[ACK] = new tx_generator<>("ack", *nb_streamHandleTimed);
+                nb_trTimedHandle[CREDIT] = new tx_generator<>("link", *nb_streamHandleTimed);
 			}
 		}
 		if(m_db && enableDmiTracing.get_value() && !dmi_streamHandle) {
-			dmi_streamHandle = new tx_fiber((full_name + "_dmi").c_str(), "[TLM][ace][dmi]", m_db);
+			dmi_streamHandle = new tx_fiber((full_name + "_dmi").c_str(), "[TLM][chi][dmi]", m_db);
 			dmi_trGetHandle = new tx_generator<>("get", *dmi_streamHandle);
 			dmi_trInvalidateHandle = new tx_generator<sc_dt::uint64, sc_dt::uint64>(
 					"invalidate", *dmi_streamHandle, "start_addr", "end_addr");
@@ -296,7 +305,6 @@ protected:
 	}
 
 private:
-	axi::checker::checker_if<TYPES>* checker{nullptr};
 	inline std::string phase2string(const tlm::tlm_phase& p) {
 		std::stringstream ss;
 		ss << p;
@@ -304,16 +312,16 @@ private:
 	}
 };
 
-template <unsigned BUSWIDTH=32, typename TYPES = axi::axi_protocol_types, int N = 1,
+template <unsigned BUSWIDTH=32, typename TYPES = chi::chi_protocol_types, int N = 1,
         sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-class ace_lwtr_recorder : public sc_core::sc_module, public ace_lwtr<TYPES> {
+class chi_lwtr_recorder : public sc_core::sc_module, public chi_lwtr<TYPES> {
 public:
-	axi::ace_target_socket<BUSWIDTH, TYPES, N, POL> ts{"ts"};
-	axi::ace_initiator_socket<BUSWIDTH, TYPES, N, POL> is{"is"};
+	chi::chi_target_socket<BUSWIDTH, TYPES, N, POL> ts{"ts"};
+	chi::chi_initiator_socket<BUSWIDTH, TYPES, N, POL> is{"is"};
 
-	ace_lwtr_recorder(sc_core::sc_module_name nm, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
+	chi_lwtr_recorder(sc_core::sc_module_name nm, bool recording_enabled = true, tx_db* tr_db = tx_db::get_default_db())
 	: sc_core::sc_module(nm)
-	, ace_lwtr<TYPES>(name(), BUSWIDTH, recording_enabled, tr_db)
+	, chi_lwtr<TYPES>(name(), BUSWIDTH, recording_enabled, tr_db)
 	{
  		is(*this);
  		ts(*this);
@@ -326,7 +334,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename TYPES>
-void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
+void chi_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
 	if(!isRecordingBlockingTxEnabled()) {
 		fw_port->b_transport(trans, delay);
 		return;
@@ -391,7 +399,7 @@ void ace_lwtr<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_co
 }
 
 template <typename TYPES>
-void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
+void chi_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
     if(!b_streamHandleTimed) {
     	bw_port->b_snoop(trans, delay);
         return;
@@ -452,11 +460,11 @@ void ace_lwtr<TYPES>::b_snoop(typename TYPES::tlm_payload_type& trans, sc_core::
 }
 
 template <typename TYPES>
-tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans,
+tlm::tlm_sync_enum chi_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans,
 		typename TYPES::tlm_phase_type& phase,
 		sc_core::sc_time& delay) {
 	if(!isRecordingNonBlockingTxEnabled()){
-			return fw_port->nb_transport_fw(trans, phase, delay);
+		return fw_port->nb_transport_fw(trans, phase, delay);
 	}
 	/*************************************************************************
 	 * prepare recording
@@ -465,7 +473,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	tx_handle h = nb_trHandle[FW]->begin_tx(phase2string(phase));
 	link_pred_ext* preExt = nullptr;
 	trans.get_extension(preExt);
-	if((phase == axi::BEGIN_PARTIAL_REQ || phase == tlm::BEGIN_REQ) && preExt == nullptr) { // we are the first recording this transaction
+	if((phase == tlm::BEGIN_REQ) && preExt == nullptr) { // we are the first recording this transaction
 		preExt = new link_pred_ext(h, this);
 		if(trans.has_mm())
 			trans.set_auto_extension(preExt);
@@ -488,16 +496,16 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	 * do the timed notification
 	 *************************************************************************/
 	if(nb_streamHandleTimed) {
-		nb_ace_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP));
+		nb_chi_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h,
+				(trans.template get_extension<chi::chi_snp_extension>() != nullptr),
+				(phase == tlm::BEGIN_REQ) && (trans.template get_extension<chi::chi_credit_extension>() != nullptr));
 		rec.tr->deep_copy_from(trans);
 		nb_timed_peq.notify(rec, delay);
 	}
 	/*************************************************************************
 	 * do the access
 	 *************************************************************************/
-	if(checker) checker->fw_pre(trans, phase);
 	tlm::tlm_sync_enum status = fw_port->nb_transport_fw(trans, phase, delay);
-	if(checker) checker->fw_post(trans, phase, status);
 	/*************************************************************************
 	 * handle recording
 	 *************************************************************************/
@@ -509,7 +517,8 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 			if(extensionRecording)
 				extensionRecording->recordEndTx(h, trans);
 	// get the extension and free the memory if it was mine
-    if(status == tlm::TLM_COMPLETED || (phase == axi::ACK)) {
+    if(status == tlm::TLM_COMPLETED) {
+        // the transaction is finished
 		trans.get_extension(preExt);
 		if(preExt && preExt->creator == this) {
 			trans.set_extension(static_cast<link_pred_ext*>(nullptr));
@@ -521,12 +530,13 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 		 * do the timed notification if req. finished here
 		 *************************************************************************/
 		if(nb_streamHandleTimed) {
-			nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP)};
+			nb_chi_rec_entry rec {mm::get().allocate(), (phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase,
+					reinterpret_cast<uint64_t>(&trans), h}; //TODO: check phase
 			rec.tr->deep_copy_from(trans);
 			nb_timed_peq.notify(rec, delay);
 		}
 	} else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-		nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP)};
+		nb_chi_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h};
 		rec.tr->deep_copy_from(trans);
 		nb_timed_peq.notify(rec, delay);
 	}
@@ -536,17 +546,11 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 }
 
 template <typename TYPES>
-tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans,
+tlm::tlm_sync_enum chi_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans,
 		typename TYPES::tlm_phase_type& phase,
 		sc_core::sc_time& delay) {
 	if(!isRecordingNonBlockingTxEnabled()){
-		if(checker) {
-			checker->bw_pre(trans, phase);
-			tlm::tlm_sync_enum status = bw_port->nb_transport_bw(trans, phase, delay);
-			checker->bw_post(trans, phase, status);
-			return status;
-		} else
-			return bw_port->nb_transport_bw(trans, phase, delay);
+		return bw_port->nb_transport_bw(trans, phase, delay);
 	}
 	/*************************************************************************
 	 * prepare recording
@@ -577,16 +581,16 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 	 * do the timed notification
 	 *************************************************************************/
 	if(nb_streamHandleTimed) {
-		nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, phase == tlm::BEGIN_REQ};
+		nb_chi_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h,
+				(trans.template get_extension<chi::chi_snp_extension>() != nullptr),
+				(phase == tlm::BEGIN_REQ) && (trans.template get_extension<chi::chi_credit_extension>() != nullptr));
 		rec.tr->deep_copy_from(trans);
 		nb_timed_peq.notify(rec, delay);
 	}
 	/*************************************************************************
 	 * do the access
 	 *************************************************************************/
-	if(checker) checker->bw_pre(trans, phase);
 	tlm::tlm_sync_enum status = bw_port->nb_transport_bw(trans, phase, delay);
-	if(checker) checker->bw_post(trans, phase, status);
 	/*************************************************************************
 	 * handle recording
 	 *************************************************************************/
@@ -600,7 +604,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 	// End the transaction
 	nb_trHandle[BW]->end_tx(h, phase2string(phase));
 	// get the extension and free the memory if it was mine
-	if(status == tlm::TLM_COMPLETED || (status == tlm::TLM_UPDATED && phase == axi::ACK)) {
+	if(status == tlm::TLM_COMPLETED) {
 		// the transaction is finished
 		if(preExt && preExt->creator == this) {
 			// clean-up the extension if this is the original creator
@@ -613,12 +617,13 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 		 * do the timed notification if req. finished here
 		 *************************************************************************/
 		if(nb_streamHandleTimed) {
-			nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, phase == tlm::BEGIN_REQ};
+			nb_chi_rec_entry rec {mm::get().allocate(), (phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase,
+					reinterpret_cast<uint64_t>(&trans), h, phase == tlm::BEGIN_REQ};
 			rec.tr->deep_copy_from(trans);
 			nb_timed_peq.notify(rec, delay);
 		}
 	} else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-		nb_ace_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, phase == tlm::BEGIN_REQ};
+		nb_chi_rec_entry rec {mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h, phase == tlm::BEGIN_REQ};
 		rec.tr->deep_copy_from(trans);
 		nb_timed_peq.notify(rec, delay);
 	}
@@ -626,16 +631,18 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 }
 
 template <typename TYPES>
-void ace_lwtr<TYPES>::nbtx_cb() {
+void chi_lwtr<TYPES>::nbtx_cb() {
 	auto opt = nb_timed_peq.get_next();
 	if(opt) {
 		auto& e = opt.get();
 		tx_handle h;
 		// Now process outstanding recordings
-		if(e.ph == tlm::BEGIN_REQ || e.ph == axi::BEGIN_PARTIAL_REQ) {
+		if(e.credit) {
+        	nb_trTimedHandle[CREDIT]->begin_tx().end_tx();
+    	} else if(e.ph == tlm::BEGIN_REQ) {
 			h = nb_trTimedHandle[REQ]->begin_tx(par_chld_hndl, e.parent);
 			nbtx_req_handle_map[e.id] = h;
-		} else if(e.ph == tlm::END_REQ || e.ph == axi::END_PARTIAL_REQ) {
+		} else if(e.ph == tlm::END_REQ) {
 			auto it = nbtx_req_handle_map.find(e.id);
 			if(it != nbtx_req_handle_map.end()) {
 				h = it->second;
@@ -644,7 +651,7 @@ void ace_lwtr<TYPES>::nbtx_cb() {
 				h.end_tx();
 				nbtx_last_req_handle_map[e.id] = h;
 			}
-		} else if(e.ph == tlm::BEGIN_RESP || e.ph == axi::BEGIN_PARTIAL_RESP) {
+		} else if(e.ph == tlm::BEGIN_RESP) {
 			auto it = nbtx_req_handle_map.find(e.id);
 			if(it != nbtx_req_handle_map.end()) {
 				h = it->second;
@@ -668,21 +675,48 @@ void ace_lwtr<TYPES>::nbtx_cb() {
 					nbtx_last_resp_handle_map.erase(it);
 				}
 			}
-		} else if(e.ph == tlm::END_RESP || e.ph == axi::END_PARTIAL_RESP) {
+		} else if(e.ph == tlm::END_RESP) {
 			auto it = nbtx_resp_handle_map.find(e.id);
 			if(it != nbtx_resp_handle_map.end()) {
 				h = it->second;
 				nbtx_resp_handle_map.erase(it);
 				h.record_attribute("trans", *e.tr);
 				h.end_tx();
-				if(e.ph == axi::END_PARTIAL_RESP) {
-					nbtx_last_resp_handle_map[e.id] = h;
-				}
 			}
-	    } else if(e.ph == axi::ACK) {
-			h = nb_trTimedHandle[ACK]->begin_tx(par_chld_hndl, e.parent);
+		} else if(e.ph == chi::BEGIN_DATA || e.ph == chi::BEGIN_PARTIAL_DATA) {
+			auto it = nbtx_req_handle_map.find(e.id);
+			if(it != nbtx_req_handle_map.end()) {
+				h = it->second;
+				h.end_tx();
+				nbtx_last_req_handle_map[e.id] = h;
+			}
+			h = nb_trTimedHandle[DATA]->begin_tx();
 			h.record_attribute("trans", *e.tr);
-	        h.end_tx();
+			h.add_relation(par_chld_hndl, e.parent);
+			nbtx_data_handle_map[e.id] = h;
+			it = nbtx_last_data_handle_map.find(e.id);
+			if(it != nbtx_last_data_handle_map.end()) {
+				auto pred = it->second;
+				nbtx_last_data_handle_map.erase(it);
+				h.add_relation(pred_succ_hndl, pred);
+			}
+		} else if(e.ph == chi::END_DATA || e.ph == chi::END_PARTIAL_DATA) {
+			auto it = nbtx_data_handle_map.find(e.id);
+			if(it != nbtx_data_handle_map.end()) {
+				h = it->second;
+				nbtx_data_handle_map.erase(it);
+				h.end_tx();
+			}
+		} else if(e.ph == chi::ACK) {
+			auto it = nbtx_ack_handle_map.find(e.id);
+			if(it == nbtx_ack_handle_map.end()) {
+				auto h = nb_trTimedHandle[ACK]->begin_tx();
+				nbtx_ack_handle_map[e.id] = h;
+				h.add_relation(par_chld_hndl, e.parent);
+			} else {
+				nb_trTimedHandle[ACK]->end_tx(it->second);
+				nbtx_ack_handle_map.erase(it);
+			}
 		} else
 			sc_assert(!"phase not supported!");
 	}
@@ -690,7 +724,7 @@ void ace_lwtr<TYPES>::nbtx_cb() {
 }
 
 template <typename TYPES>
-bool ace_lwtr<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_type& trans, tlm::tlm_dmi& dmi_data) {
+bool chi_lwtr<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_type& trans, tlm::tlm_dmi& dmi_data) {
 	if(!(m_db && enableDmiTracing.get_value()))
 		return fw_port->get_direct_mem_ptr(trans, dmi_data);
 	tx_handle h = dmi_trGetHandle->begin_tx();
@@ -707,7 +741,7 @@ bool ace_lwtr<TYPES>::get_direct_mem_ptr(typename TYPES::tlm_payload_type& trans
  * \param end_addr is the end address of the memory area being invalid
  */
 template <typename TYPES>
-void ace_lwtr<TYPES>::invalidate_direct_mem_ptr(sc_dt::uint64 start_addr, sc_dt::uint64 end_addr) {
+void chi_lwtr<TYPES>::invalidate_direct_mem_ptr(sc_dt::uint64 start_addr, sc_dt::uint64 end_addr) {
 	if(!(m_db && enableDmiTracing.get_value())) {
 		bw_port->invalidate_direct_mem_ptr(start_addr, end_addr);
 		return;
@@ -723,8 +757,8 @@ void ace_lwtr<TYPES>::invalidate_direct_mem_ptr(sc_dt::uint64 start_addr, sc_dt:
  * \param trans is the generic payload of the transaction
  * \return the sync state of the transaction
  */
-template <typename TYPES> unsigned int ace_lwtr<TYPES>::transport_dbg(typename TYPES::tlm_payload_type& trans) {
+template <typename TYPES> unsigned int chi_lwtr<TYPES>::transport_dbg(typename TYPES::tlm_payload_type& trans) {
 	return fw_port->transport_dbg(trans);
 }
 } // namespace lwtr
-} // namespace axi
+} // namespace chi

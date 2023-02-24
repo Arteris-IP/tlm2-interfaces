@@ -412,8 +412,6 @@ class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_d.rsvdc", ext->dat.get_rsvdc());
             handle.record_attribute("trans.chi_d.data_check", ext->dat.get_data_check());
             handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
-            handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
-            handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
             handle.record_attribute("trans.chi_d.tag_op", ext->dat.get_tag_op());
             handle.record_attribute("trans.chi_c.tag", ext->dat.get_tag());
             handle.record_attribute("trans.chi_c.tu", ext->dat.get_tu());

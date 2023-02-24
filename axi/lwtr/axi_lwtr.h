@@ -101,22 +101,18 @@ public:
 		nbtx_last_req_handle_map.clear();
 		nbtx_resp_handle_map.clear();
 		nbtx_last_resp_handle_map.clear();
+		delete checker;
+		delete dmi_trInvalidateHandle;
+		delete dmi_trGetHandle;
+		delete dmi_streamHandle;
+		for(auto* p : nb_trTimedHandle)	delete p; // NOLINT
+		delete nb_streamHandleTimed;
+		for(auto* p : nb_trHandle) delete p; // NOLINT
+		delete nb_streamHandle;
+		for(auto* p : b_trTimedHandle) delete p; // NOLINT
+		delete b_streamHandleTimed;
+		for(auto* p : b_trHandle) delete p; // NOLINT
 		delete b_streamHandle;
-		for(auto* p : b_trHandle)
-			delete p; // NOLINT
-			delete b_streamHandleTimed;
-			for(auto* p : b_trTimedHandle)
-				delete p; // NOLINT
-			delete nb_streamHandle;
-			for(auto* p : nb_trHandle)
-				delete p; // NOLINT
-			delete nb_streamHandleTimed;
-			for(auto* p : nb_trTimedHandle)
-				delete p; // NOLINT
-			delete dmi_streamHandle;
-			delete dmi_trGetHandle;
-			delete dmi_trInvalidateHandle;
-			delete checker;
 	}
 
 	// TLM-2.0 interface methods for initiator and target sockets, surrounded with
