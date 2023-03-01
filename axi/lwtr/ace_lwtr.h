@@ -297,11 +297,6 @@ protected:
 
 private:
 	axi::checker::checker_if<TYPES>* checker{nullptr};
-	inline std::string phase2string(const tlm::tlm_phase& p) {
-		std::stringstream ss;
-		ss << p;
-		return ss.str();
-	}
 };
 
 template <unsigned BUSWIDTH=32, typename TYPES = axi::axi_protocol_types, int N = 1,
@@ -462,7 +457,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	 * prepare recording
 	 *************************************************************************/
 	// Get a handle for the new transaction
-	tx_handle h = nb_trHandle[FW]->begin_tx(phase2string(phase));
+	tx_handle h = nb_trHandle[FW]->begin_tx(phase.get_name());
 	link_pred_ext* preExt = nullptr;
 	trans.get_extension(preExt);
 	if((phase == axi::BEGIN_PARTIAL_REQ || phase == tlm::BEGIN_REQ) && preExt == nullptr) { // we are the first recording this transaction
@@ -531,7 +526,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 		nb_timed_peq.notify(rec, delay);
 	}
 	// End the transaction
-	nb_trHandle[FW]->end_tx(h, phase2string(phase));
+	nb_trHandle[FW]->end_tx(h, phase.get_name());
 	return status;
 }
 
@@ -554,7 +549,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 	link_pred_ext* preExt = nullptr;
 	trans.get_extension(preExt);
 	// Get a handle for the new transaction
-	tx_handle h = nb_trHandle[BW]->begin_tx(phase2string(phase));
+	tx_handle h = nb_trHandle[BW]->begin_tx(phase.get_name());
 	// link handle if we have a predecessor and that's not ourself
 	if(phase == tlm::BEGIN_REQ && preExt == nullptr) { // we are the first recording this transaction
 		preExt = new link_pred_ext(h, this);
@@ -598,7 +593,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 			if(extensionRecording)
 				extensionRecording->recordEndTx(h, trans);
 	// End the transaction
-	nb_trHandle[BW]->end_tx(h, phase2string(phase));
+	nb_trHandle[BW]->end_tx(h, phase.get_name());
 	// get the extension and free the memory if it was mine
 	if(status == tlm::TLM_COMPLETED || (status == tlm::TLM_UPDATED && phase == axi::ACK)) {
 		// the transaction is finished
