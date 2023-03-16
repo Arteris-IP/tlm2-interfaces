@@ -21,8 +21,10 @@ project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
 
 set(SCC_ARCHIVE_DIR_MODIFIER "" CACHE STRING "additional directory levels to store static library archives") 
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(TARGET scc)
-    add_library(${PROJECT_NAME} 
+    add_library(${PROJECT_NAME} STATIC
        chi/chi_tlm.cpp
        chi/pe/chi_rn_initiator.cpp
        chi/lwtr/chi_lwtr.cpp
