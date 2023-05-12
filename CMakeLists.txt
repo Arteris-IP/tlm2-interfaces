@@ -23,7 +23,7 @@ set(SCC_ARCHIVE_DIR_MODIFIER "" CACHE STRING "additional directory levels to sto
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if(TARGET scc)
+if(TARGET scc-sysc)
     add_library(${PROJECT_NAME} STATIC
        chi/chi_tlm.cpp
        chi/pe/chi_rn_initiator.cpp
