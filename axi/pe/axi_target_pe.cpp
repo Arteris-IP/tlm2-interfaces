@@ -240,7 +240,7 @@ void axi::pe::axi_target_pe::operation_resp(payload_type& trans, unsigned clk_de
 }
 
 void axi::pe::axi_target_pe::process_req2resp_fifos() {
-	if(!rd_req2resp_fifo.empty()){
+    while(!rd_req2resp_fifo.empty()) {
 		auto& entry = rd_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
 			if(rd_resp_fifo.num_free()){
@@ -253,7 +253,7 @@ void axi::pe::axi_target_pe::process_req2resp_fifos() {
 			rd_req2resp_fifo.pop_front();
 		}
 	}
-	if(!wr_req2resp_fifo.empty()) {
+    while(!wr_req2resp_fifo.empty()) {
 		auto& entry = wr_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
 			if(rd_resp_fifo.num_free()){
