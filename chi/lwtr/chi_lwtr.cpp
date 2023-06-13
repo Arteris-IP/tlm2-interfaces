@@ -125,12 +125,14 @@ template <class Archive> void record(Archive &ar, chi::chi_credit_extension cons
 namespace chi {
 namespace lwtr {
 namespace {
-const std::array<std::string, 3> cmd2char{{"READ", "WRITE", "IGNORE"}};
-const std::array<std::string, 7> resp2char{{"OK", "INCOMPLETE", "GENERIC_ERROR", "ADDRESS_ERROR", "COMMAND_ERROR", "BURST_ERROR", "BYTE_ENABLE_ERROR"}};
-const std::array<std::string, 3> gp_option2char{{"MIN_PAYLOAD", "FULL_PAYLOAD", "FULL_PAYLOAD_ACCEPTED"}};
-const std::array<std::string, 5> phase2char{{"UNINITIALIZED_PHASE", "BEGIN_REQ", "END_REQ", "BEGIN_RESP", "END_RESP"}};
-const std::array<std::string, 4> dmi2char{{"DMI_ACCESS_NONE", "DMI_ACCESS_READ", "DMI_ACCESS_WRITE", "DMI_ACCESS_READ_WRITE"}};
-const std::array<std::string, 3> sync2char{{"ACCEPTED", "UPDATED", "COMPLETED"}};
+const std::array<std::string, 3> cmd2char{{"tlm::TLM_READ_COMMAND", "tlm::TLM_WRITE_COMMAND", "tlm::TLM_IGNORE_COMMAND"}};
+const std::array<std::string, 7> resp2char{
+	{"tlm::TLM_OK_RESPONSE", "tlm::TLM_INCOMPLETE_RESPONSE", "tlm::TLM_GENERIC_ERROR_RESPONSE", "tlm::TLM_ADDRESS_ERROR_RESPONSE", "tlm::TLM_COMMAND_ERROR_RESPONSE", "tlm::TLM_BURST_ERROR_RESPONSE", "tlm::TLM_BYTE_ENABLE_ERROR_RESPONSE"}};
+const std::array<std::string, 3> gp_option2char{{"tlm::TLM_MIN_PAYLOAD", "tlm::TLM_FULL_PAYLOAD", "tlm::TLM_FULL_PAYLOAD_ACCEPTED"}};
+const std::array<std::string, 5> phase2char{{"tlm::UNINITIALIZED_PHASE", "tlm::BEGIN_REQ", "tlm::END_REQ", "tlm::BEGIN_RESP", "tlm::END_RESP"}};
+const std::array<std::string, 4> dmi2char{
+	{"tlm::DMI_ACCESS_NONE", "tlm::DMI_ACCESS_READ", "tlm::DMI_ACCESS_WRITE", "tlm::DMI_ACCESS_READ_WRITE"}};
+const std::array<std::string, 3> sync2char{{"tlm::TLM_ACCEPTED", "tlm::TLM_UPDATED", "tlm::TLM_COMPLETED"}};
 
 } // namespace
 

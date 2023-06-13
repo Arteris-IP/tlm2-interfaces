@@ -496,7 +496,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
 	/*************************************************************************
 	 * handle recording
 	 *************************************************************************/
-	h.record_attribute("status", status);
+	h.record_attribute("tlm_sync", status);
 	h.record_attribute("delay[return_path]", delay);
 	h.record_attribute("trans", trans);
 	if(registered)
@@ -585,7 +585,7 @@ tlm::tlm_sync_enum ace_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
 	/*************************************************************************
 	 * handle recording
 	 *************************************************************************/
-	h.record_attribute("status", status);
+	h.record_attribute("tlm_sync", status);
 	h.record_attribute("delay[return_path]", delay);
 	h.record_attribute("trans", trans);
 	if(registered)

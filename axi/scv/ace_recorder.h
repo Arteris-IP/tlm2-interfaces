@@ -331,11 +331,6 @@ protected:
 private:
     const std::string fixed_basename;
     axi::checker::checker_if<TYPES>* checker{nullptr};
-    inline std::string phase2string(const tlm::tlm_phase& p) {
-        std::stringstream ss;
-        ss << p;
-        return ss.str();
-    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -496,7 +491,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
      * prepare recording
      *************************************************************************/
     // Get a handle for the new transaction
-    SCVNS scv_tr_handle h = nb_trHandle[FW]->begin_transaction(phase2string(phase));
+    SCVNS scv_tr_handle h = nb_trHandle[FW]->begin_transaction(phase.get_name());
     tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if((phase == axi::BEGIN_PARTIAL_REQ || phase == tlm::BEGIN_REQ) &&
@@ -568,7 +563,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
         nb_timed_peq.notify(*req, phase, delay);
     }
     // End the transaction
-    nb_trHandle[FW]->end_transaction(h, phase2string(phase));
+    nb_trHandle[FW]->end_transaction(h, phase.get_name());
     return status;
 }
 
@@ -589,7 +584,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
      * prepare recording
      *************************************************************************/
     // Get a handle for the new transaction
-    SCVNS scv_tr_handle h = nb_trHandle[BW]->begin_transaction(phase2string(phase));
+    SCVNS scv_tr_handle h = nb_trHandle[BW]->begin_transaction(phase.get_name());
     tlm::scc::scv::tlm_recording_extension* preExt = nullptr;
     trans.get_extension(preExt);
     if(phase == tlm::BEGIN_REQ && preExt == nullptr) { // we are the first recording this transaction
@@ -660,7 +655,7 @@ tlm::tlm_sync_enum ace_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
         nb_timed_peq.notify(*req, phase, delay);
     }
     // End the transaction
-    nb_trHandle[BW]->end_transaction(h, phase2string(phase));
+    nb_trHandle[BW]->end_transaction(h, phase.get_name());
     return status;
 }
 
