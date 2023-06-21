@@ -240,13 +240,15 @@ void axi::pe::axi_target_pe::operation_resp(payload_type& trans, unsigned clk_de
 }
 
 void axi::pe::axi_target_pe::process_req2resp_fifos() {
-    while(!rd_req2resp_fifo.empty()) {
+	bool pushed_element=true;
+    while(!rd_req2resp_fifo.empty() && pushed_element) {
 		auto& entry = rd_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
-			if(rd_resp_fifo.num_free()){
+			if(rd_resp_fifo.num_free())
 				rd_resp_fifo.write(std::get<0>(entry));
-				rd_req2resp_fifo.pop_front();
-			}
+			else
+				rd_req2resp_fifo.push_back(entry);
+			rd_req2resp_fifo.pop_front();
 		} else {
 			std::get<1>(entry) -= 1;
 			rd_req2resp_fifo.push_back(entry);
@@ -256,10 +258,11 @@ void axi::pe::axi_target_pe::process_req2resp_fifos() {
     while(!wr_req2resp_fifo.empty()) {
 		auto& entry = wr_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
-			if(rd_resp_fifo.num_free()){
+			if(rd_resp_fifo.num_free())
 				wr_resp_fifo.write(std::get<0>(entry));
+			else
+				wr_req2resp_fifo.push_back(entry);
 				wr_req2resp_fifo.pop_front();
-			}
 		} else {
 			std::get<1>(entry) -= 1;
 			wr_req2resp_fifo.push_back(entry);
