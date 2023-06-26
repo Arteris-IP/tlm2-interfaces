@@ -20,6 +20,9 @@
 #include <cstdint>
 #include <tlm>
 #include <type_traits>
+#ifdef HAS_SCC
+#include <util/pool_allocator.h>
+#endif
 
 //! TLM2.0 components modeling CHI
 namespace chi {
@@ -709,6 +712,16 @@ struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
         *this = static_cast<const chi_ctrl_extension&>(ext);
     } // use assignment operator
 
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<chi_ctrl_extension*>(util::pool_allocator<sizeof(chi_ctrl_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(chi_ctrl_extension)>::get().free(p);
+    }
+#endif
+
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
     unsigned int get_txn_id() const { return cmn.get_txn_id(); }
@@ -746,6 +759,17 @@ struct chi_snp_extension : public tlm::tlm_extension<chi_snp_extension> {
      * @param ext
      */
     void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_snp_extension&>(ext); }
+
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<chi_snp_extension*>(util::pool_allocator<sizeof(chi_snp_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(chi_snp_extension)>::get().free(p);
+    }
+#endif
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -786,6 +810,16 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     void copy_from(tlm::tlm_extension_base const& ext) {
         *this = static_cast<const chi_data_extension&>(ext);
     } // use assignment operator
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<chi_data_extension*>(util::pool_allocator<sizeof(chi_data_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(chi_data_extension)>::get().free(p);
+    }
+#endif
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -828,6 +862,16 @@ struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, p
     void copy_from(tlm::tlm_extension_base const& ext) {
         *this = static_cast<const chi_credit_extension&>(ext);
     } // use assignment operator
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<chi_credit_extension*>(util::pool_allocator<sizeof(chi_credit_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(chi_credit_extension)>::get().free(p);
+    }
+#endif
 };
 
 //! aliases for payload and phase types

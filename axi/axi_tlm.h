@@ -20,6 +20,9 @@
 #include <cstdint>
 #include <tlm>
 #include <type_traits>
+#ifdef HAS_SCC
+#include <util/pool_allocator.h>
+#endif
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
@@ -826,6 +829,16 @@ struct axi3_extension : public tlm::tlm_extension<axi3_extension>, public axi_ex
      * @param ext
      */
     void copy_from(tlm::tlm_extension_base const& ext) override;
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<axi3_extension*>(util::pool_allocator<sizeof(axi3_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(axi3_extension)>::get().free(p);
+    }
+#endif
 };
 /**
  * the AXI4 tlm extension class
@@ -851,6 +864,16 @@ struct axi4_extension : public tlm::tlm_extension<axi4_extension>, public axi_ex
      * @param ext
      */
     void copy_from(tlm::tlm_extension_base const& ext) override;
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<axi4_extension*>(util::pool_allocator<sizeof(axi4_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(axi4_extension)>::get().free(p);
+    }
+#endif
 };
 /**
  * the ACE tlm extension class
@@ -876,6 +899,16 @@ struct ace_extension : public tlm::tlm_extension<ace_extension>, public axi_exte
      * @param ext
      */
     void copy_from(tlm::tlm_extension_base const& ext) override;
+
+#ifdef HAS_SCC
+    void * operator new(size_t size) {
+      return static_cast<ace_extension*>(util::pool_allocator<sizeof(ace_extension)>::get().allocate());
+    }
+
+    void operator delete(void * p) {
+        util::pool_allocator<sizeof(ace_extension)>::get().free(p);
+    }
+#endif
 };
 //! aliases for payload and phase types
 using axi_payload = tlm::tlm_generic_payload;
