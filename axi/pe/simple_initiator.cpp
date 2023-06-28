@@ -14,8 +14,6 @@
  * limitations under the License.axi_util.cpp
  */
 
-#define SC_INCLUDE_DYNAMIC_PROCESSES
-
 #include "simple_initiator.h"
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
@@ -112,7 +110,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count++;
-        if(fsm_hndl->beat_count < (get_burst_lenght(*fsm_hndl->trans) - 1))
+        if(fsm_hndl->beat_count < (get_burst_length(*fsm_hndl->trans) - 1))
             if(::scc::get_value(wr_data_beat_delay) > 0)
                 schedule(BegPartReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
             else

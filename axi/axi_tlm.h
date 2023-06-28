@@ -1116,19 +1116,19 @@ inline bool is_burst(const axi::axi_protocol_types::tlm_payload_type* trans) { r
  * @param r
  * @return the number of beats
  */
-inline unsigned get_burst_lenght(const request& r) { return r.get_length() + 1; }
+inline unsigned get_burst_length(const request& r) { return r.get_length() + 1; }
 /**
  * get length of a burst
  * @param r
  * @return the number of beats
  */
-inline unsigned get_burst_lenght(const request* r) { return r->get_length() + 1; }
+inline unsigned get_burst_length(const request* r) { return r->get_length() + 1; }
 /**
  * get length of a burst
  * @param trans
  * @return the number of beats
  */
-inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type& trans) {
+inline unsigned get_burst_length(const axi::axi_protocol_types::tlm_payload_type& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
         return e->get_length() + 1;
     if(auto e = trans.get_extension<axi::axi4_extension>())
@@ -1143,8 +1143,8 @@ inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type
  * @param trans
  * @return the number of beats
  */
-inline unsigned get_burst_lenght(const axi::axi_protocol_types::tlm_payload_type* trans) {
-    return get_burst_lenght(*trans);
+inline unsigned get_burst_length(const axi::axi_protocol_types::tlm_payload_type* trans) {
+    return get_burst_length(*trans);
 }
 /**
  * get size of a burst in bytes which is 2^AxBURST

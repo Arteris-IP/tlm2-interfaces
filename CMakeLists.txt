@@ -21,10 +21,13 @@ project (tlm-interfaces LANGUAGES CXX VERSION 1.0.0)
 
 set(SCC_ARCHIVE_DIR_MODIFIER "" CACHE STRING "additional directory levels to store static library archives") 
 
-if(TARGET scc)
-    add_library(${PROJECT_NAME} 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+if(TARGET scc-sysc)
+    add_library(${PROJECT_NAME} STATIC
        chi/chi_tlm.cpp
        chi/pe/chi_rn_initiator.cpp
+       chi/lwtr/chi_lwtr.cpp
        axi/axi_tlm.cpp
        axi/fsm/base.cpp
        axi/pe/simple_initiator.cpp
@@ -32,10 +35,13 @@ if(TARGET scc)
        axi/pe/ordered_target.cpp
        axi/pe/reordering_target.cpp
        axi/pe/axi_initiator.cpp
+       axi/scv/axi_ace_scv.cpp
+       axi/lwtr/axi_ace_lwtr.cpp
        axi/checker/axi_protocol.cpp
        axi/checker/ace_protocol.cpp
     )
     target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
 else()
     add_library(${PROJECT_NAME} INTERFACE) 
@@ -49,8 +55,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 install(TARGETS ${PROJECT_NAME}
-        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_ARCHIVE_DIR_MODIFIER}
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_LIBRARY_DIR_MODIFIER}
+        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_LIBRARY_DIR_MODIFIER}${SCC_ARCHIVE_DIR_MODIFIER}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
     DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/atp
@@ -68,4 +74,18 @@ install(
     DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/chi
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.h")
+
+
+file(GLOB_RECURSE HDR_LIST LIST_DIRECTORIES false RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "axi/*.h" "chi/*.h")
+set(CMAKE_CONFIGURABLE_FILE_CONTENT "#ifndef _AXI_CHI_H\n#define _AXI_CHI_H")
+foreach(filename ${HDR_LIST})
+	set(CMAKE_CONFIGURABLE_FILE_CONTENT "${CMAKE_CONFIGURABLE_FILE_CONTENT}\n#include \"${filename}\"")
+endforeach()
+set(CMAKE_CONFIGURABLE_FILE_CONTENT "${CMAKE_CONFIGURABLE_FILE_CONTENT}\n#endif //_AXI_CHI_H\n")
+
+configure_file("${CMAKE_ROOT}/Modules/CMakeConfigurableFile.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/axi_chi.h"
+  @ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/axi_chi.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

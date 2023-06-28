@@ -17,6 +17,7 @@
 #pragma once
 
 #include <axi/pe/axi_target_pe.h>
+#include <cci_configuration>
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
@@ -34,22 +35,26 @@ public:
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> RIV
      */
-    scc::sc_attribute_randomized<int> rd_resp_delay{"rd_resp_delay", 0};
+    scc::sc_attribute_randomized<int>& rd_resp_delay;
     /**
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> BV
      */
-    scc::sc_attribute_randomized<int> wr_resp_delay{"wr_resp_delay", 0};
+    scc::sc_attribute_randomized<int>& wr_resp_delay;
     /**
      * @brief the bandwidth limit for read accesses
      */
-    sc_core::sc_attribute<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
+    cci::cci_param<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
     /**
      * @brief the bandwidth limit for write accesses
      */
-    sc_core::sc_attribute<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
+    cci::cci_param<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
+    /**
+     * @brief the bandwidth limit for read accesses
+     */
+    cci::cci_param<double> total_bw_limit_byte_per_sec{"total_bw_limit_byte_per_sec", -1.0};
 
-    rate_limiting_buffer(const sc_core::sc_module_name& nm);
+    rate_limiting_buffer(const sc_core::sc_module_name& nm, scc::sc_attribute_randomized<int>& rd_resp_delay, scc::sc_attribute_randomized<int>& wr_resp_delay);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
@@ -66,15 +71,17 @@ public:
     void snoop_resp(tlm::tlm_generic_payload& payload, bool sync = false) override {}
 protected:
     sc_core::sc_clock* clk_if{nullptr};
-    sc_core::sc_time time_per_byte_rd, time_per_byte_wr;
+    sc_core::sc_time time_per_byte_rd, time_per_byte_wr, time_per_byte_total;
     //! queues realizing the min latency
     scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>> rd_req2resp_fifo{"rd_req2resp_fifo"};
     scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>> wr_req2resp_fifo{"wr_req2resp_fifo"};
     //! queues to handle bandwidth limit
     scc::fifo_w_cb<tlm::tlm_generic_payload*> rd_resp_fifo{"rd_resp_fifo"};
     scc::fifo_w_cb<tlm::tlm_generic_payload*> wr_resp_fifo{"wr_resp_fifo"};
-
+    scc::ordered_semaphore total_arb{1};
+    double total_residual_clocks{0.0};
     void end_of_elaboration() override;
+    void start_of_simulation() override;
 
     void process_req2resp_fifos();
     void start_rd_resp_thread();
@@ -102,7 +109,8 @@ public:
      */
     ordered_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
-    , pe("pe", BUSWIDTH) {
+    , pe("pe", BUSWIDTH)
+    , rate_limit_buffer("rate_limit_buffer", pe.rd_resp_delay, pe.wr_resp_delay){
         sckt(pe);
         pe.clk_i(clk_i);
         rate_limit_buffer.clk_i(clk_i);
@@ -128,7 +136,7 @@ protected:
     }
 public:
     axi_target_pe pe;
-    rate_limiting_buffer rate_limit_buffer{"rate_limit_buffer"};
+    rate_limiting_buffer rate_limit_buffer;
 };
 } // namespace pe
 } // namespace axi

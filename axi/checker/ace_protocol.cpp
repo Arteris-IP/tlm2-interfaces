@@ -26,7 +26,11 @@ void ace_protocol::fw_pre(const ace_protocol::payload_type &trans, const ace_pro
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command: tlm::TLM_IGNORE_COMMAND on forward path";
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on forward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on return in forward path";
+#endif
 }
 
 void ace_protocol::fw_post(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
@@ -35,7 +39,11 @@ void ace_protocol::fw_post(const ace_protocol::payload_type &trans, const ace_pr
     if(req_beat[cmd]==tlm::BEGIN_REQ && (phase == tlm::BEGIN_RESP || phase == axi::BEGIN_PARTIAL_RESP))
         req_beat[cmd]= tlm::UNINITIALIZED_PHASE;
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in forward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on return in forward path";
+#endif
 }
 
 void ace_protocol::bw_pre(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase) {
@@ -43,13 +51,21 @@ void ace_protocol::bw_pre(const ace_protocol::payload_type &trans, const ace_pro
     if (cmd == tlm::TLM_IGNORE_COMMAND)
         SCCERR(name) << "Illegal command:  tlm::TLM_IGNORE_COMMAND on forward path";
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on backward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on backward path";
+#endif
 }
 
 void ace_protocol::bw_post(const ace_protocol::payload_type &trans, const ace_protocol::phase_type &phase, tlm::tlm_sync_enum rstat) {
     if(rstat == tlm::TLM_ACCEPTED) return;
     if (check_phase_change(trans, phase))
+#ifndef NCSC
         SCCERR(name) << "Illegal phase transition: " << phase.get_name() << " on return in backward path";
+#else
+        SCCERR(name) << "Illegal phase transition: " << phase << " on forward path";
+#endif
 }
 
 bool ace_protocol::check_phase_change(payload_type const& trans, const ace_protocol::phase_type &phase) {
@@ -91,7 +107,7 @@ bool ace_protocol::check_phase_change(payload_type const& trans, const ace_proto
 
 void ace_protocol::request_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
-    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_len = axi::get_burst_length(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
     if(trans.is_write()){
         if(req_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
@@ -105,7 +121,7 @@ void ace_protocol::request_update(const payload_type &trans) {
             }
             if(req_beat[tlm::TLM_WRITE_COMMAND]==tlm::BEGIN_REQ) {
                 if(wr_req_beat_count != axi_burst_len){
-                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
+                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_length(trans)-1;
                 }
                 auto mask = bw-1ULL;
                 auto offset = trans.get_address() & mask;
@@ -144,7 +160,7 @@ void ace_protocol::request_update(const payload_type &trans) {
 
 void ace_protocol::response_update(const payload_type &trans) {
     auto axi_id = axi::get_axi_id(trans);
-    auto axi_burst_len = axi::get_burst_lenght(trans);
+    auto axi_burst_len = axi::get_burst_length(trans);
     auto axi_burst_size = axi::get_burst_size(trans);
     if(trans.is_write()){
         if(resp_beat[tlm::TLM_WRITE_COMMAND]==tlm::UNINITIALIZED_PHASE) {
@@ -177,7 +193,7 @@ void ace_protocol::response_update(const payload_type &trans) {
             }
             if(resp_beat[tlm::TLM_READ_COMMAND]==tlm::BEGIN_RESP)  {
                 if(rd_resp_beat_count[axi_id] != axi_burst_len){
-                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_lenght(trans)-1;
+                    SCCERR(name) << "Illegal AXI settings: number of transferred beats ("<<wr_req_beat_count<<") does not comply with AWLEN:0x"<<std::hex<<axi::get_burst_length(trans)-1;
                 }
                 auto mask = bw-1ULL;
                 auto offset = trans.get_address() & mask;

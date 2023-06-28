@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef SC_INCLUDE_DYNAMIC_PROCESSES
 #define SC_INCLUDE_DYNAMIC_PROCESSES
+#endif
 #include <atp/timing_params.h>
 #include <axi/axi_tlm.h>
 #include <axi/pe/axi_initiator.h>
