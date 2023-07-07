@@ -973,6 +973,14 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     case chi::req_optype_e::WriteNoSnpZero:
     case chi::req_optype_e::WriteUniqueZero:
         return true;
+    case chi::req_optype_e::MakeReadUnique:
+        switch(req_e->resp.get_opcode()) {
+        case chi::rsp_optype_e::Comp: // Response to dataless MakeReadUnique request (4.5.1 Completion response of IHI0050E
+        case chi::rsp_optype_e::CompPersist:
+        case chi::rsp_optype_e::CompCMO:
+        case chi::rsp_optype_e::CompStashDone:
+            return true;
+        }
     }
     return false;
 

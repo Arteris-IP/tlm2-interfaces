@@ -476,12 +476,10 @@ void setExpCompAck(chi::chi_ctrl_extension* const req_e) {
 
 bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcode) {
     if(auto* ctrl_e = gp.get_extension<chi::chi_ctrl_extension>()) {
-        ctrl_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
             if(is_dataless(ctrl_e) || gp.is_write()) {
                 ctrl_e->resp.set_tgt_id(ctrl_e->req.get_tgt_id());
                 ctrl_e->resp.set_trace_tag(ctrl_e->req.is_trace_tag()); // XXX ??
-                return true;
             } else {
                 auto dat_e = gp.get_extension<chi::chi_data_extension>();
                 ctrl_e->set_src_id(dat_e->get_src_id());
@@ -489,9 +487,11 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
                 ctrl_e->set_txn_id(dat_e->dat.get_db_id());
                 ctrl_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
                 ctrl_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
-                return true;
             }
-        }
+            ctrl_e->resp.set_opcode(rsp_opcode);
+            return true;
+        } else
+            ctrl_e->resp.set_opcode(rsp_opcode);
     } else if(auto* snp_e = gp.get_extension<chi::chi_snp_extension>()) {
         snp_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
@@ -827,23 +827,29 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         if(phase == tlm::BEGIN_RESP) {
             if(chi::is_dataless(ctrl_ext)){
                 switch(ctrl_ext->resp.get_opcode()) {
-                case chi::rsp_optype_e::Comp: // Response to dataless makeUnique request
-                    switch(ctrl_ext->resp.get_resp()) {
-                    case chi::rsp_resptype_e::Comp_I:
-                    case chi::rsp_resptype_e::Comp_UC:
-                    case chi::rsp_resptype_e::Comp_SC:
+                case chi::rsp_optype_e::Comp: // Response to dataless Make(Read)Unique request
+                    if(ctrl_ext->req.get_opcode() == chi::req_optype_e::MakeReadUnique)
                         not_finish &= ~WAIT_CTRL;
-                        break;
-                    }
+                    else
+                        switch(ctrl_ext->resp.get_resp()) {
+                        case chi::rsp_resptype_e::Comp_I:
+                        case chi::rsp_resptype_e::Comp_UC:
+                        case chi::rsp_resptype_e::Comp_SC:
+                            not_finish &= ~WAIT_CTRL;
+                            break;
+                        }
                     break;
                 case chi::rsp_optype_e::CompDBIDResp: // in case of WriteNoSnpZero, which is dataless
                 case chi::rsp_optype_e::CompPersist:
+                case chi::rsp_optype_e::CompCMO:
+                case chi::rsp_optype_e::CompStashDone:
                     not_finish &= ~WAIT_CTRL;
                     break;
                 case chi::rsp_optype_e::Persist:
                     not_finish &= ~WAIT_PERSIST;
                     break;
                 }
+                not_finish &= ~WAIT_DATA;
                 send_cresp_response(trans);
             } else if(trans.is_write()) {
                 switch(ctrl_ext->resp.get_opcode()) {
