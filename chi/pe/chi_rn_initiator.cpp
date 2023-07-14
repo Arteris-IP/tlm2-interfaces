@@ -372,7 +372,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 case chi::req_optype_e::AtomicLoadUmin:
                 case chi::req_optype_e::AtomicSwap:
                 case chi::req_optype_e::AtomicCompare:
-                    chi_req_ext->req.set_order(0b10);
+                    chi_req_ext->req.set_order(0b00);
                     break;
                 default:
                     break;
