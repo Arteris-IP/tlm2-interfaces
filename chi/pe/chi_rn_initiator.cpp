@@ -905,6 +905,8 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
 void chi::pe::chi_rn_initiator_b::send_cresp_response(payload_type& trans) {
     auto resp_ext = trans.get_extension<chi::chi_ctrl_extension>();
     sc_assert(resp_ext != nullptr);
+    if(is_request_order(resp_ext))
+        req_order.post();
     auto id = (unsigned)(resp_ext->get_txn_id());
     SCCDEBUG(SCMOD) << "got cresp: src_id=" << (unsigned)resp_ext->get_src_id()
                             << ", tgt_id=" << (unsigned)resp_ext->resp.get_tgt_id() << ", "
@@ -1026,6 +1028,9 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         }
         auto& txs = it->second;
         auto const txn_id = req_ext->get_txn_id();
+        if(chi::is_request_order(req_ext)) {
+            req_order.wait();
+        }
         if(strict_income_order.value) strict_order_sem.wait();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
         if(strict_income_order.value) strict_order_sem.post();

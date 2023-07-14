@@ -139,6 +139,8 @@ protected:
 
     unsigned thread_avail{0}, thread_active{0};
 
+    scc::ordered_semaphore req_order{1};
+
     scc::ordered_semaphore req_chnl{1};
 
     scc::ordered_semaphore wdat_chnl{1};

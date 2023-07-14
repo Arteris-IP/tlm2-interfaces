@@ -983,9 +983,43 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
         }
     }
     return false;
-
 }
 
+inline bool is_atomic(const chi::chi_ctrl_extension* req_e) {
+    return req_e->req.get_opcode()>=chi::req_optype_e::AtomicStoreAdd && req_e->req.get_opcode()<=chi::req_optype_e::AtomicCompare;
+}
+
+inline bool is_request_order(const chi::chi_ctrl_extension* req_e) {
+    if(req_e->req.get_order()==2) {
+        switch(req_e->req.get_opcode()) {
+        case chi::req_optype_e::ReadNoSnp:
+        case chi::req_optype_e::ReadNoSnpSep:
+        case chi::req_optype_e::ReadOnce :
+        case chi::req_optype_e::ReadOnceCleanInvalid:
+        case chi::req_optype_e::ReadOnceMakeInvalid:
+        case chi::req_optype_e::WriteNoSnpFull:
+        case chi::req_optype_e::WriteNoSnpFullCleanInv:
+        case chi::req_optype_e::WriteNoSnpFullCleanSh:
+        case chi::req_optype_e::WriteNoSnpFullCleanShPerSep:
+        case chi::req_optype_e::WriteNoSnpPtl:
+        case chi::req_optype_e::WriteNoSnpPtlCleanInv:
+        case chi::req_optype_e::WriteNoSnpPtlCleanSh:
+        case chi::req_optype_e::WriteNoSnpPtlCleanShPerSep:
+        case chi::req_optype_e::WriteUniqueFull:
+        case chi::req_optype_e::WriteUniqueFullCleanSh:
+        case chi::req_optype_e::WriteUniqueFullCleanShPerSep:
+        case chi::req_optype_e::WriteUniqueFullStash:
+        case chi::req_optype_e::WriteUniquePtl:
+        case chi::req_optype_e::WriteUniquePtlCleanSh:
+        case chi::req_optype_e::WriteUniquePtlCleanShPerSep:
+        case chi::req_optype_e::WriteUniquePtlStash:
+        case chi::req_optype_e::WriteUniqueZero:
+            return true;
+        }
+        return is_atomic(req_e);
+    } else
+        return false;
+}
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
