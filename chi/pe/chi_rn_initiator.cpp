@@ -480,8 +480,12 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
             if(is_dataless(ctrl_e) || gp.is_write()) {
                 ctrl_e->resp.set_tgt_id(ctrl_e->req.get_tgt_id());
                 ctrl_e->resp.set_trace_tag(ctrl_e->req.is_trace_tag()); // XXX ??
+                if(ctrl_e->req.get_opcode() == chi::req_optype_e::MakeReadUnique) {
+                    ctrl_e->set_txn_id(ctrl_e->resp.get_db_id());
+                }
             } else {
                 auto dat_e = gp.get_extension<chi::chi_data_extension>();
+                ctrl_e->req.set_tgt_id(dat_e->dat.get_home_n_id());
                 ctrl_e->set_src_id(dat_e->get_src_id());
                 ctrl_e->set_qos(dat_e->get_qos());
                 ctrl_e->set_txn_id(dat_e->dat.get_db_id());
@@ -909,8 +913,9 @@ void chi::pe::chi_rn_initiator_b::send_cresp_response(payload_type& trans) {
         req_order.post();
     auto id = (unsigned)(resp_ext->get_txn_id());
     SCCDEBUG(SCMOD) << "got cresp: src_id=" << (unsigned)resp_ext->get_src_id()
-                            << ", tgt_id=" << (unsigned)resp_ext->resp.get_tgt_id() << ", "
-                            << "txnid=0x" << std::hex << id << ", " << to_char(resp_ext->resp.get_opcode())
+                            << ", tgt_id=" << (unsigned)resp_ext->resp.get_tgt_id()
+                            << ", txnid=0x" << std::hex << id << ", " << to_char(resp_ext->resp.get_opcode())
+                            << ", resp=" << to_char(resp_ext->resp.get_resp())
                             << ", db_id=" << (unsigned)resp_ext->resp.get_db_id() << ", addr=0x" << std::hex
                             << trans.get_address() << ")";
     tlm::tlm_phase phase = tlm::END_RESP;
