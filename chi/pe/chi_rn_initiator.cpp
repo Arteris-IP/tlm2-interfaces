@@ -521,7 +521,7 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 : sc_module(nm)
 , socket_fw(port)
 , transfer_width_in_bytes(transfer_width / 8) {
-    add_attribute(home_node_id);
+    add_attribute(tgt_id);
     add_attribute(src_id);
     add_attribute(data_interleaving);
     add_attribute(strict_income_order);
@@ -1020,7 +1020,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             sc_assert(req_ext != nullptr);
         }
         req_ext->set_src_id(src_id.value);
-        req_ext->req.set_tgt_id(home_node_id.value);
+        req_ext->req.set_tgt_id(tgt_id.value);
         req_ext->req.set_max_flit(calculate_beats(trans) - 1);
         tx_waiting++;
         auto it = tx_state_by_trans.find(to_id(trans));

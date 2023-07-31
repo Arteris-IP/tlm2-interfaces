@@ -91,8 +91,7 @@ public:
 
     sc_core::sc_attribute<unsigned> src_id{"src_id", 1};
 
-    sc_core::sc_attribute<unsigned> home_node_id{"home_node_id",
-                                                 0}; // home node id will be used as tgt_id in all transaction req
+    sc_core::sc_attribute<unsigned> tgt_id{"tgt_id", 0}; // home node id will be used as tgt_id in all transaction req
 
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", true};
 
