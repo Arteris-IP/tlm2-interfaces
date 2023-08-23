@@ -17,6 +17,7 @@
 #pragma once
 
 #include <axi/pe/axi_target_pe.h>
+#include "target_info_if.h"
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
@@ -29,7 +30,7 @@ namespace pe {
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-class simple_target : public axi_target_pe {
+class simple_target : public axi_target_pe, public target_info_if {
 public:
     using base = axi_target_pe;
     using payload_type = base::payload_type;
@@ -58,6 +59,8 @@ public:
     simple_target& operator=(simple_target const&) = delete;
 
     simple_target& operator=(simple_target&&) = delete;
+
+    size_t get_outstanding_tx_count() override { return getAllOutStandingTx();}
 
 protected:
     axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket;

@@ -135,6 +135,10 @@ public:
 
 	void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
 
+    inline unsigned getAllOutStandingTx() const {
+        return outstanding_rd_tx + outstanding_wr_tx + outstanding_ign_tx;
+    }
+
 protected:
 	axi_target_pe() = delete;
 
