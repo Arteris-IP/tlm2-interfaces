@@ -124,7 +124,8 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 			stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
 			stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
 		} else { // accepted, schedule response
-			getOutStandingTx(fsm_hndl->trans->get_command())++;
+            if(!fsm_hndl->beat_count)
+                getOutStandingTx(fsm_hndl->trans->get_command())++;
 			if(wr_data_accept_delay.get_value())
 				schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.get_value() - 1);
 			else
@@ -225,7 +226,6 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 				schedule(stalled_tp[cmd], trans, latency - 1);
 			else
 				schedule(stalled_tp[cmd], trans, sc_core::SC_ZERO_TIME);
-			getOutStandingTx(cmd)++;
 			stalled_tx[cmd] = nullptr;
 			stalled_tp[cmd] = CB_CNT;
 		}
