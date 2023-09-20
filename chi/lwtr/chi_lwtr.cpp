@@ -20,6 +20,8 @@
 #include <tlm/scc/lwtr/lwtr4tlm2_extension_registry.h>
 
 namespace lwtr {
+using namespace chi;
+
 template <class Archive> void record(Archive &ar, tlm::scc::tlm_id_extension const& e) {ar & field("uid", e.id);}
 
 template <class Archive> void record(Archive &ar, chi::chi_ctrl_extension const& e) {
@@ -54,7 +56,7 @@ template <class Archive> void record(Archive &ar, chi::chi_ctrl_extension const&
     ar & field("mpam", e.req.get_mpam());
     ar & field("rsp.db_id", e.resp.get_db_id());
     ar & field("rsp.pcrd_type", e.resp.get_pcrd_type());
-    ar & field("rsp.resp_err", e.resp.get_resp_err());
+    ar & field("rsp.resp_err", to_char(e.resp.get_resp_err()));
     ar & field("rsp.fwd_state", e.resp.get_fwd_state());
     ar & field("rsp.data_pull", e.resp.get_data_pull());
     ar & field("rsp.opcode", to_char(e.resp.get_opcode()));
@@ -71,7 +73,7 @@ template <class Archive> void record(Archive &ar, chi::chi_data_extension const&
     ar & field("src_id", e.get_src_id());
     ar & field("txn_id", e.get_txn_id());
     ar & field("db_id", e.dat.get_db_id());
-    ar & field("resp_err", e.dat.get_resp_err());
+    ar & field("resp_err", to_char(e.dat.get_resp_err()));
     ar & field("resp", to_char(e.dat.get_resp()));
     ar & field("fwd_state", e.dat.get_fwd_state());
     ar & field("data_pull", e.dat.get_data_pull());
@@ -107,7 +109,7 @@ template <class Archive> void record(Archive &ar, chi::chi_snp_extension const& 
     ar & field("trace_tag", e.req.is_trace_tag());
     ar & field("rsp.db_id", e.resp.get_db_id());
     ar & field("rsp.pcrd_type", e.resp.get_pcrd_type());
-    ar & field("rsp.resp_err", e.resp.get_resp_err());
+    ar & field("rsp.resp_err", to_char(e.resp.get_resp_err()));
     ar & field("rsp.fwd_state", e.resp.get_fwd_state());
     ar & field("rsp.data_pull", e.resp.get_data_pull());
     ar & field("rsp.opcode", to_char(e.resp.get_opcode()));
