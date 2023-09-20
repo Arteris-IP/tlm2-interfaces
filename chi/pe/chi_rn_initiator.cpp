@@ -1204,6 +1204,8 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
             send_comp_ack(trans, txs);
     } else {
         ext->set_src_id(src_id.value);
+        ext->dat.set_tgt_id(ext->get_src_id());
+        ext->dat.set_db_id(ext->get_txn_id());
         send_wdata(trans, txs);
     }
 }

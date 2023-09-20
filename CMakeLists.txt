@@ -27,6 +27,7 @@ if(TARGET scc-sysc)
     add_library(${PROJECT_NAME} STATIC
        chi/chi_tlm.cpp
        chi/pe/chi_rn_initiator.cpp
+       chi/pe/chi_rnf_initiator.cpp
        chi/lwtr/chi_lwtr.cpp
        axi/axi_tlm.cpp
        axi/fsm/base.cpp

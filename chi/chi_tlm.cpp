@@ -308,7 +308,7 @@ template <> const char* to_char<rsp_resperrtype_e>(rsp_resperrtype_e v) {
     case rsp_resperrtype_e::NDERR:
         return "NDERR";
     default:
-        return "rsp_resperrtype_e";
+        return "UNKNOWN_rsp_resperrtype_e";
     }
 }
 

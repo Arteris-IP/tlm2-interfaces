@@ -1177,7 +1177,7 @@ inline uint8_t request::get_stash_lp_id() const { return stash_lp_id; }
 /*Data size. Specifies the size of the data associated with the transaction. This
   determines the number of data packets within the transaction */
 inline void request::set_size(uint8_t sz) {
-    assert(sz <= 8);
+    assert(sz < 7);
     size = sz;
 }
 inline uint8_t request::get_size() const { return size; }
