@@ -2035,7 +2035,7 @@ private:
         gp.get_extension(attr);
         if (attr) {
             auto opcode = attr->req.get_opcode();
-            return opcode >= chi::req_optype_e::AtomicStore && opcode <= chi::req_optype_e::AtomicCompare;
+            return opcode >= chi::req_optype_e::AtomicStoreAdd && opcode <= chi::req_optype_e::AtomicCompare;
         }
         return false;
     }
@@ -2053,7 +2053,7 @@ private:
         chi::chi_ctrl_extension *attr;
         gp.get_extension(attr);
         if (attr) {
-            if (attr->req.get_opcode() < chi::req_optype_e::AtomicLoad) {
+            if (attr->req.get_opcode() < chi::req_optype_e::AtomicLoadAdd) {
                 m_cache->AtomicStore(gp, attr);
             } else {
                 m_cache->AtomicNonStore(gp, attr);

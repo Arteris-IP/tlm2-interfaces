@@ -902,7 +902,7 @@ public:
 private:
 
     bool IsAtomicStore() {
-        return m_opcode >= chi::req_optype_e::AtomicStore && m_opcode < chi::req_optype_e::AtomicLoad;
+        return m_opcode >= chi::req_optype_e::AtomicStoreAdd && m_opcode < chi::req_optype_e::AtomicLoadAdd;
     }
 
     inline chi::dat_optype_e GetDatOpcode() {
