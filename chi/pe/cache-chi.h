@@ -1774,6 +1774,8 @@ private:
                             break;
                         case chi::req_optype_e::WriteCleanPtl:
                         case chi::req_optype_e::WriteCleanFull:
+                        case chi::req_optype_e::WriteCleanFullCleanSh:
+                        case chi::req_optype_e::WriteCleanFullCleanShPerSep:
                             if(l->IsDirty()) this->WriteClean(l, opc, gp);
                             n=CACHELINE_SZ;
                            break;
