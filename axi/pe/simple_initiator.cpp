@@ -285,9 +285,10 @@ void simple_initiator_b::process_snoop_resp() {
         while(snp_resp_queue.avail()) {
             auto entry = snp_resp_queue.front();
             if(std::get<2>(entry) == 0) {
-                if(snp.trywait() < 0)
+                if(snp.get_value() == 0)
                     snp_resp_queue.push_back(entry);
                 else {
+                    snp.wait();
                     auto gp = std::get<1>(entry);
                     SCCTRACE(instance_name)
                         << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *gp;
