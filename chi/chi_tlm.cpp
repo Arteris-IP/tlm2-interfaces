@@ -297,6 +297,21 @@ template <> const char* to_char<rsp_resptype_e>(rsp_resptype_e v) {
     }
 }
 
+template <> const char* to_char<rsp_resperrtype_e>(rsp_resperrtype_e v) {
+    switch(v) {
+    case rsp_resperrtype_e::OK:
+        return "OK";
+    case rsp_resperrtype_e::EXOK:
+        return "EXOK";
+    case rsp_resperrtype_e::DERR:
+        return "DERR";
+    case rsp_resperrtype_e::NDERR:
+        return "NDERR";
+    default:
+        return "rsp_resperrtype_e";
+    }
+}
+
 template <> const char* to_char<credit_type_e>(credit_type_e v) {
     switch(v) {
     case credit_type_e::LINK:
@@ -374,7 +389,7 @@ class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_c.mpam", ext->req.get_mpam());
             handle.record_attribute("trans.chi_c.rsp.db_id", ext->resp.get_db_id());
             handle.record_attribute("trans.chi_c.rsp.pcrd_type", ext->resp.get_pcrd_type());
-            handle.record_attribute("trans.chi_c.rsp.resp_err", ext->resp.get_resp_err());
+            handle.record_attribute("trans.chi_c.rsp.resp_err", std::string(to_char(ext->resp.get_resp_err())));
             handle.record_attribute("trans.chi_c.rsp.fwd_state", ext->resp.get_fwd_state());
             handle.record_attribute("trans.chi_c.rsp.data_pull", ext->resp.get_data_pull());
             handle.record_attribute("trans.chi_c.rsp.opcode", std::string(to_char(ext->resp.get_opcode())));
@@ -398,7 +413,7 @@ class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_t
             handle.record_attribute("trans.chi_d.src_id", ext->get_src_id());
             handle.record_attribute("trans.chi_d.txn_id", ext->get_txn_id());
             handle.record_attribute("trans.chi_d.db_id", ext->dat.get_db_id());
-            handle.record_attribute("trans.chi_d.resp_err", ext->dat.get_resp_err());
+            handle.record_attribute("trans.chi_d.resp_err", std::string(to_char(ext->dat.get_resp_err())));
             handle.record_attribute("trans.chi_d.resp", std::string(to_char(ext->dat.get_resp())));
             handle.record_attribute("trans.chi_d.fwd_state", ext->dat.get_fwd_state());
             handle.record_attribute("trans.chi_d.data_pull", ext->dat.get_data_pull());
@@ -442,7 +457,7 @@ class chi_snp_ext_recording : public tlm_extensions_recording_if<chi_protocol_ty
             handle.record_attribute("trans.chi_s.trace_tag", ext->req.is_trace_tag());
             handle.record_attribute("trans.chi_s.rsp.db_id", ext->resp.get_db_id());
             handle.record_attribute("trans.chi_s.rsp.pcrd_type", ext->resp.get_pcrd_type());
-            handle.record_attribute("trans.chi_s.rsp.resp_err", ext->resp.get_resp_err());
+            handle.record_attribute("trans.chi_s.rsp.resp_err", std::string(to_char(ext->resp.get_resp_err())));
             handle.record_attribute("trans.chi_s.rsp.fwd_state", ext->resp.get_fwd_state());
             handle.record_attribute("trans.chi_s.rsp.data_pull", ext->resp.get_data_pull());
             handle.record_attribute("trans.chi_s.rsp.opcode", std::string(to_char(ext->resp.get_opcode())));

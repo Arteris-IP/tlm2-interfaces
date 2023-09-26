@@ -499,12 +499,13 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
     } else if(auto* snp_e = gp.get_extension<chi::chi_snp_extension>()) {
         snp_e->resp.set_opcode(rsp_opcode);
         if(rsp_opcode == chi::rsp_optype_e::CompAck) {
-            auto dat_e = gp.get_extension<chi::chi_data_extension>();
-            snp_e->set_src_id(dat_e->get_src_id());
-            snp_e->set_qos(dat_e->get_qos());
-            snp_e->set_txn_id(dat_e->dat.get_db_id());
-            snp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
-            snp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ??
+            if(auto dat_e = gp.get_extension<chi::chi_data_extension>()) {
+                snp_e->set_src_id(dat_e->get_src_id());
+                snp_e->set_qos(dat_e->get_qos());
+                snp_e->set_txn_id(dat_e->dat.get_db_id());
+                snp_e->resp.set_tgt_id(dat_e->dat.get_tgt_id());
+                snp_e->resp.set_trace_tag(dat_e->dat.is_trace_tag()); // XXX ?
+            }
             return true;
         }
     }
@@ -1162,7 +1163,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
             }
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
         }
-        if(snp_ext->resp.get_data_pull() && trans.get_data_length() != 64) {
+        if(snp_ext->resp.get_data_pull() && trans.get_data_length() < 64) {
             delete[] trans.get_data_ptr();
             trans.set_data_ptr(new uint8_t[64]);
             trans.set_data_length(64);
@@ -1199,7 +1200,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
             }
         }
         wait(clk_i.posedge_event()); // sync to clock before releasing resource
-        if(trans.get_data_length())
+        if(snp_ext->resp.get_data_pull())
             send_comp_ack(trans, txs);
     } else {
         ext->set_src_id(src_id.value);
