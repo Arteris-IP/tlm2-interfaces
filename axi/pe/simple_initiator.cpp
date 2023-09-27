@@ -148,9 +148,10 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             fsm_hndl->beat_count = 0;
             fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
             auto latency = snoop_latency;
-            if(snoop_cb)
+            if(snoop_cb) {
                 latency = snoop_cb(*fsm_hndl->trans);
-            else {
+                ext->set_snoop_data_transfer(true);
+            } else {
                 ext->set_snoop_data_transfer(false);
                 ext->set_snoop_error(false);
                 ext->set_pass_dirty(false);
@@ -158,7 +159,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
                 ext->set_snoop_was_unique(false);
             }
             if(latency < std::numeric_limits<unsigned>::max()) {
-                auto length = transfer_width_in_bytes/fsm_hndl->trans->get_data_length();
+                auto length = axi::get_burst_length(*fsm_hndl->trans);
                 auto evt = ext->is_snoop_data_transfer() && length > 1 ? BegPartRespE : BegRespE;
                 snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans.get(), latency));
             }
@@ -190,11 +191,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
-            auto size = transfer_width_in_bytes/fsm_hndl->trans->get_data_length();
-            if(size<1)
-                size=1;
+            auto size = axi::get_burst_length(*fsm_hndl->trans);
             fsm_hndl->beat_count++;
-            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
+            schedule(fsm_hndl->beat_count < (size-1) ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
         } else {
             sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
             tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
