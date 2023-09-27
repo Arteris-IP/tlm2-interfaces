@@ -32,6 +32,7 @@ if(TARGET scc-sysc)
        axi/fsm/base.cpp
        axi/pe/simple_initiator.cpp
        axi/pe/axi_target_pe.cpp
+       axi/pe/ace_target_pe.cpp
        axi/pe/ordered_target.cpp
        axi/pe/reordering_target.cpp
        axi/pe/axi_initiator.cpp
