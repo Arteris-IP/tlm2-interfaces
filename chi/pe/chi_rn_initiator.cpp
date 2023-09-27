@@ -545,7 +545,7 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 
 void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
     if(snoop_cb) {
-        auto latency = (*snoop_cb)(trans);
+        auto latency = snoop_cb(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * (clk_if ? clk_if->period() : clk_period);
     }
@@ -1192,7 +1192,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                     not_finish &= 0x2; // clear bit0
                     if(beat_cnt != exp_beat_cnt)
                         SCCERR(SCMOD) << "Wrong beat count, expected " << exp_beat_cnt << ", got " << beat_cnt;
-                    (*snoop_cb)(trans);
+                    snoop_cb(trans);
                 }
 
             } else {
@@ -1262,7 +1262,7 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     socket_fw->nb_transport_fw(*trans, phase, delay);
     auto cycles = 0U;
     if(snoop_cb)
-        cycles = (*snoop_cb)(*trans);
+        cycles = snoop_cb(*trans);
     if(cycles < std::numeric_limits<unsigned>::max()) {
         // we handle the snoop access ourselfs
         for(size_t i = 0; i < cycles + 1; ++i)

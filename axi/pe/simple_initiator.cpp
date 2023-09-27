@@ -149,7 +149,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
             auto latency = snoop_latency;
             if(snoop_cb)
-                latency = (*snoop_cb)(*fsm_hndl->trans);
+                latency = snoop_cb(*fsm_hndl->trans);
             else {
                 ext->set_snoop_data_transfer(false);
                 ext->set_snoop_error(false);
@@ -272,7 +272,7 @@ void simple_initiator_b::b_snoop(payload_type& trans, sc_time& t) {
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * clk_period;
     } else if(snoop_cb) {
-        auto latency = (*snoop_cb)(trans);
+        auto latency = snoop_cb(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * clk_period;
     }

@@ -65,7 +65,7 @@ public:
      *
      * @param cb the callback function
      */
-    void set_snoop_cb(std::function<unsigned(payload_type& trans)>* cb) { snoop_cb = cb; }
+    void set_snoop_cb(std::function<unsigned(payload_type& trans)> cb) { snoop_cb = cb; }
     /**
      * @brief triggers a non-blocking snoop response if the snoop callback does not do so.
      *
@@ -126,7 +126,7 @@ protected:
 
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
 
-    std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
+    std::function<unsigned(payload_type& trans)> snoop_cb;
 
     struct tx_state {
         payload_type* active_tx{nullptr};

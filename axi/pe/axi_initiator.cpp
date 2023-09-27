@@ -74,7 +74,7 @@ void axi_initiator_b::end_of_elaboration() {
 
 void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
     if(snoop_cb) {
-        auto latency = (*snoop_cb)(trans);
+        auto latency = snoop_cb(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * clk_period;
     }
@@ -309,7 +309,7 @@ void axi_initiator_b::snoop_thread() {
         socket_fw->nb_transport_fw(*trans, phase, delay);
         auto cycles = 0U;
         if(snoop_cb)
-            cycles = (*snoop_cb)(*trans);
+            cycles = snoop_cb(*trans);
         if(cycles < std::numeric_limits<unsigned>::max()) {
             // we handle the snoop access ourselfs
             for(size_t i = 0; i <= cycles; ++i)

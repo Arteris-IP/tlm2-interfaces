@@ -96,7 +96,7 @@ public:
      *
      * @param cb the callback function
      */
-    void set_snoop_cb(std::function<unsigned(payload_type& trans)>* cb) { snoop_cb = cb; }
+    void set_snoop_cb(std::function<unsigned(payload_type& trans)> cb) { snoop_cb = cb; }
     /**
      * @brief triggers a non-blocking snoop response if the snoop callback does not do so.
      *
@@ -163,7 +163,7 @@ protected:
     sc_core::sc_process_handle snp_resp_queue_hndl;
     // TODO: remove hard coded value
     sc_core::sc_time clk_period{1, sc_core::SC_NS};
-    std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
+    std::function<unsigned(payload_type& trans)> snoop_cb;
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
