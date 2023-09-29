@@ -193,6 +193,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
 		auto size = get_burst_length(*fsm_hndl->trans) - 1;
 		fsm_hndl->beat_count++;
+		SCCTRACE(SCMOD)<< " in EndPartialResp with beat_count = " << fsm_hndl->beat_count << " expected size = " << size;
 		if(rd_data_beat_delay.get_value())
 			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.get_value());
 		else
@@ -300,7 +301,7 @@ void axi::pe::axi_target_pe::start_wr_resp_thread() {
 void axi::pe::axi_target_pe::send_rd_resp_beat_thread() {
 	std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
 	while(true) {
-		// waiting for responses to send
+		// waiting for responses to send, which is notifed in Begin_Partial_Resp
 		wait(rd_resp_beat_fifo.data_written_event());
 		while(rd_resp_beat_fifo.nb_read(entry)) {
 			// there is something to send

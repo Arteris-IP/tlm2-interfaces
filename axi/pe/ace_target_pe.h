@@ -53,7 +53,6 @@ public:
     // hongyu?? here first hardcoded
     axi::axi_initiator_socket<64> isckt_axi{"isckt_axi"};
 
-
     sc_core::sc_port<tlm::scc::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
 
     sc_core::sc_export<tlm::scc::pe::intor_bw_nb> bw_i{"bw_i"};
@@ -155,18 +154,11 @@ protected:
 
     axi::axi_bw_transport_if<axi_protocol_types>* socket_bw{nullptr};
     std::function<unsigned(payload_type& trans)> operation_cb;
-
-
     sc_core::sc_fifo<payload_type*> rd_resp_fifo{1}, wr_resp_fifo{1};
-
 
     sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> wr_resp_beat_fifo{128},
     rd_resp_beat_fifo{128};
     scc::ordered_semaphore rd_resp{1}, wr_resp_ch{1}, rd_resp_ch{1};
-
-    scc::ordered_semaphore rd{1};
-
-
 
     sc_core::sc_clock* clk_if{nullptr};
     std::unique_ptr<bw_intor_impl> bw_intor;
@@ -178,8 +170,6 @@ protected:
     }
     tlm_utils::peq_with_cb_and_phase<ace_target_pe> fw_peq{this, &ace_target_pe::nb_fw};
     std::unordered_set<unsigned> active_rdresp_id;
-
-
 
 };
 

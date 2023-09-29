@@ -55,11 +55,9 @@ SC_HAS_PROCESS(ace_target_pe);
 
 ace_target_pe::ace_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width)
 : sc_module(nm)
-, base(transfer_width)
+, base(transfer_width, true)  // coherent true
 , bw_intor(new bw_intor_impl(this)) {
-
     isckt_axi.bind(*this);
-
     instance_name = name();
 
     add_attribute(rd_resp_delay);
@@ -69,8 +67,6 @@ ace_target_pe::ace_target_pe(const sc_core::sc_module_name& nm, size_t transfer_
     SC_METHOD(fsm_clk_method);
     dont_initialize();
     sensitive << clk_i.pos();
-
-
 }
 
 ace_target_pe::~ace_target_pe() = default;
@@ -107,7 +103,6 @@ tlm_sync_enum ace_target_pe::nb_transport_fw(payload_type& trans, phase_type& ph
           return isckt_axi->nb_transport_fw(trans, phase, t);
       }
       return ret;
-
 }
 
 bool ace_target_pe::get_direct_mem_ptr(payload_type& trans, tlm_dmi& dmi_data) {
@@ -163,12 +158,10 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
             auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
             fsm_hndl->beat_count++;
         }
-
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
         SCCTRACE(SCMOD) <<"in BegRespE of setup_cb, schedule EndResp ";
         schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
-
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
@@ -176,6 +169,8 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->finish.notify();
     };
+    /*TBD ack ??
+     * */
 }
 
 void ace_target_pe::snoop(payload_type& trans) {
@@ -185,7 +180,7 @@ void ace_target_pe::snoop(payload_type& trans) {
     fsm->is_snoop = true;
     react(RequestPhaseBeg, fsm->trans); //
     SCCTRACE(SCMOD) << "started non-blocking protocol";
-    sc_core::wait(fsm->finish);    // hongyu finish is notified in base::react()
+    sc_core::wait(fsm->finish);
     SCCTRACE(SCMOD) << "finished non-blocking protocol";
 }
 

@@ -127,6 +127,7 @@ void base::process_fsm_clk_queue() {
 }
 
 void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
+    SCCTRACE(instance_name)<< "in react() base has  coherent =" << coherent << " with event " << evt2str(event);
     switch(event) {
     case WValidE:
         fsm_hndl->fsm->process_event(WReq());
@@ -161,6 +162,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
         fsm_hndl->fsm->process_event(BegResp());
         return;
     case EndRespE:
+        SCCTRACE(instance_name)<< "in EndResp of base() with coherent =" << coherent;
         if(!coherent || fsm_hndl->is_snoop) {
             SCCTRACE(instance_name) << "freeing fsm for trans " << *fsm_hndl->trans;
             fsm_hndl->fsm->process_event(EndResp());

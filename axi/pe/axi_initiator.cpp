@@ -81,14 +81,14 @@ void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
 }
 
 tlm::tlm_sync_enum axi_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) {
-    SCCTRACE(SCMOD) << "received " << trans << " with phase " << phase;
-    if(phase == tlm::BEGIN_REQ) {
+    SCCTRACE(SCMOD) << __FUNCTION__ << "received with phase " << phase <<  " with trans " << trans;
+    if(phase == tlm::BEGIN_REQ) {   // snoop
         snp_peq.notify(trans, t);
-    } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) {
+    } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) {  //snoop
         auto it = snp_state_by_id.find(&trans);
         sc_assert(it != snp_state_by_id.end());
         it->second->peq.notify(std::make_tuple(&trans, phase), t);
-    } else {
+    } else {  // read/write
         auto it = tx_state_by_tx.find(&trans);
         sc_assert(it != tx_state_by_tx.end());
         auto txs = it->second;
@@ -246,7 +246,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 finished = true;
             } else if(std::get<0>(entry) == &trans &&
                       std::get<1>(entry) == axi::BEGIN_PARTIAL_RESP) { // RDAT without CRESP case
-                SCCTRACE(SCMOD) << "received beat of " << trans;
+                SCCTRACE(SCMOD) << "received beat = "<< burst_length<<" with trans " << trans;
                 auto delay_in_cycles = timing_e ? timing_e->rbr : rbr.value;
                 for(unsigned i = 0; i < delay_in_cycles; ++i)
                     wait(clk_i.posedge_event());
