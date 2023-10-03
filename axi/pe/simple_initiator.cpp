@@ -42,7 +42,7 @@ simple_initiator_b::simple_initiator_b(const sc_core::sc_module_name& nm,
     add_attribute(rd_data_accept_delay);
     add_attribute(wr_resp_accept_delay);
     add_attribute(ack_resp_delay);
-    drv_i.bind(*this);
+    fw_i.bind(*this);
     SC_METHOD(fsm_clk_method);
     dont_initialize();
     sensitive << clk_i.pos();
@@ -266,8 +266,8 @@ tlm_sync_enum simple_initiator_b::nb_transport_bw(payload_type& trans, phase_typ
 }
 
 void simple_initiator_b::b_snoop(payload_type& trans, sc_time& t) {
-    if(drv_o.get_interface()) {
-        auto latency = drv_o->transport(trans);
+    if(bw_o.get_interface()) {
+        auto latency = bw_o->transport(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * clk_period;
     } else if(snoop_cb) {

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <axi/axi_tlm.h>
+#include <tlm/scc/pe/intor_if.h>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <systemc>
@@ -27,13 +28,21 @@
 namespace axi {
 namespace pe {
 
-class axi_initiator_b : public sc_core::sc_module, public axi::ace_bw_transport_if<axi::axi_protocol_types> {
+class axi_initiator_b :
+        public sc_core::sc_module,
+        public axi::ace_bw_transport_if<axi::axi_protocol_types>,
+        public tlm::scc::pe::intor_fw_b
+{
 public:
     enum class flavor_e { AXI, ACEL, ACE };
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
+
+    sc_core::sc_export<tlm::scc::pe::intor_fw_b> fw_i{"fw_i"};
+
+    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> bw_o{"bw_o"};
 
     void b_snoop(payload_type& trans, sc_core::sc_time& t) override;
 
@@ -51,28 +60,14 @@ public:
      * @param trans the transaction to send
      * @param blocking execute in using the blocking interface
      */
-    void transport(payload_type& trans, bool blocking);
-    /**
-     * @brief Set the snoop callback function
-     *
-     * This callback is invoked once a snoop transaction arrives. This function shall return the latency
-     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be
-     * triggered. This needs to be done by a call to snoop_resp()
-     *
-     * @todo refine API
-     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects
-     * and should be fixed
-     *
-     * @param cb the callback function
-     */
-    void set_snoop_cb(std::function<unsigned(payload_type& trans)> cb) { snoop_cb = cb; }
+    void transport(payload_type& trans, bool blocking) override;
     /**
      * @brief triggers a non-blocking snoop response if the snoop callback does not do so.
      *
      * @param trans
      * @param sync when true send response with next rising clock edge otherwise send immediately
      */
-    void snoop_resp(payload_type& trans, bool sync = false);
+    void snoop_resp(payload_type& trans, bool sync = false) override;
 
     axi_initiator_b(sc_core::sc_module_name nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
                     size_t transfer_width, flavor_e flavor);
@@ -125,8 +120,6 @@ protected:
     const flavor_e flavor;
 
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
-
-    std::function<unsigned(payload_type& trans)> snoop_cb;
 
     struct tx_state {
         payload_type* active_tx{nullptr};

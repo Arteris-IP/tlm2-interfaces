@@ -51,7 +51,7 @@ axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
     add_attribute(ba);
     add_attribute(rla);
     add_attribute(enable_id_serializing);
-
+    fw_i.bind(*this);
     SC_METHOD(clk_counter);
     sensitive << clk_i.pos();
 
@@ -73,8 +73,8 @@ void axi_initiator_b::end_of_elaboration() {
 }
 
 void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
-    if(snoop_cb) {
-        auto latency = snoop_cb(trans);
+    if(bw_o.get_interface()) {
+        auto latency = bw_o->transport(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * clk_period;
     }
@@ -308,8 +308,8 @@ void axi_initiator_b::snoop_thread() {
         tlm::tlm_phase phase = tlm::END_REQ;
         socket_fw->nb_transport_fw(*trans, phase, delay);
         auto cycles = 0U;
-        if(snoop_cb)
-            cycles = snoop_cb(*trans);
+        if(bw_o.get_interface())
+            cycles = bw_o->transport(*trans);
         if(cycles < std::numeric_limits<unsigned>::max()) {
             // we handle the snoop access ourselfs
             for(size_t i = 0; i <= cycles; ++i)

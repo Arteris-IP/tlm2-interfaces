@@ -527,6 +527,7 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
     add_attribute(data_interleaving);
     add_attribute(strict_income_order);
     add_attribute(use_legacy_mapping);
+    fw_i.bind(*this);
 
     SC_METHOD(clk_counter);
     sensitive << clk_i.pos();
@@ -544,8 +545,8 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 }
 
 void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
-    if(snoop_cb) {
-        auto latency = snoop_cb(trans);
+    if(bw_o.get_interface()) {
+        auto latency = bw_o->transport(trans);
         if(latency < std::numeric_limits<unsigned>::max())
             t += latency * (clk_if ? clk_if->period() : clk_period);
     }
@@ -1192,7 +1193,8 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                     not_finish &= 0x2; // clear bit0
                     if(beat_cnt != exp_beat_cnt)
                         SCCERR(SCMOD) << "Wrong beat count, expected " << exp_beat_cnt << ", got " << beat_cnt;
-                    snoop_cb(trans);
+    				if(bw_o.get_interface())
+                    	bw_o->transport(trans); //FIXME: explain why this needs to be called- Maybe stash?
                 }
 
             } else {
@@ -1261,8 +1263,8 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     tlm::tlm_phase phase = tlm::END_REQ;
     socket_fw->nb_transport_fw(*trans, phase, delay);
     auto cycles = 0U;
-    if(snoop_cb)
-        cycles = snoop_cb(*trans);
+    if(bw_o.get_interface())
+        cycles = bw_o->transport(*trans);
     if(cycles < std::numeric_limits<unsigned>::max()) {
         // we handle the snoop access ourselfs
         for(size_t i = 0; i < cycles + 1; ++i)

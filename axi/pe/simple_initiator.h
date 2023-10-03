@@ -43,9 +43,9 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    sc_core::sc_export<tlm::scc::pe::intor_fw_b> drv_i{"drv_i"};
+    sc_core::sc_export<tlm::scc::pe::intor_fw_b> fw_i{"fw_i"};
 
-    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
+    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> bw_o{"bw_o"};
     /**
      * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to
      * WVALID)
