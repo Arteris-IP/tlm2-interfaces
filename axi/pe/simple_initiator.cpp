@@ -310,10 +310,14 @@ void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto ext = fsm_hndl->trans->get_extension<ace_extension>();
     auto size = ext->get_length();
     protocol_time_point_e e = ext->is_snoop_data_transfer() && size > 0 ? BegPartRespE : BegRespE;
-    if(sync)
-        schedule(e, fsm_hndl->trans, 0);
-    else
-        react(e, fsm_hndl->trans);
+    if(snp.get_value() == 0) {
+        snp_resp_queue.push_back(std::make_tuple(e, &trans, 0));
+    } else {
+        if(sync)
+            schedule(e, fsm_hndl->trans, 0);
+        else
+            react(e, fsm_hndl->trans);
+    }
 }
 
 void simple_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
