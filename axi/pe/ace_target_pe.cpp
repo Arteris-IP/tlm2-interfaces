@@ -131,45 +131,38 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
             sc_time t;
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
             auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
-            if(ret == tlm::TLM_ACCEPTED) {    // hongyu?? double check
-               schedule(EndReqE, fsm_hndl->trans, t, true);
-            }
         }
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
-        tlm::tlm_phase phase = tlm::END_REQ;
         SCCTRACE(SCMOD)<<" EndReqE in setup_cb";
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
         SCCTRACE(SCMOD) <<"in BegPartRespE of setup_cb,  ";
-        /* TBD?? need to check whether time_delay need to be added
-         * */
         schedule(EndPartRespE, fsm_hndl->trans, SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         SCCTRACE(SCMOD) <<"in EndPartRespE of setup_cb, check whether it is last beat";
-        if(fsm_hndl->is_snoop) {
-            auto size =axi::get_burst_length(*fsm_hndl->trans);
-            fsm_hndl->beat_count++;
-            schedule(fsm_hndl->beat_count < (size-1) ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
-        } else {
-            sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
-            tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
-            auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
-            fsm_hndl->beat_count++;
-        }
+        sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
+        tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
+        auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
+        fsm_hndl->beat_count++;
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
-        SCCTRACE(SCMOD) <<"in BegRespE of setup_cb, schedule EndResp ";
-        schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
-    };
-    fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
+        SCCTRACE(SCMOD) <<"in BegRespE of setup_cb";
         sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
         tlm::tlm_phase phase = tlm::END_RESP;
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
+        schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
+    };
+    fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
+        /*
+        sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
+        tlm::tlm_phase phase = tlm::END_RESP;
+        auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
+        */
         fsm_hndl->finish.notify();
     };
-    /*TBD ack ??
+    /*TBD threre is  ack for snoop_trans
      * */
 }
 
