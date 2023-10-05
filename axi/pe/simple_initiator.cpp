@@ -313,6 +313,7 @@ void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     if(snp.get_value() == 0) {
         snp_resp_queue.push_back(std::make_tuple(e, &trans, 0));
     } else {
+        snp.wait();
         if(sync)
             schedule(e, fsm_hndl->trans, 0);
         else
