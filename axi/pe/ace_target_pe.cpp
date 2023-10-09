@@ -138,11 +138,13 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
         SCCTRACE(SCMOD) <<"in BegPartRespE of setup_cb,  ";
-        schedule(EndPartRespE, fsm_hndl->trans, SC_ZERO_TIME);
+        sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
+        schedule(EndPartRespE, fsm_hndl->trans, t);
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
-        SCCTRACE(SCMOD) <<"in EndPartRespE of setup_cb, check whether it is last beat";
-        sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
+        SCCTRACE(SCMOD) <<"in EndPartRespE of setup_cb";
+        //sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
+        sc_time t(SC_ZERO_TIME);
         tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         fsm_hndl->beat_count++;
@@ -152,7 +154,11 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
         sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
         tlm::tlm_phase phase = tlm::END_RESP;
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
-        schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
+        t=::scc::time_to_next_posedge(clk_if);
+        /* here *3 because after send() of intiator ,there is one cycle wait
+         * target here need to wait long cycles so that gp_shared_ptr can be released
+         */
+        schedule(EndRespE, fsm_hndl->trans, 3*t);
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         /*
@@ -160,6 +166,7 @@ void ace_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
         tlm::tlm_phase phase = tlm::END_RESP;
         auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
         */
+        SCCTRACE(SCMOD)<< "notifying finish ";
         fsm_hndl->finish.notify();
     };
     /*TBD threre is  ack for snoop_trans

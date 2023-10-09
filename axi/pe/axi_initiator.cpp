@@ -81,7 +81,7 @@ void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
 }
 
 tlm::tlm_sync_enum axi_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) {
-    SCCTRACE(SCMOD) << __FUNCTION__ << "received with phase " << phase <<  " with trans " << trans;
+    SCCTRACE(SCMOD) << __FUNCTION__ << " received with phase " << phase << " with delay = " << t <<  " with trans " << trans;
     if(phase == tlm::BEGIN_REQ) {   // snoop
         snp_peq.notify(trans, t);
     } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) {  //snoop
@@ -114,7 +114,7 @@ tlm::tlm_phase axi_initiator_b::send(payload_type& trans, axi_initiator_b::tx_st
             SCCFATAL(SCMOD) << "there is a waiting " << std::get<0>(entry) << " with phase " << std::get<1>(entry);
         sc_assert(!txs->peq.has_next());
         sc_assert(std::get<0>(entry) == &trans);
-        SCCTRACE(SCMOD) << "Received " << std::get<1>(entry) << " for " << trans;
+        SCCTRACE(SCMOD) << "in send() Received " << std::get<1>(entry) << " for " << trans;
         return std::get<1>(entry);
     }
 }
@@ -288,8 +288,9 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
 
 // This process handles the SNOOP request received
 void axi_initiator_b::snoop_thread() {
-    tlm::scc::tlm_gp_shared_ptr trans{nullptr};
+    //tlm::scc::tlm_gp_shared_ptr trans{nullptr};
     while(true) {
+        tlm::scc::tlm_gp_shared_ptr trans;
         while(!(trans = snp_peq.get_next_transaction())) {
             wait(snp_peq.get_event());
         }
@@ -306,16 +307,20 @@ void axi_initiator_b::snoop_thread() {
 
         sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
         tlm::tlm_phase phase = tlm::END_REQ;
+        // here delay is not used in nb_fw of following module
+        // therefore one cycle delay between BEG_REQ and END_REQ should be explicitly called here??
         socket_fw->nb_transport_fw(*trans, phase, delay);
         auto cycles = 0U;
         if(bw_o.get_interface())
             cycles = bw_o->transport(*trans);
-        if(cycles < std::numeric_limits<unsigned>::max()) {
+        if(cycles < std::numeric_limits<unsigned>::max()) {    //  here why??
             // we handle the snoop access ourselfs
             for(size_t i = 0; i <= cycles; ++i)
-                wait(clk_i.posedge_event());
+                wait(clk_i.posedge_event());     // why wait??
             snoop_resp(*trans);
         }
+        // finish snoop response, should release tlm gp_shared_ptr
+        SCCTRACE(SCMOD)<<" finish snoop response, release gp_shared_ptr";
         snoops_in_flight--;
     }
 }
@@ -331,6 +336,10 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
     auto delay_in_cycles = wbv.value;
     sem_lock lck(sresp_chnl);
+    /*
+     * here according to spec, ccresp should first be checked to see whether there is data transfer( decided by TC)
+     * if there is data to transfer, start cache data transfer, otherwise only crresp
+     * */
     SCCTRACE(SCMOD) << "starting snoop resp with " << burst_length << " beats of " << trans;
     for(unsigned i = 0; i < burst_length - 1; ++i) {
         auto res = send(trans, txs, axi::BEGIN_PARTIAL_RESP);

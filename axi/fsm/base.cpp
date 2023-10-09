@@ -188,7 +188,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
 }
 
 tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time& t) {
-    SCCTRACE(instance_name) << "base::nb_fw " << phase << " of trans " << trans;
+    SCCTRACE(instance_name) << "base::nb_fw " << phase << " with delay = " << t << " of trans " << trans;
     if(phase == BEGIN_PARTIAL_REQ || phase == BEGIN_REQ) { // read/write
         auto fsm_hndl = find_or_create(&trans);
         if(!trans.is_read()) {
