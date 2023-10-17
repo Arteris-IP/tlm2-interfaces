@@ -156,6 +156,8 @@ protected:
 
     void process_snoop_resp();
 
+    unsigned thread_avail{0}, thread_active{0};
+    sc_core::sc_fifo<tlm::scc::tlm_gp_shared_ptr> dispatch_queue{"dispatch_queue"};
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
     std::deque<fsm::fsm_handle*> idle_proc;
     ::scc::ordered_semaphore rd{1}, wr{1}, snp{1};

@@ -148,9 +148,34 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             fsm_hndl->beat_count = 0;
             fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
             auto latency = snoop_latency;
-            if(snoop_cb) {
+            if(bw_o.get_interface()) {
+                // since the bw_o interface is blocking we need to use threads to check for the latency in the bw path
+                if(thread_avail == 0) {
+                    sc_core::sc_spawn_options opts;
+                    opts.set_stack_size(0x10000);
+                    sc_core::sc_spawn(
+                        [this]() {
+                            thread_active++;
+                            while(true) {
+                                thread_avail++;
+                                auto req = dispatch_queue.read();
+                                sc_assert(thread_avail > 0);
+                                thread_avail--;
+                                auto latency = bw_o->transport(*req);
+                                if(latency < std::numeric_limits<unsigned>::max()) {
+                                    auto ext = req->get_extension<ace_extension>();
+                                    auto length = ext->get_length() + 1;
+                                    auto evt = ext->is_snoop_data_transfer() && length > 1 ? BegPartRespE : BegRespE;
+                                    snp_resp_queue.push_back(std::make_tuple(evt, req.get(), latency));
+                                }
+                            }
+                        },
+                        nullptr, &opts);
+                }
+                dispatch_queue.write(fsm_hndl->trans);
+                latency = std::numeric_limits<unsigned>::max();
+            } else if(snoop_cb) {
                 latency = snoop_cb(*fsm_hndl->trans);
-                ext->set_snoop_data_transfer(true);
             } else {
                 ext->set_snoop_data_transfer(false);
                 ext->set_snoop_error(false);
@@ -305,7 +330,7 @@ void simple_initiator_b::process_snoop_resp() {
 }
 
 void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
-    auto fsm_hndl = active_fsm[&trans];
+    axi::fsm::fsm_handle* fsm_hndl = active_fsm[&trans];
     sc_assert(fsm_hndl != nullptr);
     auto ext = fsm_hndl->trans->get_extension<ace_extension>();
     auto size = ext->get_length();
