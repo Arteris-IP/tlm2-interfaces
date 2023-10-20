@@ -53,9 +53,9 @@ struct axi_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
 
 SC_HAS_PROCESS(axi_target_pe);
 
-axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width)
+axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, flavor_e flavor)
 : sc_module(nm)
-, base(transfer_width)
+, base(transfer_width, (flavor != flavor_e::AXI)) // based on flavor, set the coherent flag of base
 , bw_intor(new bw_intor_impl(this)) {
 	instance_name = name();
 
@@ -158,6 +158,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
 		auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
 		fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
+		//it is better to move the set_resp in testcase
 		if(auto ext3 = fsm_hndl->trans->get_extension<axi3_extension>()) {
 			ext3->set_resp(resp_e::OKAY);
 		} else if(auto ext4 = fsm_hndl->trans->get_extension<axi4_extension>()) {

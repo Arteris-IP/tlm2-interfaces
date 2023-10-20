@@ -34,7 +34,7 @@ class axi_initiator_b :
         public tlm::scc::pe::intor_fw_b
 {
 public:
-    enum class flavor_e { AXI, ACEL, ACE };
+
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 

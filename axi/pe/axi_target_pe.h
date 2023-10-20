@@ -130,8 +130,9 @@ public:
 	 * the constructor. Protected as it should only be called by derived classes
 	 * @param port
 	 * @param transfer_width
+	 * @param flavor(axi, ace, aceLite)
 	 */
-	explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width);
+	explicit axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, flavor_e flavor = flavor_e::AXI);
 
 	void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
 

@@ -35,6 +35,7 @@ public:
     using base = axi_target_pe;
     using payload_type = base::payload_type;
     using phase_type = base::phase_type;
+
     /**
      * @brief the constructor
      * @param socket reference to the initiator socket used to send and receive transactions
@@ -43,8 +44,8 @@ public:
     : // @suppress("Class members should be properly initialized")
         simple_target(sc_core::sc_gen_unique_name("simple_target"), socket) {}
 
-    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
-    : axi_target_pe(nm, BUSWIDTH)
+    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket, flavor_e flavor= flavor_e::AXI)
+    : axi_target_pe(nm, BUSWIDTH, flavor)
     , socket(socket) {
         socket(*this);
         this->instance_name = name();
