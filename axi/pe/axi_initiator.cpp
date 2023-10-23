@@ -260,8 +260,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 }
             }
         } while(!finished);
-       // if(flavor == flavor_e::ACE) {
-        if(flavor != flavor_e::AXI) {
+        if(flavor == flavor_e::ACE) {
             if(trans.is_read() && rla.value != std::numeric_limits<unsigned>::max()) {
                 for(unsigned i = 0; i < rla.value; ++i)
                     wait(clk_i.posedge_event());
