@@ -195,7 +195,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 rd.post();
         }
-        auto& f = protocol_cb[BegReqE];
+        auto& f = protocol_cb[EndReqE];
         if(f)
             f(*fsm_hndl->trans, fsm_hndl->is_snoop);
     };
