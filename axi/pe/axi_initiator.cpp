@@ -267,6 +267,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 tlm::tlm_phase phase = axi::ACK;
                 sc_time delay = SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
+                wait(clk_i.posedge_event());
 
             } else if(trans.is_write() && ba.value != std::numeric_limits<unsigned>::max()) {
                 for(unsigned i = 0; i < ba.value; ++i)
@@ -274,6 +275,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 tlm::tlm_phase phase = axi::ACK;
                 sc_time delay = SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
+                wait(clk_i.posedge_event());
             }
         }
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
