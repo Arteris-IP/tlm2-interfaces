@@ -41,12 +41,18 @@ if(TARGET scc-sysc)
        axi/checker/axi_protocol.cpp
        axi/checker/ace_protocol.cpp
     )
-    target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories (${PROJECT_NAME} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # for headers when building
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for client in install mode
+    )
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
 else()
     add_library(${PROJECT_NAME} INTERFACE) 
-    target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}) 
+    target_include_directories(${PROJECT_NAME} INTERFACE 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # for headers when building
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for client in install mode
+    ) 
     target_link_libraries(${PROJECT_NAME} SystemC::systemc)
 endif()
 
@@ -55,10 +61,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
       FRAMEWORK FALSE
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} EXPORT tlm-interfaces-targets
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_LIBRARY_DIR_MODIFIER}
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}${SCC_LIBRARY_DIR_MODIFIER}${SCC_ARCHIVE_DIR_MODIFIER}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 install(
     DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/atp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -89,4 +96,27 @@ configure_file("${CMAKE_ROOT}/Modules/CMakeConfigurableFile.in"
   @ONLY
 )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/axi_chi.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+set(TLM-INTERFACES_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/tlm-interfaces)
+include(CMakePackageConfigHelpers)
+
+install(EXPORT tlm-interfaces-targets
+    DESTINATION ${TLM-INTERFACES_CMAKE_CONFIG_DIR})
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/tlm-interfaces-config-version.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/tlm-interfaces-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/tlm-interfaces-config.cmake
+    INSTALL_DESTINATION ${TLM-INTERFACES_CMAKE_CONFIG_DIR}
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/tlm-interfaces-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/tlm-interfaces-config-version.cmake
+    DESTINATION ${TLM-INTERFACES_CMAKE_CONFIG_DIR})
 
