@@ -47,6 +47,7 @@ if(TARGET scc-sysc)
     )
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
+    set(TLM-INTERFACES_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/scc)
 else()
     add_library(${PROJECT_NAME} INTERFACE) 
     target_include_directories(${PROJECT_NAME} INTERFACE 
@@ -54,6 +55,7 @@ else()
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for client in install mode
     ) 
     target_link_libraries(${PROJECT_NAME} SystemC::systemc)
+    set(TLM-INTERFACES_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/tlm-interfaces)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -97,7 +99,6 @@ configure_file("${CMAKE_ROOT}/Modules/CMakeConfigurableFile.in"
 )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/axi_chi.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-set(TLM-INTERFACES_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/tlm-interfaces)
 include(CMakePackageConfigHelpers)
 
 install(EXPORT tlm-interfaces-targets
