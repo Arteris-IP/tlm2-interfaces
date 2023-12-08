@@ -45,7 +45,9 @@ if(TARGET scc-sysc)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # for headers when building
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for client in install mode
     )
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
+	if(NOT MSVC)
+		target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated)
+	endif()
     target_link_libraries(${PROJECT_NAME} PUBLIC scc-sysc)
     set(TLM-INTERFACES_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/scc)
 else()
