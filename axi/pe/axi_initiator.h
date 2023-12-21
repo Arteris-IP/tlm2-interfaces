@@ -17,6 +17,7 @@
 #pragma once
 
 #include <axi/axi_tlm.h>
+#include <axi/fsm/protocol_fsm.h>
 #include <tlm/scc/pe/intor_if.h>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
@@ -107,6 +108,21 @@ public:
     //! number of snoops which can be handled
     sc_core::sc_attribute<unsigned> outstanding_snoops{"outstanding_snoops", 8};
 
+    /**
+     * @brief register a callback for a certain time point
+     *
+     * This function allows to register a callback for certain time points of a transaction
+     * (see #axi::fsm::protocol_time_point_e). The callback will be invoked after the FSM-actions are executed.
+     *
+     * @param e the timepoint
+     * @param cb the callback taking a reference to the transaction and a bool indicating a snoop if true
+     */
+    void add_protocol_cb(axi::fsm::protocol_time_point_e e, std::function<void(payload_type&, bool)> cb) {
+        assert(e < axi::fsm::CB_CNT);
+        protocol_cb[e] = cb;
+    }
+
+
 protected:
     unsigned calculate_beats(payload_type& p) {
         sc_assert(p.get_data_length() > 0);
@@ -153,6 +169,8 @@ private:
     unsigned m_clock_counter{0};
     unsigned m_prev_clk_cnt{0};
     unsigned snoops_in_flight{0};
+
+    std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
 };
 
 /**

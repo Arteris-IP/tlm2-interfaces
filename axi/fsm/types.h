@@ -77,6 +77,7 @@ struct fsm_handle {
         void* p;
     } aux;
     sc_core::sc_time start;
+    unsigned state{0};
     /**
      * reset all data members to their default
      */
@@ -84,8 +85,10 @@ struct fsm_handle {
         trans = nullptr;
         beat_count = 0;
         is_snoop = false;
+        gp=nullptr;
         aux.i64 = 0;
         start = sc_core::SC_ZERO_TIME;
+        state = 0;
     }
 
     fsm_handle();

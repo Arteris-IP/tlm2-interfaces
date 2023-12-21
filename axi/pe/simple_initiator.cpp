@@ -81,7 +81,7 @@ void simple_initiator_b::transport(payload_type& trans, bool blocking) {
                 wait(clk_i.posedge_event());
             }
         }
-        react(RequestPhaseBeg, fsm->trans);
+        react(RequestPhaseBeg, fsm);
         SCCTRACE(SCMOD) << "started non-blocking protocol";
         sc_core::wait(fsm->finish);
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
@@ -256,7 +256,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             if(coherent) {
                 schedule(Ack, fsm_hndl->trans, ::scc::get_value(ack_resp_delay));
             } else
-                fsm_hndl->finish.notify();
+                fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
         }
         auto& f = protocol_cb[EndRespE];
         if(f)
@@ -266,7 +266,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         sc_time t;
         tlm::tlm_phase phase = axi::ACK;
         auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
-        fsm_hndl->finish.notify();
+        fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
         auto& f = protocol_cb[Ack];
         if(f)
             f(*fsm_hndl->trans, fsm_hndl->is_snoop);

@@ -63,7 +63,6 @@ base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 }
 
 fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
-    const static std::array<std::string, 3> cmd{{"RD", "WR", "IGN"}};
     auto it = active_fsm.find(gp);
     if(!gp || it == active_fsm.end()) {
         if(gp) {
@@ -128,6 +127,7 @@ void base::process_fsm_clk_queue() {
 
 void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
     SCCTRACE(instance_name)<< "in react() base has  coherent =" << coherent << " with event " << evt2str(event);
+    fsm_hndl->state=event;
     switch(event) {
     case WValidE:
         fsm_hndl->fsm->process_event(WReq());
