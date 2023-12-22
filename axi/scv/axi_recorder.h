@@ -333,7 +333,7 @@ void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, s
     trans.get_extension(preExt);
     if(preExt == nullptr) { // we are the first recording this transaction
         preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
-        trans.set_extension(preExt);
+        if(trans.has_mm()) trans.set_auto_extension(preExt); else trans.set_extension(preExt);
     } else {
         h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
     }
@@ -343,7 +343,10 @@ void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, s
     trans.get_extension(preExt);
     if(preExt->get_creator() == this) {
         // clean-up the extension if this is the original creator
-        delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+        if(trans.has_mm())
+            trans.set_auto_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+        else
+            delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
     } else {
         preExt->txHandle = preTx;
     }
@@ -408,7 +411,7 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
     if((phase == axi::BEGIN_PARTIAL_REQ || phase == tlm::BEGIN_REQ) &&
        preExt == nullptr) { // we are the first recording this transaction
         preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
-        trans.set_extension(preExt);
+        if(trans.has_mm()) trans.set_auto_extension(preExt); else trans.set_extension(preExt);
     } else if(preExt != nullptr) {
         // link handle if we have a predecessor
         h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
@@ -452,7 +455,10 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
         trans.get_extension(preExt);
         if(preExt && preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+            if(trans.has_mm())
+                trans.set_auto_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+            else
+                delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
@@ -499,7 +505,7 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
     trans.get_extension(preExt);
     if(phase == tlm::BEGIN_REQ && preExt == nullptr) { // we are the first recording this transaction
         preExt = new tlm::scc::scv::tlm_recording_extension(h, this);
-        trans.set_extension(preExt);
+        if(trans.has_mm()) trans.set_auto_extension(preExt); else trans.set_extension(preExt);
     } else if(preExt != nullptr) {
         // link handle if we have a predecessor
         h.add_relation(tlm::scc::scv::rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), preExt->txHandle);
@@ -543,7 +549,10 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
         trans.get_extension(preExt);
         if(preExt->get_creator() == this) {
             // clean-up the extension if this is the original creator
-            delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+            if(trans.has_mm())
+                trans.set_auto_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
+            else
+                delete trans.set_extension(static_cast<tlm::scc::scv::tlm_recording_extension*>(nullptr));
         }
         /*************************************************************************
          * do the timed notification if req. finished here
