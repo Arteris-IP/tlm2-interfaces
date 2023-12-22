@@ -798,8 +798,9 @@ bool expectCompCMO(chi::chi_ctrl_extension* ext){
     case req_optype_e::WriteUniquePtlCleanShPerSep:
     case req_optype_e::WriteUniqueFullCleanShPerSep:
         return true;
+    default:
+        return false;
     }
-    return false;
 }
 bool expectPersist(chi::chi_ctrl_extension* ext){
     switch(ext->req.get_opcode()){
@@ -810,8 +811,9 @@ bool expectPersist(chi::chi_ctrl_extension* ext){
     case req_optype_e::WriteUniqueFullCleanShPerSep:
     case req_optype_e::CleanSharedPersistSep:
         return true;
+    default:
+        return false;
     }
-    return false;
 }
 enum { WAIT_CTRL=0x1, WAIT_DATA=0x2, WAIT_COMPCMO=4, WAIT_PERSIST=8};
 void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int txn_id, payload_type& trans,
@@ -843,6 +845,8 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                         case chi::rsp_resptype_e::Comp_SC:
                             not_finish &= ~WAIT_CTRL;
                             break;
+                        default:
+                            break;
                         }
                     break;
                 case chi::rsp_optype_e::CompDBIDResp: // in case of WriteNoSnpZero, which is dataless
@@ -853,6 +857,8 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                     break;
                 case chi::rsp_optype_e::Persist:
                     not_finish &= ~WAIT_PERSIST;
+                    break;
+                default:
                     break;
                 }
                 not_finish &= ~WAIT_DATA;
