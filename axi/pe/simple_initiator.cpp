@@ -56,6 +56,9 @@ simple_initiator_b::simple_initiator_b(const sc_core::sc_module_name& nm,
         if(snp_resp_queue_hndl.valid())
             snp_resp_queue_hndl.disable();
     });
+    SC_METHOD(cbpeq_cb);
+    dont_initialize();
+    sensitive << cbpeq.event();
 }
 
 void simple_initiator_b::end_of_elaboration() { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
@@ -71,15 +74,11 @@ void simple_initiator_b::transport(payload_type& trans, bool blocking) {
     } else {
         fsm_handle* fsm = find_or_create(&trans);
         if(trans.is_read()) {
-            if(rd.trywait() < 0) {
-                rd.wait();
-                wait(clk_i.posedge_event());
-            }
+            rd.wait();
+            wait(clk_i.posedge_event());
         } else {
-            if(wr.trywait() < 0) {
-                wr.wait();
-                wait(clk_i.posedge_event());
-            }
+            wr.wait();
+            wait(clk_i.posedge_event());
         }
         react(RequestPhaseBeg, fsm);
         SCCTRACE(SCMOD) << "started non-blocking protocol";
@@ -104,9 +103,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         if(ret == tlm::TLM_UPDATED) {
             schedule(EndPartReqE, fsm_hndl->trans, t, true);
         }
-        auto& f = protocol_cb[BegPartReqE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[BegPartReqE])
+            cbpeq.notify(std::make_tuple(BegPartReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
         fsm_hndl->beat_count++;
@@ -119,9 +117,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             schedule(BegReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
         else
             schedule(BegReqE, fsm_hndl->trans, 0);
-        auto& f = protocol_cb[EndPartReqE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[EndPartReqE])
+            cbpeq.notify(std::make_tuple(EndPartReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -134,9 +131,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
                 schedule(EndReqE, fsm_hndl->trans, t, true);
             }
         }
-        auto& f = protocol_cb[BegReqE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[BegReqE])
+            cbpeq.notify(std::make_tuple(BegReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -195,9 +191,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 rd.post();
         }
-        auto& f = protocol_cb[EndReqE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[EndReqE])
+            cbpeq.notify(std::make_tuple(EndReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -210,9 +205,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndPartRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        auto& f = protocol_cb[BegPartRespE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[BegPartRespE])
+            cbpeq.notify(std::make_tuple(BegPartRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -225,9 +219,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
             fsm_hndl->beat_count++;
         }
-        auto& f = protocol_cb[EndPartRespE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[EndPartRespE])
+            cbpeq.notify(std::make_tuple(EndPartRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -242,9 +235,8 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        auto& f = protocol_cb[BegRespE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[BegRespE])
+            cbpeq.notify(std::make_tuple(BegRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
         if(fsm_hndl->is_snoop) {
@@ -258,18 +250,16 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             } else
                 fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
         }
-        auto& f = protocol_cb[EndRespE];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[EndRespE])
+            cbpeq.notify(std::make_tuple(EndRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[Ack] = [this, fsm_hndl]() -> void {
         sc_time t;
         tlm::tlm_phase phase = axi::ACK;
         auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
         fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
-        auto& f = protocol_cb[Ack];
-        if(f)
-            f(*fsm_hndl->trans, fsm_hndl->is_snoop);
+        if(protocol_cb[Ack])
+            cbpeq.notify(std::make_tuple(Ack, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
 }
 
@@ -346,4 +336,9 @@ void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     }
 }
 
-void simple_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
+void simple_initiator_b::cbpeq_cb() {
+    while(cbpeq.has_next()) {
+        auto e = cbpeq.get();
+        protocol_cb[std::get<0>(e)](*std::get<1>(e), std::get<2>(e));
+    }
+}

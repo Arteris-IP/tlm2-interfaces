@@ -68,7 +68,7 @@ public:
 
     tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range);
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range){}
 
     void set_clock_period(sc_core::sc_time clk_period) { this->clk_period = clk_period; }
 
@@ -169,6 +169,8 @@ protected:
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
+    scc::peq<std::tuple<axi::fsm::protocol_time_point_e, tlm::scc::tlm_gp_shared_ptr, bool>> cbpeq;
+    void cbpeq_cb();
 };
 /**
  * the AXI initiator socket protocol engine adapted to a particular initiator socket configuration
