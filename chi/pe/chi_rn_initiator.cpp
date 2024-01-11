@@ -536,8 +536,12 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 }
 
 chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
-    if(tx_state_by_trans.size())
-        SCCERR(SCMOD) << "is still waiting for unfinished transactions";
+    if(tx_state_by_trans.size()) {
+        for(auto& e : tx_state_by_trans)
+            SCCDEBUG(SCMOD) << "unfinished transaction with ptr:  "<< e.first << " with access address = 0x" << ((tlm::tlm_generic_payload*)e.first)->get_address() ;
+        SCCERR(SCMOD) << "is still waiting for unfinished transactions with number = " << tx_state_by_trans.size() ;
+
+    }
     for(auto& e : tx_state_by_trans)
         delete e.second;
     for(auto p: tx_state_pool)
@@ -743,9 +747,12 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
                 phase = chi::BEGIN_PARTIAL_DATA;
             else
                 phase = chi::BEGIN_DATA;
-            send_packet(phase, trans, txs);
-            SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id() << " sent. Beat count: " << i
+
+            // transfer_width_in_bytes is bus_width in bytes, data_ID reference from table 13_42
+            data_ext->dat.set_data_id(i<<(transfer_width_in_bytes*8/128 -1));
+            SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id() << " data_id = " << (unsigned int)(data_ext->dat.get_data_id())<< " sent. Beat count: " << i
                     << ", addr: 0x" << std::hex << trans.get_address() << ", last=" << (i == (beat_cnt - 1));
+            send_packet(phase, trans, txs);
         }
     } else { // data packet interleaving allowed
         for(auto i = 0U; i < beat_cnt; ++i) {
@@ -755,10 +762,13 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
                     phase = chi::BEGIN_PARTIAL_DATA;
                 else
                     phase = chi::BEGIN_DATA;
+
+                data_ext->dat.set_data_id(i<<(transfer_width_in_bytes*8/128 -1));
+                SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id() << " data_id = " << (unsigned int)(data_ext->dat.get_data_id())<< " sent. Beat count: " << i
+                                       << ", addr: 0x" << std::hex << trans.get_address()
+                                       << ", last=" << (i == (beat_cnt - 1));
                 send_packet(phase, trans, txs);
-                SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id() << " sent. Beat count: " << i
-                        << ", addr: 0x" << std::hex << trans.get_address()
-                        << ", last=" << (i == (beat_cnt - 1));
+
             }
             wait(SC_ZERO_TIME); // yield execution to allow others to lock
         }
