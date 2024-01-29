@@ -243,11 +243,13 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 opcode = chi::req_optype_e::StashOnceUnique;
                 gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
+                chi_req_ext->req.set_size(6); // full cache line
                 break;
             case axi::snoop_e::STASH_ONCE_SHARED:
                 opcode = chi::req_optype_e::StashOnceShared;
                 gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
+                chi_req_ext->req.set_size(6);  // full cache line
                 break;
             default:
                 SCCWARN(name) << "unexpected snoop type " << axi::to_char(axi_snp) << " during write";
@@ -538,8 +540,8 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
     if(tx_state_by_trans.size()) {
         for(auto& e : tx_state_by_trans)
-            SCCDEBUG(SCMOD) << "unfinished transaction with ptr:  "<< e.first << " with access address = 0x" << ((tlm::tlm_generic_payload*)e.first)->get_address() ;
-        SCCERR(SCMOD) << "is still waiting for unfinished transactions with number = " << tx_state_by_trans.size() ;
+            SCCDEBUG(SCMOD) << "unfinished transaction with ptr:  "<< e.first << " with access address = 0x" << std::hex << ((tlm::tlm_generic_payload*)e.first)->get_address() ;
+        SCCWARN(SCMOD) << "is still waiting for unfinished transactions with number = " << tx_state_by_trans.size() ;
 
     }
     for(auto& e : tx_state_by_trans)
