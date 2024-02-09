@@ -1102,6 +1102,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                             << (credit_ext->count == 1 ? "credit" : "credits");
                     for(auto i = 0U; i < credit_ext->count; ++i)
                         req_credits.post();
+                    trans.set_auto_extension<chi_credit_extension>(nullptr);
                 }
             }
         }

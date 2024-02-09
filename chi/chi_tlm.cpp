@@ -480,7 +480,13 @@ class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol
         }
     }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
+    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
+        auto ext = trans.get_extension<chi_credit_extension>();
+        if(ext) {
+            handle.record_attribute("trans.chi_credit.type", std::string(to_char(ext->type)));
+            handle.record_attribute("trans.chi_credit.count", ext->count);
+        }
+    }
 };
 namespace scv {
 using namespace tlm::scc::scv;
