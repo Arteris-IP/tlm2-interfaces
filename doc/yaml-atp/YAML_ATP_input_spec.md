@@ -191,8 +191,11 @@ The wait key allows to wait for events from other TPUs. The wait dictionary can 
 |Syntax|Comment
 |------|-----------------|
 |- wait:| the wait key|
-|  inst:&nbsp;&lt;name>| inst name is a regular expresssion allowing to filter the source of the posted message|
+|  inst:&nbsp;&lt;name>| optional, inst name is a regular expresssion allowing to filter the source of the posted message|
 |  event:&nbsp;&lt;name>| event name is a regular expression to match the posted message|
+
+If the inst key is specified all TPUs matching the regular expression must have sent the event to finish the wait.
+If the inst key is omitted any TPU sending the event finishes the wait.
 
 ### Section `profile`
 
