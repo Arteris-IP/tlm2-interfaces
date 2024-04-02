@@ -1059,13 +1059,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         if(strict_income_order.value) strict_order_sem.wait();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
         if(strict_income_order.value) strict_order_sem.post();
-        tx_outstanding++;
-        tx_waiting--;
-        // Check if Link-credits are available for sending this transactionand wait if not
-        req_credits.wait();
-        SCCTRACE(SCMOD) << "starting transaction with txn_id=" << txn_id;
         setExpCompAck(req_ext);
-
         /// Timing
         auto timing_e = trans.get_extension<atp::timing_params>();
         if(timing_e != nullptr) { // TPU as it has been defined in TPU
@@ -1081,6 +1075,11 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         } // no timing info in case of STL
         {
             sem_lock lck(req_chnl);
+            // Check if Link-credits are available for sending this transaction and wait if not
+            req_credits.wait();
+            tx_outstanding++;
+            tx_waiting--;
+            SCCTRACE(SCMOD) << "starting transaction with txn_id=" << txn_id;
             m_prev_clk_cnt = get_clk_cnt();
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
             sc_core::sc_time delay;

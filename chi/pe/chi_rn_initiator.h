@@ -110,7 +110,7 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore req_credits{0U}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore req_credits{"req_credits", 0U, true}; // L-credits provided by completer(HN)
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 
