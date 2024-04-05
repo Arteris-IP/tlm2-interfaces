@@ -17,6 +17,7 @@
 #pragma once
 
 #include <chi/chi_tlm.h>
+#include <tlm/scc/pe/intor_if.h>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
@@ -28,12 +29,20 @@
 namespace chi {
 namespace pe {
 
-class chi_rn_initiator_b : public sc_core::sc_module, public chi::chi_bw_transport_if<chi::chi_protocol_types> {
+class chi_rn_initiator_b :
+        public sc_core::sc_module,
+        public chi::chi_bw_transport_if<chi::chi_protocol_types>,
+        public tlm::scc::pe::intor_fw_b
+{
 public:
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
+
+    sc_core::sc_export<tlm::scc::pe::intor_fw_b> fw_i{"fw_i"};
+
+    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> bw_o{"bw_o"};
 
     void b_snoop(payload_type& trans, sc_core::sc_time& t) override;
 
@@ -51,28 +60,14 @@ public:
      * @param trans the transaction to send
      * @param blocking execute in using the blocking interface
      */
-    void transport(payload_type& trans, bool blocking);
-    /**
-     * @brief Set the snoop callback function
-     *
-     * This callback is invoked once a snoop transaction arrives. This function shall return the latency
-     * for the snoop response. If the response is std::numeric_limits<unsigned>::max() no snoop response will be
-     * triggered. This needs to be done by a call to snoop_resp()
-     *
-     * @todo refine API
-     * @todo handing in a pointer is a hack to work around a bug in gcc 4.8 not allowing to copy std::function objects
-     * and should be fixed
-     *
-     * @param cb the callback function
-     */
-    void set_snoop_cb(std::function<unsigned(payload_type& trans)>* cb) { snoop_cb = cb; }
+    void transport(payload_type& trans, bool blocking) override;
     /**
      * @brief triggers a non-blocking snoop response if the snoop callback does not do so.
      *
      * @param trans
      * @param sync when true send response with next rising clock edge otherwise send immediately
      */
-    void snoop_resp(payload_type& trans, bool sync = false);
+    void snoop_resp(payload_type& trans, bool sync = false) override;
 
     chi_rn_initiator_b(sc_core::sc_module_name nm,
                        sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port, size_t transfer_width);
@@ -91,8 +86,7 @@ public:
 
     sc_core::sc_attribute<unsigned> src_id{"src_id", 1};
 
-    sc_core::sc_attribute<unsigned> home_node_id{"home_node_id",
-                                                 0}; // home node id will be used as tgt_id in all transaction req
+    sc_core::sc_attribute<unsigned> tgt_id{"tgt_id", 0}; // home node id will be used as tgt_id in all transaction req
 
     sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", true};
 
@@ -116,11 +110,9 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore req_credits{0U}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore req_credits{"req_credits", 0U, true}; // L-credits provided by completer(HN)
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
-
-    std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
 
     struct tx_state {
         scc::peq<std::tuple<payload_type*, tlm::tlm_phase>> peq;
@@ -138,6 +130,8 @@ protected:
     tlm_utils::peq_with_get<payload_type> snp_peq{"snp_peq"}, snp_dispatch_que{"snp_dispatch_que"};
 
     unsigned thread_avail{0}, thread_active{0};
+
+    scc::ordered_semaphore req_order{1};
 
     scc::ordered_semaphore req_chnl{1};
 

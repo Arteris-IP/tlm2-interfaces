@@ -63,7 +63,6 @@ base::base(size_t transfer_width, bool coherent, protocol_time_point_e wr_start)
 }
 
 fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
-    const static std::array<std::string, 3> cmd{{"RD", "WR", "IGN"}};
     auto it = active_fsm.find(gp);
     if(!gp || it == active_fsm.end()) {
         if(gp) {
@@ -127,6 +126,8 @@ void base::process_fsm_clk_queue() {
 }
 
 void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
+    SCCTRACE(instance_name)<< "in react() base has  coherent =" << coherent << " with event " << evt2str(event);
+    fsm_hndl->state=event;
     switch(event) {
     case WValidE:
         fsm_hndl->fsm->process_event(WReq());
@@ -161,6 +162,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
         fsm_hndl->fsm->process_event(BegResp());
         return;
     case EndRespE:
+        SCCTRACE(instance_name)<< "in EndResp of base() with coherent =" << coherent;
         if(!coherent || fsm_hndl->is_snoop) {
             SCCTRACE(instance_name) << "freeing fsm for trans " << *fsm_hndl->trans;
             fsm_hndl->fsm->process_event(EndResp());
@@ -186,7 +188,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
 }
 
 tlm_sync_enum base::nb_fw(payload_type& trans, phase_type const& phase, sc_time& t) {
-    SCCTRACE(instance_name) << "base::nb_fw " << phase << " of trans " << trans;
+    SCCTRACE(instance_name) << "base::nb_fw " << phase << " with delay = " << t << " of trans " << trans;
     if(phase == BEGIN_PARTIAL_REQ || phase == BEGIN_REQ) { // read/write
         auto fsm_hndl = find_or_create(&trans);
         if(!trans.is_read()) {

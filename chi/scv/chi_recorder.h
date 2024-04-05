@@ -491,7 +491,7 @@ template <typename TYPES>
 tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_type& trans,
                                                             typename TYPES::tlm_phase_type& phase,
                                                             sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
+    if(!nb_trHandle[FW])
         return get_fw_if()->nb_transport_fw(trans, phase, delay);
     /*************************************************************************
      * prepare recording
@@ -579,7 +579,7 @@ template <typename TYPES>
 tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_type& trans,
                                                             typename TYPES::tlm_phase_type& phase,
                                                             sc_core::sc_time& delay) {
-    if(!isRecordingNonBlockingTxEnabled())
+    if(!nb_trHandle[BW])
         return get_bw_if()->nb_transport_bw(trans, phase, delay);
     /*************************************************************************
      * prepare recording

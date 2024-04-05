@@ -16,23 +16,19 @@
 
 #pragma once
 
-#include <axi/pe/axi_target_pe.h>
-#include "target_info_if.h"
+#include <axi/pe/ace_target_pe.h>
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
 //! protocol engine implementations
 namespace pe {
-/**
- * the target socket protocol engine(s) adapted to a particular target socket configuration
- *
- * @deprecated Use ordered_/reordering_target instead
- */
+
+
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-class simple_target : public axi_target_pe, public target_info_if {
+class simple_ace_target : public ace_target_pe {
 public:
-    using base = axi_target_pe;
+    using base = ace_target_pe;
     using payload_type = base::payload_type;
     using phase_type = base::phase_type;
 
@@ -40,31 +36,29 @@ public:
      * @brief the constructor
      * @param socket reference to the initiator socket used to send and receive transactions
      */
-    simple_target(axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
+    simple_ace_target(axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
     : // @suppress("Class members should be properly initialized")
-        simple_target(sc_core::sc_gen_unique_name("simple_target"), socket) {}
+        simple_ace_target(sc_core::sc_gen_unique_name("simple_ace_target"), socket) {}
 
-    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket, flavor_e flavor= flavor_e::AXI)
-    : axi_target_pe(nm, BUSWIDTH, flavor)
+    simple_ace_target(const sc_core::sc_module_name& nm, axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>& socket)
+    : ace_target_pe(nm, BUSWIDTH)
     , socket(socket) {
         socket(*this);
         this->instance_name = name();
     }
 
-    simple_target() = delete;
+    simple_ace_target() = delete;
 
-    simple_target(simple_target const&) = delete;
+    simple_ace_target(simple_ace_target const&) = delete;
 
-    simple_target(simple_target&&) = delete;
+    simple_ace_target(simple_ace_target&&) = delete;
 
-    simple_target& operator=(simple_target const&) = delete;
+    simple_ace_target& operator=(simple_ace_target const&) = delete;
 
-    simple_target& operator=(simple_target&&) = delete;
-
-    size_t get_outstanding_tx_count() override { return getAllOutStandingTx();}
+    simple_ace_target& operator=(simple_ace_target&&) = delete;
 
 protected:
-    axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
+    axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
 
     void end_of_elaboration(){
         base::end_of_elaboration();

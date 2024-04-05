@@ -53,9 +53,9 @@ struct axi_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
 
 SC_HAS_PROCESS(axi_target_pe);
 
-axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width)
+axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, flavor_e flavor)
 : sc_module(nm)
-, base(transfer_width)
+, base(transfer_width, (flavor != flavor_e::AXI)) // based on flavor, set the coherent flag of base
 , bw_intor(new bw_intor_impl(this)) {
 	instance_name = name();
 
@@ -124,7 +124,8 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 			stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
 			stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
 		} else { // accepted, schedule response
-			getOutStandingTx(fsm_hndl->trans->get_command())++;
+            if(!fsm_hndl->beat_count)
+                getOutStandingTx(fsm_hndl->trans->get_command())++;
 			if(wr_data_accept_delay.get_value())
 				schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.get_value() - 1);
 			else
@@ -157,6 +158,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
 		auto ret = socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t);
 		fsm_hndl->trans->set_response_status(tlm::TLM_OK_RESPONSE);
+		//it is better to move the set_resp in testcase
 		if(auto ext3 = fsm_hndl->trans->get_extension<axi3_extension>()) {
 			ext3->set_resp(resp_e::OKAY);
 		} else if(auto ext4 = fsm_hndl->trans->get_extension<axi4_extension>()) {
@@ -192,6 +194,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
 		auto size = get_burst_length(*fsm_hndl->trans) - 1;
 		fsm_hndl->beat_count++;
+		SCCTRACE(SCMOD)<< " in EndPartialResp with beat_count = " << fsm_hndl->beat_count << " expected size = " << size;
 		if(rd_data_beat_delay.get_value())
 			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.get_value());
 		else
@@ -225,7 +228,6 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 				schedule(stalled_tp[cmd], trans, latency - 1);
 			else
 				schedule(stalled_tp[cmd], trans, sc_core::SC_ZERO_TIME);
-			getOutStandingTx(cmd)++;
 			stalled_tx[cmd] = nullptr;
 			stalled_tp[cmd] = CB_CNT;
 		}
@@ -240,13 +242,10 @@ void axi::pe::axi_target_pe::operation_resp(payload_type& trans, unsigned clk_de
 }
 
 void axi::pe::axi_target_pe::process_req2resp_fifos() {
-	bool pushed_element=true;
-    while(!rd_req2resp_fifo.empty() && pushed_element) {
+    while(!rd_req2resp_fifo.empty()) {
 		auto& entry = rd_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
-			if(rd_resp_fifo.num_free())
-				rd_resp_fifo.write(std::get<0>(entry));
-			else
+			if(!rd_resp_fifo.nb_write(std::get<0>(entry)))
 				rd_req2resp_fifo.push_back(entry);
 			rd_req2resp_fifo.pop_front();
 		} else {
@@ -258,11 +257,9 @@ void axi::pe::axi_target_pe::process_req2resp_fifos() {
     while(!wr_req2resp_fifo.empty()) {
 		auto& entry = wr_req2resp_fifo.front();
 		if(std::get<1>(entry) == 0) {
-			if(rd_resp_fifo.num_free())
-				wr_resp_fifo.write(std::get<0>(entry));
-			else
+			if(!wr_resp_fifo.nb_write(std::get<0>(entry)))
 				wr_req2resp_fifo.push_back(entry);
-				wr_req2resp_fifo.pop_front();
+			wr_req2resp_fifo.pop_front();
 		} else {
 			std::get<1>(entry) -= 1;
 			wr_req2resp_fifo.push_back(entry);
@@ -305,7 +302,7 @@ void axi::pe::axi_target_pe::start_wr_resp_thread() {
 void axi::pe::axi_target_pe::send_rd_resp_beat_thread() {
 	std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e> entry;
 	while(true) {
-		// waiting for responses to send
+		// waiting for responses to send, which is notifed in Begin_Partial_Resp
 		wait(rd_resp_beat_fifo.data_written_event());
 		while(rd_resp_beat_fifo.nb_read(entry)) {
 			// there is something to send

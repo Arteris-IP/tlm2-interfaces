@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+
+find_dependency(lz4)
+find_dependency(fmt)
+find_dependency(ZLIB)
+
+if(NOT TARGET tlm-interfaces)
+    include("${CMAKE_CURRENT_LIST_DIR}/tlm-interfaces-targets.cmake")
+endif()
+
+set(tlm-interfaces_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/include")
+set(tlm-interfaces_lIBRARIES lwtr::lwtr)

@@ -23,6 +23,9 @@
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
+
+enum class flavor_e { AXI, ACEL, ACE };
+
 /**
  * helper function to allow SFINAE
  */

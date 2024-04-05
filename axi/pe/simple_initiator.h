@@ -43,9 +43,9 @@ public:
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
-    sc_core::sc_export<tlm::scc::pe::intor_fw_b> drv_i{"drv_i"};
+    sc_core::sc_export<tlm::scc::pe::intor_fw_b> fw_i{"fw_i"};
 
-    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> drv_o{"drv_o"};
+    sc_core::sc_port<tlm::scc::pe::intor_bw_b, 1, sc_core::SC_ZERO_OR_MORE_BOUND> bw_o{"bw_o"};
     /**
      * @brief the latency between between END(_PARTIAL)_REQ and BEGIN(_PARTIAL)_REQ (AWREADY to AWVALID and WREADY to
      * WVALID)
@@ -68,7 +68,7 @@ public:
 
     tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range);
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range){}
 
     void set_clock_period(sc_core::sc_time clk_period) { this->clk_period = clk_period; }
 
@@ -96,7 +96,7 @@ public:
      *
      * @param cb the callback function
      */
-    void set_snoop_cb(std::function<unsigned(payload_type& trans)>* cb) { snoop_cb = cb; }
+    void set_snoop_cb(std::function<unsigned(payload_type& trans)> cb) { snoop_cb = cb; }
     /**
      * @brief triggers a non-blocking snoop response if the snoop callback does not do so.
      *
@@ -156,6 +156,8 @@ protected:
 
     void process_snoop_resp();
 
+    unsigned thread_avail{0}, thread_active{0};
+    sc_core::sc_fifo<tlm::scc::tlm_gp_shared_ptr> dispatch_queue{"dispatch_queue"};
     sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& socket_fw;
     std::deque<fsm::fsm_handle*> idle_proc;
     ::scc::ordered_semaphore rd{1}, wr{1}, snp{1};
@@ -163,10 +165,12 @@ protected:
     sc_core::sc_process_handle snp_resp_queue_hndl;
     // TODO: remove hard coded value
     sc_core::sc_time clk_period{1, sc_core::SC_NS};
-    std::function<unsigned(payload_type& trans)>* snoop_cb{nullptr};
+    std::function<unsigned(payload_type& trans)> snoop_cb;
     std::array<std::function<void(payload_type&, bool)>, axi::fsm::CB_CNT> protocol_cb;
     sc_core::sc_clock* clk_if{nullptr};
     void end_of_elaboration() override;
+    scc::peq<std::tuple<axi::fsm::protocol_time_point_e, tlm::scc::tlm_gp_shared_ptr, bool>> cbpeq;
+    void cbpeq_cb();
 };
 /**
  * the AXI initiator socket protocol engine adapted to a particular initiator socket configuration
