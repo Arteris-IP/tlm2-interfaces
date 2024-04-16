@@ -42,15 +42,6 @@ axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
 , socket_fw(port)
 , transfer_width_in_bytes(transfer_width / 8)
 , flavor(flavor) {
-    add_attribute(data_interleaving);
-    add_attribute(artv);
-    add_attribute(awtv);
-    add_attribute(wbv);
-    add_attribute(rbr);
-    add_attribute(br);
-    add_attribute(ba);
-    add_attribute(rla);
-    add_attribute(enable_id_serializing);
     fw_i.bind(*this);
     SC_METHOD(clk_counter);
     sensitive << clk_i.pos();
@@ -67,7 +58,7 @@ axi_initiator_b::~axi_initiator_b() {
 
 void axi_initiator_b::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
-    for(auto i = 0U; i < outstanding_snoops.value; ++i) {
+    for(auto i = 0U; i < outstanding_snoops.get_value(); ++i) {
         sc_spawn(sc_bind(&axi_initiator_b::snoop_thread, this));
     }
 }
@@ -144,10 +135,12 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
             bool success;
             std::tie(it, success) = tx_state_by_tx.insert(std::make_pair(&trans, new tx_state()));
         }
+        if(trans.is_read()) rd_waiting++;
+        else wr_waiting++;
         auto& txs = it->second;
         auto timing_e = trans.set_auto_extension<atp::timing_params>(nullptr);
 
-        if(enable_id_serializing.value) {
+        if(enable_id_serializing.get_value()) {
             if(!id_mtx[axi_id]) {
                 id_mtx[axi_id] = new scc::ordered_semaphore(1);
             }
@@ -165,11 +158,12 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
         SCCTRACE(SCMOD) << "start transport " << trans;
         tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
         if(!trans.is_read()) { // data less via write channel
-            if(!data_interleaving
-                    .value) { // Note that AXI4 does not allow write data interleaving, and ncore3 only supports AXI4.
+            if(!data_interleaving.get_value()) { // Note that AXI4 does not allow write data interleaving, and ncore3 only supports AXI4.
                 sem_lock lck(wr_chnl);
+                wr_waiting--;
+                wr_outstanding++;
                 /// Timing
-                for(unsigned i = 1; i < (timing_e ? timing_e->awtv : awtv.value); ++i) {
+                for(unsigned i = 1; i < (timing_e ? timing_e->awtv : awtv.get_value()); ++i) {
                     wait(clk_i.posedge_event());
                 }
                 SCCTRACE(SCMOD) << "starting " << burst_length << " write beats of " << trans;
@@ -180,7 +174,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                     if(axi::END_PARTIAL_REQ != res)
                         SCCFATAL(SCMOD) << "target responded with " << res << " for the " << i << "th beat of "
                         << burst_length << " beats  in transaction " << trans;
-                    for(unsigned i = 0; i < (timing_e ? timing_e->wbv : wbv.value); ++i)
+                    for(unsigned i = 0; i < (timing_e ? timing_e->wbv : wbv.get_value()); ++i)
                         wait(clk_i.posedge_event());
                     if(protocol_cb[axi::fsm::EndPartReqE])
                         protocol_cb[axi::fsm::EndPartReqE](trans, false);
@@ -195,16 +189,23 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 SCCTRACE(SCMOD) << "starting " << burst_length << " write beats of " << trans;
                 for(unsigned i = 0; i < burst_length - 1; ++i) {
                     sem_lock lck(wr_chnl);
-                    if(i == 0)
+                    if(i==0){
+                        wr_waiting--;
+                        wr_outstanding++;
                         /// Timing
-                        for(unsigned i = 1; i < (timing_e ? timing_e->awtv : awtv.value); ++i)
+                        for(unsigned i = 1; i < (timing_e ? timing_e->awtv : awtv.get_value()); ++i)
                             wait(clk_i.posedge_event());
+                    }
                     auto res = send(trans, txs, axi::BEGIN_PARTIAL_REQ);
                     sc_assert(axi::END_PARTIAL_REQ == res);
-                    for(unsigned i = 1; i < (timing_e ? timing_e->wbv : wbv.value); ++i)
+                    for(unsigned i = 1; i < (timing_e ? timing_e->wbv : wbv.get_value()); ++i)
                         wait(clk_i.posedge_event());
                 }
                 sem_lock lck(wr_chnl);
+                if(burst_length==1){
+                    wr_waiting--;
+                    wr_outstanding++;
+                }
                 if(protocol_cb[axi::fsm::BegReqE])
                     protocol_cb[axi::fsm::BegReqE](trans, false);
                 auto res = send(trans, txs, tlm::BEGIN_REQ);
@@ -218,8 +219,10 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
             }
         } else {
             sem_lock lck(rd_chnl);
+            rd_waiting--;
+            rd_outstanding++;
             /// Timing
-            for(unsigned i = 1; i < (timing_e ? timing_e->artv : artv.value); ++i)
+            for(unsigned i = 1; i < (timing_e ? timing_e->artv : artv.get_value()); ++i)
                 wait(clk_i.posedge_event());
             SCCTRACE(SCMOD) << "starting address phase of " << trans;
             if(protocol_cb[axi::fsm::BegPartReqE])
@@ -246,7 +249,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 if(protocol_cb[axi::fsm::BegRespE])
                     protocol_cb[axi::fsm::BegRespE](trans, false);
                 SCCTRACE(SCMOD) << "received last beat of " << trans;
-                auto delay_in_cycles = timing_e ? (trans.is_read() ? timing_e->rbr : timing_e->br) : br.value;
+                auto delay_in_cycles = timing_e ? (trans.is_read() ? timing_e->rbr : timing_e->br) : br.get_value();
                 for(unsigned i = 0; i < delay_in_cycles; ++i)
                     wait(clk_i.posedge_event());
                 burst_length--;
@@ -263,7 +266,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
             } else if(std::get<0>(entry) == &trans &&
                     std::get<1>(entry) == axi::BEGIN_PARTIAL_RESP) { // RDAT without CRESP case
                 SCCTRACE(SCMOD) << "received beat = "<< burst_length<<" with trans " << trans;
-                auto delay_in_cycles = timing_e ? timing_e->rbr : rbr.value;
+                auto delay_in_cycles = timing_e ? timing_e->rbr : rbr.get_value();
                 for(unsigned i = 0; i < delay_in_cycles; ++i)
                     wait(clk_i.posedge_event());
                 burst_length--;
@@ -281,16 +284,16 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
           }
         } while(!finished);
         if(flavor == flavor_e::ACE) {
-            if(trans.is_read() && rla.value != std::numeric_limits<unsigned>::max()) {
-                for(unsigned i = 0; i < rla.value; ++i)
+            if(trans.is_read() && rla.get_value() != std::numeric_limits<unsigned>::max()) {
+                for(unsigned i = 0; i < rla.get_value(); ++i)
                     wait(clk_i.posedge_event());
                 tlm::tlm_phase phase = axi::ACK;
                 sc_time delay = SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 wait(clk_i.posedge_event());
 
-            } else if(trans.is_write() && ba.value != std::numeric_limits<unsigned>::max()) {
-                for(unsigned i = 0; i < ba.value; ++i)
+            } else if(trans.is_write() && ba.get_value() != std::numeric_limits<unsigned>::max()) {
+                for(unsigned i = 0; i < ba.get_value(); ++i)
                     wait(clk_i.posedge_event());
                 tlm::tlm_phase phase = axi::ACK;
                 sc_time delay = SC_ZERO_TIME;
@@ -298,8 +301,10 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 wait(clk_i.posedge_event());
             }
         }
+        if(trans.is_read()) rd_outstanding--;
+        else wr_outstanding--;
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
-        if(enable_id_serializing.value) {
+        if(enable_id_serializing.get_value()) {
             id_mtx[axi_id]->post();
         }
         txs->active_tx = nullptr;
@@ -360,7 +365,7 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     if(burst_length<1)
         burst_length=1;
     tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
-    auto delay_in_cycles = wbv.value;
+    auto delay_in_cycles = wbv.get_value();
     sem_lock lck(sresp_chnl);
     /*
      * here according to spec, ccresp should first be checked to see whether there is data transfer( decided by TC)

@@ -524,11 +524,6 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 : sc_module(nm)
 , socket_fw(port)
 , transfer_width_in_bytes(transfer_width / 8) {
-    add_attribute(tgt_id);
-    add_attribute(src_id);
-    add_attribute(data_interleaving);
-    add_attribute(strict_income_order);
-    add_attribute(use_legacy_mapping);
     fw_i.bind(*this);
 
     SC_METHOD(clk_counter);
@@ -742,7 +737,7 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
             << to_char(data_ext->dat.get_opcode()) << ", " << trans.get_command() << ", " << std::hex
             << trans.get_address() << ", " << trans.get_data_length() << ")";
 
-    if(!data_interleaving.value) {
+    if(!data_interleaving.get_value()) {
         sem_lock lck(wdat_chnl);
         for(auto i = 0U; i < beat_cnt; ++i) {
             if(i < beat_cnt - 1)
@@ -770,7 +765,6 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
                                        << ", addr: 0x" << std::hex << trans.get_address()
                                        << ", last=" << (i == (beat_cnt - 1));
                 send_packet(phase, trans, txs);
-
             }
             wait(SC_ZERO_TIME); // yield execution to allow others to lock
         }
@@ -1035,12 +1029,12 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
     } else {
         auto req_ext = trans.get_extension<chi_ctrl_extension>();
         if(!req_ext) {
-            convert_axi4ace_to_chi(trans, name(), use_legacy_mapping.value);
+            convert_axi4ace_to_chi(trans, name(), use_legacy_mapping.get_value());
             req_ext = trans.get_extension<chi_ctrl_extension>();
             sc_assert(req_ext != nullptr);
         }
-        req_ext->set_src_id(src_id.value);
-        req_ext->req.set_tgt_id(tgt_id.value);
+        req_ext->set_src_id(src_id.get_value());
+        req_ext->req.set_tgt_id(tgt_id.get_value());
         req_ext->req.set_max_flit(calculate_beats(trans) - 1);
         tx_waiting++;
         auto it = tx_state_by_trans.find(to_id(trans));
@@ -1056,9 +1050,11 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         if(chi::is_request_order(req_ext)) {
             req_order.wait();
         }
-        if(strict_income_order.value) strict_order_sem.wait();
+        if(strict_income_order.get_value()) strict_order_sem.wait();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
-        if(strict_income_order.value) strict_order_sem.post();
+        tx_waiting4crd++;
+        tx_waiting--;
+        if(strict_income_order.get_value()) strict_order_sem.post();
         setExpCompAck(req_ext);
         /// Timing
         auto timing_e = trans.get_extension<atp::timing_params>();
@@ -1078,7 +1074,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             // Check if Link-credits are available for sending this transaction and wait if not
             req_credits.wait();
             tx_outstanding++;
-            tx_waiting--;
+            tx_waiting4crd--;
             SCCTRACE(SCMOD) << "starting transaction with txn_id=" << txn_id;
             m_prev_clk_cnt = get_clk_cnt();
             tlm::tlm_phase phase = tlm::BEGIN_REQ;
@@ -1164,7 +1160,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
         auto snp_ext = trans.get_extension<chi_snp_extension>();
         sc_assert(snp_ext != nullptr);
 
-        snp_ext->set_src_id(src_id.value);
+        snp_ext->set_src_id(src_id.get_value());
         snp_ext->resp.set_tgt_id(snp_ext->get_src_id());
         snp_ext->resp.set_db_id(snp_ext->get_txn_id());
 
@@ -1223,7 +1219,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
         if(snp_ext->resp.get_data_pull())
             send_comp_ack(trans, txs);
     } else {
-        ext->set_src_id(src_id.value);
+        ext->set_src_id(src_id.get_value());
         send_wdata(trans, txs);
     }
 }
