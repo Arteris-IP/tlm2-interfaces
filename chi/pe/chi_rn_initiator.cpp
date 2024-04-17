@@ -197,13 +197,11 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             switch(axi_snp) {
             case axi::snoop_e::WRITE_NO_SNOOP:
                 sc_assert(axi_domain == axi::domain_e::NON_SHAREABLE || axi_domain == axi::domain_e::SYSTEM);
-                opcode = chi::req_optype_e::WriteNoSnpFull;
-                if(gp.get_data_length() < 64)
-                    opcode = chi::req_optype_e::WriteNoSnpPtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteNoSnpFull : chi::req_optype_e::WriteNoSnpPtl;
                 break;
             case axi::snoop_e::WRITE_UNIQUE:
                 sc_assert(axi_domain == axi::domain_e::INNER_SHAREABLE || axi_domain == axi::domain_e::OUTER_SHAREABLE);
-                opcode = chi::req_optype_e::WriteUniquePtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteUniqueFull:chi::req_optype_e::WriteUniquePtl;
                 chi_req_ext->req.set_snp_attr(cacheable);
                 break;
             case axi::snoop_e::WRITE_LINE_UNIQUE:
@@ -224,8 +222,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 break;
             }
             case axi::snoop_e::WRITE_BACK:
-                opcode =
-                        gp.get_data_length() == 64 ? chi::req_optype_e::WriteBackFull : chi::req_optype_e::WriteBackPtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteBackFull : chi::req_optype_e::WriteBackPtl;
                 break;
             case axi::snoop_e::EVICT:
                 opcode = chi::req_optype_e::Evict;
