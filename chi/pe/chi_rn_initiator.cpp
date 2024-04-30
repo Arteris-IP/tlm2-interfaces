@@ -903,7 +903,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                 phase = chi::END_PARTIAL_DATA;
             else
                 phase = chi::END_DATA;
-            delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+            delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
             if(phase == chi::END_DATA) {
@@ -930,7 +930,7 @@ void chi::pe::chi_rn_initiator_b::send_cresp_response(payload_type& trans) {
                             << ", db_id=" << (unsigned)resp_ext->resp.get_db_id() << ", addr=0x" << std::hex
                             << trans.get_address() << ")";
     tlm::tlm_phase phase = tlm::END_RESP;
-    sc_core::sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+    sc_core::sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
     socket_fw->nb_transport_fw(trans, phase, delay);
     wait(clk_i.posedge_event());
 }
@@ -1003,7 +1003,7 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                     phase = chi::END_PARTIAL_DATA;
                 else
                     phase = chi::END_DATA;
-                delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(phase == chi::END_DATA) {
                     not_finish &= 0x1; // clear bit1
@@ -1197,7 +1197,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                     phase = chi::END_PARTIAL_DATA;
                 else
                     phase = chi::END_DATA;
-                delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 beat_cnt++;
                 if(phase == chi::END_DATA) {
@@ -1270,7 +1270,7 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     }
     auto* txs = it->second;
 
-    sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+    sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
     tlm::tlm_phase phase = tlm::END_REQ;
     socket_fw->nb_transport_fw(*trans, phase, delay);
     auto cycles = 0U;

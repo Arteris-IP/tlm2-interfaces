@@ -254,7 +254,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                     wait(clk_i.posedge_event());
                 burst_length--;
                 tlm::tlm_phase phase = tlm::END_RESP;
-                sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(burst_length)
                     SCCWARN(SCMOD) << "got wrong number of burst beats, expected " << exp_burst_length << ", got "
@@ -273,7 +273,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 if(protocol_cb[axi::fsm::BegPartRespE])
                     protocol_cb[axi::fsm::BegPartRespE](trans, false);
                 tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
-                sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 auto res = socket_fw->nb_transport_fw(trans, phase, delay);
                 if(res == tlm::TLM_UPDATED) {
                     next_phase = phase;
@@ -331,7 +331,7 @@ void axi_initiator_b::snoop_thread() {
             std::tie(it, success) = snp_state_by_id.insert(std::make_pair(trans.get(), new tx_state()));
         }
 
-        sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+        sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
         tlm::tlm_phase phase = tlm::END_REQ;
         // here delay is not used in nb_fw of following module
         // therefore one cycle delay between BEG_REQ and END_REQ should be explicitly called here??
