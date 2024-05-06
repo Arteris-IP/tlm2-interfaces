@@ -43,15 +43,15 @@ public:
      */
     scc::sc_attribute_randomized<int>& wr_resp_delay;
     /**
-     * @brief the bandwidth limit for read accesses
+     * @brief the bandwidth limit for read accesses. A value of -1 disables the limiting
      */
     cci::cci_param<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
     /**
-     * @brief the bandwidth limit for write accesses
+     * @brief the bandwidth limit for write accesses. A value of -1 disables the limiting
      */
     cci::cci_param<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
     /**
-     * @brief the bandwidth limit for read accesses
+     * @brief the bandwidth limit for read accesses. A value of -1 disables the limiting
      */
     cci::cci_param<double> total_bw_limit_byte_per_sec{"total_bw_limit_byte_per_sec", -1.0};
 
