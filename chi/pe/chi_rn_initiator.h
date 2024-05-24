@@ -30,6 +30,16 @@
 namespace chi {
 namespace pe {
 
+enum channel_e {
+    REQ = 0,
+    WDAT,
+    SRSP,
+    CRSP,
+    RDAT,
+    SNP,
+    CH_CNT
+};
+
 class chi_rn_initiator_b :
         public sc_core::sc_module,
         public chi::chi_bw_transport_if<chi::chi_protocol_types>,
@@ -38,6 +48,7 @@ class chi_rn_initiator_b :
 public:
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
+    using cb_function_t = std::function<void(chi::pe::channel_e, payload_type&)>;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -95,6 +106,10 @@ public:
 
     cci::cci_param<bool> use_legacy_mapping{"use_legacy_mapping", false};
 
+    void add_protocol_cb(channel_e e, cb_function_t cb) {
+        assert(e < CH_CNT);
+        protocol_cb[e] = cb;
+    }
 protected:
     void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
@@ -169,6 +184,8 @@ private:
     scc::sc_variable<unsigned> tx_waiting{"TxWaiting4Id", 0};
     scc::sc_variable<unsigned> tx_waiting4crd{"TxWaiting4Credit", 0};
     scc::sc_variable<unsigned> tx_outstanding{"TxOutstanding", 0};
+
+    std::array<cb_function_t, chi::pe::CH_CNT> protocol_cb;
 };
 
 /**
