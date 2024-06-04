@@ -103,7 +103,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         if(ret == tlm::TLM_UPDATED) {
             schedule(EndPartReqE, fsm_hndl->trans, t, true);
         }
-        if(protocol_cb[BegPartReqE])
+        if((bool)protocol_cb[BegPartReqE])
             cbpeq.notify(std::make_tuple(BegPartReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
@@ -117,7 +117,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             schedule(BegReqE, fsm_hndl->trans, ::scc::get_value(wr_data_beat_delay) - 1);
         else
             schedule(BegReqE, fsm_hndl->trans, 0);
-        if(protocol_cb[EndPartReqE])
+        if((bool)protocol_cb[EndPartReqE])
             cbpeq.notify(std::make_tuple(EndPartReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
@@ -131,7 +131,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
                 schedule(EndReqE, fsm_hndl->trans, t, true);
             }
         }
-        if(protocol_cb[BegReqE])
+        if((bool)protocol_cb[BegReqE])
             cbpeq.notify(std::make_tuple(BegReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
@@ -191,7 +191,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 rd.post();
         }
-        if(protocol_cb[EndReqE])
+        if((bool)protocol_cb[EndReqE])
             cbpeq.notify(std::make_tuple(EndReqE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
@@ -205,7 +205,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndPartRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        if(protocol_cb[BegPartRespE])
+        if((bool)protocol_cb[BegPartRespE])
             cbpeq.notify(std::make_tuple(BegPartRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
@@ -219,7 +219,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
             fsm_hndl->beat_count++;
         }
-        if(protocol_cb[EndPartRespE])
+        if((bool)protocol_cb[EndPartRespE])
             cbpeq.notify(std::make_tuple(EndPartRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
@@ -235,7 +235,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             else
                 schedule(EndRespE, fsm_hndl->trans, SC_ZERO_TIME);
         }
-        if(protocol_cb[BegRespE])
+        if((bool)protocol_cb[BegRespE])
             cbpeq.notify(std::make_tuple(BegRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[EndRespE] = [this, fsm_hndl]() -> void {
@@ -250,7 +250,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             } else
                 fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
         }
-        if(protocol_cb[EndRespE])
+        if((bool)protocol_cb[EndRespE])
             cbpeq.notify(std::make_tuple(EndRespE, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
     fsm_hndl->fsm->cb[Ack] = [this, fsm_hndl]() -> void {
@@ -258,7 +258,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         tlm::tlm_phase phase = axi::ACK;
         auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
         fsm_hndl->finish.notify(sc_core::SC_ZERO_TIME);
-        if(protocol_cb[Ack])
+        if((bool)protocol_cb[Ack])
             cbpeq.notify(std::make_tuple(Ack, fsm_hndl->trans, fsm_hndl->is_snoop), sc_core::SC_ZERO_TIME);
     };
 }

@@ -197,13 +197,11 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             switch(axi_snp) {
             case axi::snoop_e::WRITE_NO_SNOOP:
                 sc_assert(axi_domain == axi::domain_e::NON_SHAREABLE || axi_domain == axi::domain_e::SYSTEM);
-                opcode = chi::req_optype_e::WriteNoSnpFull;
-                if(gp.get_data_length() < 64)
-                    opcode = chi::req_optype_e::WriteNoSnpPtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteNoSnpFull : chi::req_optype_e::WriteNoSnpPtl;
                 break;
             case axi::snoop_e::WRITE_UNIQUE:
                 sc_assert(axi_domain == axi::domain_e::INNER_SHAREABLE || axi_domain == axi::domain_e::OUTER_SHAREABLE);
-                opcode = chi::req_optype_e::WriteUniquePtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteUniqueFull:chi::req_optype_e::WriteUniquePtl;
                 chi_req_ext->req.set_snp_attr(cacheable);
                 break;
             case axi::snoop_e::WRITE_LINE_UNIQUE:
@@ -224,8 +222,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 break;
             }
             case axi::snoop_e::WRITE_BACK:
-                opcode =
-                        gp.get_data_length() == 64 ? chi::req_optype_e::WriteBackFull : chi::req_optype_e::WriteBackPtl;
+                opcode = gp.get_data_length() == 64 ? chi::req_optype_e::WriteBackFull : chi::req_optype_e::WriteBackPtl;
                 break;
             case axi::snoop_e::EVICT:
                 opcode = chi::req_optype_e::Evict;
@@ -524,11 +521,6 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 : sc_module(nm)
 , socket_fw(port)
 , transfer_width_in_bytes(transfer_width / 8) {
-    add_attribute(tgt_id);
-    add_attribute(src_id);
-    add_attribute(data_interleaving);
-    add_attribute(strict_income_order);
-    add_attribute(use_legacy_mapping);
     fw_i.bind(*this);
 
     SC_METHOD(clk_counter);
@@ -708,6 +700,8 @@ void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
 
 void chi::pe::chi_rn_initiator_b::send_packet(tlm::tlm_phase phase, payload_type& trans,
         chi::pe::chi_rn_initiator_b::tx_state* txs) {
+    if(protocol_cb[WDAT])
+        protocol_cb[WDAT](WDAT, trans);
     sc_core::sc_time delay = sc_core::SC_ZERO_TIME;
     tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
     if(ret == tlm::TLM_UPDATED) {
@@ -742,7 +736,7 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
             << to_char(data_ext->dat.get_opcode()) << ", " << trans.get_command() << ", " << std::hex
             << trans.get_address() << ", " << trans.get_data_length() << ")";
 
-    if(!data_interleaving.value) {
+    if(!data_interleaving.get_value()) {
         sem_lock lck(wdat_chnl);
         for(auto i = 0U; i < beat_cnt; ++i) {
             if(i < beat_cnt - 1)
@@ -770,7 +764,6 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
                                        << ", addr: 0x" << std::hex << trans.get_address()
                                        << ", last=" << (i == (beat_cnt - 1));
                 send_packet(phase, trans, txs);
-
             }
             wait(SC_ZERO_TIME); // yield execution to allow others to lock
         }
@@ -781,6 +774,8 @@ void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& 
     if(make_rsp_from_req(trans, chi::rsp_optype_e::CompAck)) {
         sem_lock lck(sresp_chnl);
         SCCDEBUG(SCMOD) << "Send the CompAck response on SRSP channel, addr: 0x" << std::hex << trans.get_address();
+        if(protocol_cb[SRSP])
+            protocol_cb[SRSP](SRSP, trans);
         tlm::tlm_phase phase = chi::ACK;
         auto delay = SC_ZERO_TIME;
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
@@ -908,11 +903,10 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
         } else if(trans.is_read() && (phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA)) {
             SCCTRACE(SCMOD) << "RDAT flit received. Beat count: " << beat_cnt << ", addr: 0x" << std::hex
                     << trans.get_address();
-            if(phase == chi::BEGIN_PARTIAL_DATA)
-                phase = chi::END_PARTIAL_DATA;
-            else
-                phase = chi::END_DATA;
-            delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+            if(protocol_cb[RDAT])
+                protocol_cb[RDAT](RDAT, trans);
+            phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA : chi::END_DATA;
+            delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
             if(phase == chi::END_DATA) {
@@ -938,8 +932,10 @@ void chi::pe::chi_rn_initiator_b::send_cresp_response(payload_type& trans) {
                             << ", resp=" << to_char(resp_ext->resp.get_resp())
                             << ", db_id=" << (unsigned)resp_ext->resp.get_db_id() << ", addr=0x" << std::hex
                             << trans.get_address() << ")";
+    if(protocol_cb[CRSP])
+        protocol_cb[CRSP](CRSP, trans);
     tlm::tlm_phase phase = tlm::END_RESP;
-    sc_core::sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+    sc_core::sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
     socket_fw->nb_transport_fw(trans, phase, delay);
     wait(clk_i.posedge_event());
 }
@@ -1008,11 +1004,10 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                         << to_char(data_ext->dat.get_opcode()) << "," << trans.get_command() << ",0x"
                         << std::hex << trans.get_address() << "," << trans.get_data_length()
                         << "), beat=" << input_beat_cnt << "/" << exp_beat_cnt;
-                if(phase == chi::BEGIN_PARTIAL_DATA)
-                    phase = chi::END_PARTIAL_DATA;
-                else
-                    phase = chi::END_DATA;
-                delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                if(protocol_cb[RDAT])
+                    protocol_cb[RDAT](RDAT, trans);
+                phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA: chi::END_DATA;
+                delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(phase == chi::END_DATA) {
                     not_finish &= 0x1; // clear bit1
@@ -1035,12 +1030,12 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
     } else {
         auto req_ext = trans.get_extension<chi_ctrl_extension>();
         if(!req_ext) {
-            convert_axi4ace_to_chi(trans, name(), use_legacy_mapping.value);
+            convert_axi4ace_to_chi(trans, name(), use_legacy_mapping.get_value());
             req_ext = trans.get_extension<chi_ctrl_extension>();
             sc_assert(req_ext != nullptr);
         }
-        req_ext->set_src_id(src_id.value);
-        req_ext->req.set_tgt_id(tgt_id.value);
+        req_ext->set_src_id(src_id.get_value());
+        req_ext->req.set_tgt_id(tgt_id.get_value());
         req_ext->req.set_max_flit(calculate_beats(trans) - 1);
         tx_waiting++;
         auto it = tx_state_by_trans.find(to_id(trans));
@@ -1056,9 +1051,11 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         if(chi::is_request_order(req_ext)) {
             req_order.wait();
         }
-        if(strict_income_order.value) strict_order_sem.wait();
+        if(strict_income_order.get_value()) strict_order_sem.wait();
         sem_lock txnlck(active_tx_by_id[txn_id]); // wait until running tx with same id is over
-        if(strict_income_order.value) strict_order_sem.post();
+        tx_waiting4crd++;
+        tx_waiting--;
+        if(strict_income_order.get_value()) strict_order_sem.post();
         setExpCompAck(req_ext);
         /// Timing
         auto timing_e = trans.get_extension<atp::timing_params>();
@@ -1078,13 +1075,15 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             // Check if Link-credits are available for sending this transaction and wait if not
             req_credits.wait();
             tx_outstanding++;
-            tx_waiting--;
+            tx_waiting4crd--;
             SCCTRACE(SCMOD) << "starting transaction with txn_id=" << txn_id;
             m_prev_clk_cnt = get_clk_cnt();
-            tlm::tlm_phase phase = tlm::BEGIN_REQ;
-            sc_core::sc_time delay;
             SCCTRACE(SCMOD) << "Send REQ, addr: 0x" << std::hex << trans.get_address() << ", TxnID: 0x" << std::hex
                     << txn_id;
+            if(protocol_cb[REQ])
+                protocol_cb[REQ](REQ, trans);
+            tlm::tlm_phase phase = tlm::BEGIN_REQ;
+            sc_core::sc_time delay;
             tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
             if(ret == tlm::TLM_UPDATED) {
                 sc_assert(phase == tlm::END_REQ);
@@ -1164,7 +1163,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
         auto snp_ext = trans.get_extension<chi_snp_extension>();
         sc_assert(snp_ext != nullptr);
 
-        snp_ext->set_src_id(src_id.value);
+        snp_ext->set_src_id(src_id.get_value());
         snp_ext->resp.set_tgt_id(snp_ext->get_src_id());
         snp_ext->resp.set_db_id(snp_ext->get_txn_id());
 
@@ -1174,6 +1173,8 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                 snp_ext->resp.get_data_pull() ? 0b11U : 0b10U; // bit0: data is ongoing, bit1: ctrl resp. is ongoing
         {
             sem_lock lock(sresp_chnl);
+            if(protocol_cb[SRSP])
+                protocol_cb[SRSP](SRSP, trans);
             auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
             if(ret == tlm::TLM_UPDATED) {
                 sc_assert(phase == tlm::END_RESP); // SRSP channel
@@ -1200,11 +1201,10 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                 SCCTRACE(SCMOD) << "RDAT packet received with phase " << phase << ". Beat count: " << beat_cnt
                         << ", addr: 0x" << std::hex << trans.get_address();
                 not_finish &= 0x1; // clear bit1
-                if(phase == chi::BEGIN_PARTIAL_DATA)
-                    phase = chi::END_PARTIAL_DATA;
-                else
-                    phase = chi::END_DATA;
-                delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+                if(protocol_cb[WDAT])
+                    protocol_cb[WDAT](WDAT, trans);
+                phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA : chi::END_DATA;
+                delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 beat_cnt++;
                 if(phase == chi::END_DATA) {
@@ -1223,7 +1223,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
         if(snp_ext->resp.get_data_pull())
             send_comp_ack(trans, txs);
     } else {
-        ext->set_src_id(src_id.value);
+        ext->set_src_id(src_id.get_value());
         send_wdata(trans, txs);
     }
 }
@@ -1277,7 +1277,9 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     }
     auto* txs = it->second;
 
-    sc_time delay = clk_if ? clk_if->period() - 1_ps : SC_ZERO_TIME;
+    if(protocol_cb[SNP])
+        protocol_cb[SNP](SNP, *trans);
+    sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
     tlm::tlm_phase phase = tlm::END_REQ;
     socket_fw->nb_transport_fw(*trans, phase, delay);
     auto cycles = 0U;

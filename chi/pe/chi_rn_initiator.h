@@ -21,6 +21,7 @@
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
+#include <cci_cfg/cci_param_typed.h>
 #include <systemc>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
@@ -28,6 +29,16 @@
 
 namespace chi {
 namespace pe {
+
+enum channel_e {
+    REQ = 0,
+    WDAT,
+    SRSP,
+    CRSP,
+    RDAT,
+    SNP,
+    CH_CNT
+};
 
 class chi_rn_initiator_b :
         public sc_core::sc_module,
@@ -37,6 +48,7 @@ class chi_rn_initiator_b :
 public:
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
+    using cb_function_t = std::function<void(chi::pe::channel_e, payload_type&)>;
 
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -84,16 +96,20 @@ public:
 
     chi_rn_initiator_b& operator=(chi_rn_initiator_b&&) = delete;
 
-    sc_core::sc_attribute<unsigned> src_id{"src_id", 1};
+    cci::cci_param<unsigned> src_id{"src_id", 1};
 
-    sc_core::sc_attribute<unsigned> tgt_id{"tgt_id", 0}; // home node id will be used as tgt_id in all transaction req
+    cci::cci_param<unsigned> tgt_id{"tgt_id", 0}; // home node id will be used as tgt_id in all transaction req
 
-    sc_core::sc_attribute<bool> data_interleaving{"data_interleaving", true};
+    cci::cci_param<bool> data_interleaving{"data_interleaving", true};
 
-    sc_core::sc_attribute<bool> strict_income_order{"strict_income_order", true};
+    cci::cci_param<bool> strict_income_order{"strict_income_order", false};
 
-    sc_core::sc_attribute<bool> use_legacy_mapping{"use_legacy_mapping", false};
+    cci::cci_param<bool> use_legacy_mapping{"use_legacy_mapping", false};
 
+    void add_protocol_cb(channel_e e, cb_function_t cb) {
+        assert(e < CH_CNT);
+        protocol_cb[e] = cb;
+    }
 protected:
     void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
@@ -110,7 +126,7 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore req_credits{"req_credits", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore req_credits{"TxReqCredits", 0U, true}; // L-credits provided by completer(HN)
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 
@@ -165,8 +181,11 @@ private:
     sc_core::sc_clock* clk_if{nullptr};
     uint64_t peq_cnt{0};
 
-    scc::sc_variable<unsigned> tx_waiting{"TxWaiting", 0};
+    scc::sc_variable<unsigned> tx_waiting{"TxWaiting4Id", 0};
+    scc::sc_variable<unsigned> tx_waiting4crd{"TxWaiting4Credit", 0};
     scc::sc_variable<unsigned> tx_outstanding{"TxOutstanding", 0};
+
+    std::array<cb_function_t, chi::pe::CH_CNT> protocol_cb;
 };
 
 /**
