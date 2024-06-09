@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 #ifndef SC_INCLUDE_DYNAMIC_PROCESSES
 #define SC_INCLUDE_DYNAMIC_PROCESSES
@@ -905,7 +905,7 @@ void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int tx
                     << trans.get_address();
             if(protocol_cb[RDAT])
                 protocol_cb[RDAT](RDAT, trans);
-            phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA : chi::END_DATA;
+            phase = phase == chi::BEGIN_PARTIAL_DATA?(tlm::tlm_phase) chi::END_PARTIAL_DATA:(tlm::tlm_phase)END_DATA;
             delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
@@ -1006,7 +1006,7 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                         << "), beat=" << input_beat_cnt << "/" << exp_beat_cnt;
                 if(protocol_cb[RDAT])
                     protocol_cb[RDAT](RDAT, trans);
-                phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA: chi::END_DATA;
+                phase = phase == chi::BEGIN_PARTIAL_DATA?(tlm::tlm_phase) chi::END_PARTIAL_DATA:(tlm::tlm_phase)END_DATA;
                 delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(phase == chi::END_DATA) {
@@ -1203,7 +1203,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
                 not_finish &= 0x1; // clear bit1
                 if(protocol_cb[WDAT])
                     protocol_cb[WDAT](WDAT, trans);
-                phase = phase == chi::BEGIN_PARTIAL_DATA? chi::END_PARTIAL_DATA : chi::END_DATA;
+                phase = phase == chi::BEGIN_PARTIAL_DATA?(tlm::tlm_phase) chi::END_PARTIAL_DATA:(tlm::tlm_phase)END_DATA;
                 delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 beat_cnt++;
