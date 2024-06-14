@@ -60,7 +60,7 @@ public:
 protected:
     axi::ace_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
 
-    void end_of_elaboration(){
+    void end_of_elaboration() override {
         base::end_of_elaboration();
         set_bw_interface(socket.get_base_port().operator -> ());
     }

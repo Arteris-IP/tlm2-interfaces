@@ -109,7 +109,7 @@ public:
     size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx();}
 
 protected:
-    void end_of_elaboration(){
+    void end_of_elaboration() override {
         auto* ifs = sckt.get_base_port().get_interface(0);
         sc_assert(ifs!=nullptr);
         pe.set_bw_interface(ifs);
