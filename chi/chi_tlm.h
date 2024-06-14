@@ -1035,7 +1035,12 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
         case chi::rsp_optype_e::CompCMO:
         case chi::rsp_optype_e::CompStashDone:
             return true;
+        default:
+            break;
         }
+        break;
+    default:
+        break;
     }
     return false;
 }
@@ -1070,6 +1075,8 @@ inline bool is_request_order(const chi::chi_ctrl_extension* req_e) {
         case chi::req_optype_e::WriteUniquePtlStash:
         case chi::req_optype_e::WriteUniqueZero:
             return true;
+        default:
+            break;
         }
         return is_atomic(req_e);
     } else
