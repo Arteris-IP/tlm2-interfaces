@@ -380,8 +380,8 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
     }
     chi_req_ext->req.set_mem_attr(mem_attr);
 
-    if(!chi::is_valid(chi_req_ext))
-        SCCFATAL(__FUNCTION__) << "Conversion created an invalid chi request, pls. check the AXI/ACE settings";
+    if(auto msg = chi::is_valid_msg(chi_req_ext))
+        SCCFATAL(__FUNCTION__) << "Conversion created an invalid chi request, pls. check the AXI/ACE settings: "<<msg;
 
     if(gp.has_mm())
         gp.set_auto_extension(chi_req_ext);

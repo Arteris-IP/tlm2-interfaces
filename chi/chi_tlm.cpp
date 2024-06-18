@@ -339,7 +339,7 @@ template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension
     case req_optype_e::WriteUniquePtlStash:
         break;
     default:
-        if(sz<6) return "Coherent transactions allow only cache line size data transfers";
+        if(!is_dataless(ext) && sz<6) return "Coherent transactions allow only cache line size data transfers";
     }
     return nullptr;
 }
