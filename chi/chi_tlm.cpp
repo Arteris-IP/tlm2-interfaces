@@ -327,11 +327,21 @@ template <> const char* to_char<credit_type_e>(credit_type_e v) {
     }
 }
 
-template <> bool is_valid<chi::chi_ctrl_extension>(chi_ctrl_extension* ext) {
+template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension* ext) {
     auto sz = ext->req.get_size();
     if(sz > 6)
-        return false;
-    return true;
+        return "Illegal size setting, maximum is 6";
+    switch(ext->req.get_opcode()) {
+    case req_optype_e::ReadNoSnp:
+    case req_optype_e::ReadNoSnpSep:
+    case req_optype_e::WriteNoSnpPtl:
+    case req_optype_e::WriteUniquePtl:
+    case req_optype_e::WriteUniquePtlStash:
+        break;
+    default:
+        if(sz<6) return "Coherent transactions allow only cache line size data transfers";
+    }
+    return nullptr;
 }
 
 } // namespace chi

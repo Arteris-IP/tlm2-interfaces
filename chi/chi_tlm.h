@@ -1007,9 +1007,11 @@ struct chi_target_socket
  * free function easing handling of transactions and extensions
  *****************************************************************************/
 
-template <typename EXT> inline bool is_valid(EXT& ext) { return is_valid(&ext); }
+template <typename EXT> inline bool is_valid(EXT& ext) { return is_valid_msg(&ext) == nullptr; }
 
-template <typename EXT> bool is_valid(EXT* ext);
+template <typename EXT> bool is_valid(EXT* ext) { return is_valid_msg(ext) == nullptr; }
+
+template <typename EXT> char const* is_valid_msg(EXT* ext);
 
 inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     switch(req_e->req.get_opcode()) {
