@@ -21,7 +21,7 @@
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
-#include <cci_cfg/cci_param_typed.h>
+#include <cci_configuration>
 #include <systemc>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
