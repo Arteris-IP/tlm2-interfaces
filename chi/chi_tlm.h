@@ -1137,7 +1137,7 @@ template <> inline rsp_resperrtype_e into<rsp_resperrtype_e>(typename std::under
 //! @param the TxnID of the channel
 // A transaction request includes a TxnID that is used to identify the transaction from a given Requester
 inline void common::set_txn_id(unsigned int txn_id) {
-    sc_assert(txn_id <= 1024); // TxnID field is defined to accommodate up to 1024 outstanding transactions.
+    sc_assert(txn_id <= 4096); // TxnID field is defined to accommodate up to 1024 outstanding transactions.
     this->txn_id = txn_id;
 }
 
