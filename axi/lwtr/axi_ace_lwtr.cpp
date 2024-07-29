@@ -53,8 +53,8 @@ template <class Archive> void record(Archive &ar, axi::axi4_extension const& e) 
     ar & field("cache", e.get_cache());
     ar & field("cache_bufferable", e.is_bufferable());
     ar & field("cache_modifiable", e.is_modifiable());
-    ar & field("cache_write_other_alloc", e.is_write_other_allocate());
-    ar & field("cache_read_other_alloc", e.is_read_other_allocate());
+    ar & field("cache_allocate", e.is_allocate());
+    ar & field("cache_other_alloc", e.is_other_allocate());
     ar & field("qos", e.get_qos());
     ar & field("region", e.get_region());
 }
@@ -72,8 +72,8 @@ template <class Archive> void record(Archive &ar, axi::ace_extension const& e) {
     ar & field("cache", e.get_cache());
     ar & field("cache_bufferable", e.is_bufferable());
     ar & field("cache_modifiable", e.is_modifiable());
-    ar & field("cache_write_other_alloc", e.is_write_other_allocate());
-    ar & field("cache_read_other_alloc", e.is_read_other_allocate());
+    ar & field("cache_write_alloc", e.is_write_allocate());
+    ar & field("cache_read_alloc", e.is_read_allocate());
     ar & field("qos", e.get_qos());
     ar & field("region", e.get_region());
     ar & field("domain", to_char(e.get_domain()));

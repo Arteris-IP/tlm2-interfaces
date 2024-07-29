@@ -79,8 +79,8 @@ class axi4_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi
             handle.record_attribute("trans.axi4.cache", ext4->get_cache());
             handle.record_attribute("trans.axi4.cache_bufferable", ext4->is_bufferable());
             handle.record_attribute("trans.axi4.cache_modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.axi4.cache_write_other_alloc", ext4->is_write_other_allocate());
-            handle.record_attribute("trans.axi4.cache_read_other_alloc", ext4->is_read_other_allocate());
+            handle.record_attribute("trans.axi4.cache_allocate", ext4->is_allocate());
+            handle.record_attribute("trans.axi4.cache_other_alloc", ext4->is_other_allocate());
             handle.record_attribute("trans.axi4.qos", ext4->get_qos());
             handle.record_attribute("trans.axi4.region", ext4->get_region());
         }
@@ -107,8 +107,8 @@ class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_
             handle.record_attribute("trans.ace.cache", ext4->get_cache());
             handle.record_attribute("trans.ace.cache_bufferable", ext4->is_bufferable());
             handle.record_attribute("trans.ace.cache_modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.ace.cache_write_other_alloc", ext4->is_write_other_allocate());
-            handle.record_attribute("trans.ace.cache_read_other_alloc", ext4->is_read_other_allocate());
+            handle.record_attribute("trans.ace.cache_allocate", ext4->is_allocate());
+            handle.record_attribute("trans.ace.cache_other_alloc", ext4->is_other_allocate());
             handle.record_attribute("trans.ace.qos", ext4->get_qos());
             handle.record_attribute("trans.ace.region", ext4->get_region());
             handle.record_attribute("trans.ace.domain", std::string(to_char(ext4->get_domain())));

@@ -519,22 +519,52 @@ struct axi4 : public request {
      * @brief set the read allocate/write other allocate bit of AxCACHE (AxCACHE[2])
      * @param the read_other_allocate bit
      */
-    void set_read_other_allocate(bool = true);
+    void set_other_allocate(bool = true);
     /**
      * @brief get the read allocate/write other allocate bit of AxCACHE (AxCACHE[2])
      * return the read_other_allocate bit
      */
-    bool is_read_other_allocate() const;
+    bool is_other_allocate() const;
     /**
      * @brief set the write allocate/read other allocate bit of AxCACHE (AxCACHE[3])
      * @param the write_other_allocate bit
      */
-    void set_write_other_allocate(bool = true);
+    void set_allocate(bool = true);
     /**
      * @brief get the write allocate/read other allocate bit of AxCACHE (AxCACHE[3])
      * return the write_other_allocate bit
      */
-    bool is_write_other_allocate() const;
+    bool is_allocate() const;
+    /**
+     * @brief set the modifiable bit of AxCACHE (AxCACHE[1])
+     * @param the modifiable bit
+     */
+    void set_cacheable(bool = true);
+    /**
+     * @brief get the modifiable bit of AxCACHE (AxCACHE[1])
+     * return the modifiable bit
+     */
+    bool is_cacheable() const;
+    /**
+     * @brief set the read allocate/write other allocate bit of AxCACHE (AxCACHE[2])
+     * @param the read_other_allocate bit
+     */
+    void set_read_allocate(bool = true);
+    /**
+     * @brief get the read allocate/write other allocate bit of AxCACHE (AxCACHE[2])
+     * return the read_other_allocate bit
+     */
+    bool is_read_allocate() const;
+    /**
+     * @brief set the write allocate/read other allocate bit of AxCACHE (AxCACHE[3])
+     * @param the write_other_allocate bit
+     */
+    void set_write_allocate(bool = true);
+    /**
+     * @brief get the write allocate/read other allocate bit of AxCACHE (AxCACHE[3])
+     * return the write_other_allocate bit
+     */
+    bool is_write_allocate() const;
 };
 /**
  * The ACE specific interpretation of request data members extending the AXI4 one
@@ -1343,23 +1373,50 @@ inline void axi4::set_modifiable(bool cacheable) {
 
 inline bool axi4::is_modifiable() const { return (cache & CACHEABLE) != 0; }
 
-inline void axi4::set_read_other_allocate(bool roa) {
+inline void axi4::set_allocate(bool roa) {
     if(roa)
         cache |= WA;
     else
         cache &= ~WA;
 }
 
-inline bool axi4::is_read_other_allocate() const { return (cache & WA) != 0; }
+inline bool axi4::is_allocate() const { return (cache & WA) != 0; }
 
-inline void axi4::set_write_other_allocate(bool woa) {
+inline void axi4::set_other_allocate(bool woa) {
     if(woa)
         cache |= RA;
     else
         cache &= ~RA;
 }
 
-inline bool axi4::is_write_other_allocate() const { return (cache & RA) != 0; }
+inline bool axi4::is_other_allocate() const { return (cache & RA) != 0; }
+
+inline void axi4::set_cacheable(bool cacheable) {
+    if(cacheable)
+        cache |= CACHEABLE;
+    else
+        cache &= ~CACHEABLE;
+}
+
+inline bool axi4::is_cacheable() const { return (cache & CACHEABLE) != 0; }
+
+inline void axi4::set_write_allocate(bool roa) {
+    if(roa)
+        cache |= WA;
+    else
+        cache &= ~WA;
+}
+
+inline bool axi4::is_write_allocate() const { return (cache & WA) != 0; }
+
+inline void axi4::set_read_allocate(bool woa) {
+    if(woa)
+        cache |= RA;
+    else
+        cache &= ~RA;
+}
+
+inline bool axi4::is_read_allocate() const { return (cache & RA) != 0; }
 
 inline void request::reset() {
     length = 0;
