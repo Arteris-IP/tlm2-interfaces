@@ -35,6 +35,7 @@ if(TARGET scc-sysc)
        axi/pe/ace_target_pe.cpp
        axi/pe/ordered_target.cpp
        axi/pe/reordering_target.cpp
+       axi/pe/replay_target.cpp
        axi/pe/axi_initiator.cpp
        axi/scv/axi_ace_scv.cpp
        axi/lwtr/axi_ace_lwtr.cpp
