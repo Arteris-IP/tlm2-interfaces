@@ -242,7 +242,7 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
             return "illegal write snoop value";
     }
     if(ext->get_cache()<2 && ext->get_domain() != axi::domain_e::SYSTEM)
-        return "illegal combination of AxCACHE and SYSTEM domain";
+        return "illegal combination of AxCACHE and AxDOMAIN setting";
     if(ext->get_cache()>3 && ext->get_domain() == axi::domain_e::SYSTEM)
         return "illegal combination of AxCACHE and SYSTEM domain";
     // check table ED3-7 and D3-8 of IHI0022H
