@@ -309,7 +309,9 @@ void axi::pe::axi_target_pe::send_rd_resp_beat_thread() {
 			auto fsm_hndl = std::get<0>(entry);
 			auto tp = std::get<1>(entry);
 			sc_time t;
-			tlm::tlm_phase phase{tp == BegPartRespE ? axi::BEGIN_PARTIAL_RESP : tlm::tlm_phase(tlm::BEGIN_RESP)};
+			tlm::tlm_phase phase{axi::BEGIN_PARTIAL_RESP};
+			if(tp == BegRespE)
+			    phase= tlm::BEGIN_RESP;
 			// wait to get ownership of the response channel
 			while(!rd_resp_ch.get_value())
 				wait(clk_i.posedge_event());

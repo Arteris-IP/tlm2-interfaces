@@ -954,7 +954,14 @@ template <typename TYPES = axi_protocol_types> using ace_fw_transport_if = tlm::
 template <typename TYPES = axi_protocol_types>
 class ace_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
                             public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
-/**
+
+#if SC_VERSION_MAJOR<3
+    using type_index = sc_core::sc_type_index;
+#else
+    using type_index = std::type_index;
+#endif
+
+    /**
  * AXI initiator socket class using payloads carrying AXI3 or AXi4 extensions
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
@@ -983,7 +990,7 @@ struct axi_initiator_socket
     // not the right version but we assume TLM is always bundled with SystemC
 #if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /**
@@ -1015,7 +1022,7 @@ struct axi_target_socket
     // not the right version but we assume TLM is always bundled with SystemC
 #if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /**
@@ -1049,7 +1056,7 @@ struct ace_initiator_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /**
@@ -1084,7 +1091,7 @@ struct ace_target_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /*****************************************************************************

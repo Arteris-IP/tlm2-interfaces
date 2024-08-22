@@ -932,7 +932,13 @@ template <typename TYPES = chi::chi_protocol_types>
 class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
 public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
-/**
+#if SC_VERSION_MAJOR<3
+    using type_index = sc_core::sc_type_index;
+#else
+    using type_index = std::type_index;
+#endif
+
+    /**
  * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to
  * RN response)
  */
@@ -964,7 +970,7 @@ struct chi_initiator_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 
@@ -1000,7 +1006,7 @@ struct chi_target_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /*****************************************************************************
