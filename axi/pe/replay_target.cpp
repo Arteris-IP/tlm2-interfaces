@@ -35,14 +35,15 @@ void replay_buffer::start_of_simulation() {
                 if(token[0]=="READ") {
                     if(id>=rd_sequence.size())
                         rd_sequence.resize(id+1);
-                    rd_sequence[id].emplace_back(addr, req_resp_lat);
+                    rd_sequence[id].emplace_back(addr, req_resp_lat+1);
                 } else if(token[0]=="WRITE") {
                     if(id>=wr_sequence.size())
                         wr_sequence.resize(id+1);
-                    wr_sequence[id].emplace_back(addr, req_resp_lat);
+                    wr_sequence[id].emplace_back(addr, req_resp_lat+1);
                 }
             }
         }
+        SCCINFO(SCMOD)<<"SEQ file name of replay target = "<<replay_file_name.get_value();
     }
 }
 

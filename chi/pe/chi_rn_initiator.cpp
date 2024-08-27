@@ -144,32 +144,26 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 break;
             case axi::snoop_e::CLEAN_SHARED:
                 opcode = chi::req_optype_e::CleanShared;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             case axi::snoop_e::CLEAN_INVALID:
                 opcode = chi::req_optype_e::CleanInvalid;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             case axi::snoop_e::CLEAN_SHARED_PERSIST:
                 opcode = chi::req_optype_e::CleanSharedPersist;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             case axi::snoop_e::CLEAN_UNIQUE:
                 opcode = chi::req_optype_e::CleanUnique;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             case axi::snoop_e::MAKE_UNIQUE:
                 opcode = chi::req_optype_e::MakeUnique;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             case axi::snoop_e::MAKE_INVALID:
                 opcode = chi::req_optype_e::MakeInvalid;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 break;
             default:
@@ -238,13 +232,11 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
                 break;
             case axi::snoop_e::STASH_ONCE_UNIQUE:
                 opcode = chi::req_optype_e::StashOnceUnique;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 chi_req_ext->req.set_size(6); // full cache line
                 break;
             case axi::snoop_e::STASH_ONCE_SHARED:
                 opcode = chi::req_optype_e::StashOnceShared;
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
                 gp.set_data_length(0);
                 chi_req_ext->req.set_size(6);  // full cache line
                 break;
