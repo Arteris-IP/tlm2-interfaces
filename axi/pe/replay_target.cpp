@@ -26,6 +26,7 @@ void replay_buffer::start_of_simulation() {
         std::ifstream ifs(replay_file_name.get_value());
         if(ifs.is_open()) {
             std::string line;
+            std::getline(ifs, line);
             while (std::getline(ifs, line)) {
                 auto token = util::split(line, ',');
                 auto addr = strtoull(token[1].c_str(), nullptr, 10);

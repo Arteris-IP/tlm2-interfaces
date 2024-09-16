@@ -121,6 +121,7 @@ class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_
     void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
         if(auto ext4 = trans.get_extension<ace_extension>()) {
             handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
+            handle.record_attribute("trans.ace.cresp", static_cast<unsigned>(ext4->get_cresp()));
             handle.record_attribute("trans.ace.cresp_PassDirty", ext4->is_pass_dirty());
             handle.record_attribute("trans.ace.cresp_IsShared", ext4->is_shared());
             handle.record_attribute("trans.ace.cresp_SnoopDataTransfer", ext4->is_snoop_data_transfer());
