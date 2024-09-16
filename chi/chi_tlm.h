@@ -62,6 +62,8 @@ inline std::ostream& operator<<(std::ostream& os, E e) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload const& t);
+
 //  REQ channel request type enumeration class
 enum class req_optype_e : uint8_t {
     // Table 12-14 REQ channel opcodes and Page No:318

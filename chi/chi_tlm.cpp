@@ -19,6 +19,9 @@
 #include <tlm/scc/scv/tlm_extension_recording_registry.h>
 
 namespace chi {
+namespace {
+std::array<std::string, 3> cmd_str{"R", "W", "I"};
+}
 std::array<char const*, 103> opc2str = {
 	    "ReqLCrdReturn",
 	    "ReadShared",
@@ -327,6 +330,21 @@ template <> const char* to_char<credit_type_e>(credit_type_e v) {
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t) {
+    char const* ch =
+        t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
+    os << "CMD:" << cmd_str[t.get_command()] << ", " << ch << "ADDR:0x" << std::hex << t.get_address() << ", TXLEN:0x"
+       << t.get_data_length();
+    if(auto ext = t.get_extension<chi::chi_ctrl_extension>()){
+        os << ", TXNID:"<<ext->get_txn_id();
+        os << ", OPC:"<<chi::to_char(ext->req.get_opcode());
+    } else if(auto ext = t.get_extension<chi::chi_snp_extension>()) {
+        os << ", TXNID:"<<ext->get_txn_id();
+        os << ", OPC:"<<chi::to_char(ext->req.get_opcode());
+    }
+    os << " [ptr:" << &t << "]";
+    return os;
+}
 template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension* ext) {
     auto sz = ext->req.get_size();
     if(sz > 6)
