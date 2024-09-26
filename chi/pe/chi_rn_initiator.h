@@ -153,7 +153,11 @@ protected:
 
     scc::ordered_semaphore wdat_chnl{1};
 
+    scc::ordered_semaphore prio_wdat_chnl{1};
+
     scc::ordered_semaphore sresp_chnl{1};
+
+    scc::ordered_semaphore prio_sresp_chnl{1};
 
     sc_core::sc_event any_tx_finished;
 
