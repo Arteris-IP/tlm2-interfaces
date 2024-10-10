@@ -548,6 +548,11 @@ void chi::pe::chi_rn_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     sc_assert(it != tx_state_by_trans.end());
     auto* txs = it->second;
     handle_snoop_response(trans, txs);
+    tx_state_pool.push_back(it->second);
+    tx_state_pool.back()->peq.clear();
+    tx_state_by_trans.erase(to_id(trans));
+    if(trans.has_mm())
+        trans.release();
 }
 
 tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase,
@@ -1306,10 +1311,10 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
         trans->set_auto_extension(e);
 
         handle_snoop_response(*trans, txs);
+        tx_state_pool.push_back(it->second);
+        tx_state_pool.back()->peq.clear();
+        tx_state_by_trans.erase(to_id(trans));
+        if(trans->has_mm())
+            trans->release();
     }
-    tx_state_pool.push_back(it->second);
-    tx_state_pool.back()->peq.clear();
-    tx_state_by_trans.erase(to_id(trans));
-    if(trans->has_mm())
-        trans->release();
 }
