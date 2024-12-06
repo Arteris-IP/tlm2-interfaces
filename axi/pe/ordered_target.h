@@ -36,12 +36,12 @@ public:
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> RIV
      */
-    scc::sc_attribute_randomized<int>& rd_resp_delay;
+    cci::cci_param<int>& rd_resp_delay;
     /**
      * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> BV
      */
-    scc::sc_attribute_randomized<int>& wr_resp_delay;
+    cci::cci_param<int>& wr_resp_delay;
     /**
      * @brief the bandwidth limit for read accesses. A value of -1 disables the limiting
      */
@@ -55,7 +55,9 @@ public:
      */
     cci::cci_param<double> total_bw_limit_byte_per_sec{"total_bw_limit_byte_per_sec", -1.0};
 
-    rate_limiting_buffer(const sc_core::sc_module_name& nm, scc::sc_attribute_randomized<int>& rd_resp_delay, scc::sc_attribute_randomized<int>& wr_resp_delay);
+    rate_limiting_buffer(const sc_core::sc_module_name& nm, cci::cci_param<int>& rd_resp_delay, cci::cci_param<int>& wr_resp_delay);
+
+    virtual ~rate_limiting_buffer() = default;
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *

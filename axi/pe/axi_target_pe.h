@@ -24,8 +24,8 @@
 #include <axi/fsm/base.h>
 #include <functional>
 #include <memory>
+#include <scc/mt19937_rng.h>
 #include <scc/ordered_semaphore.h>
-#include <scc/sc_attribute_randomized.h>
 #include <scc/sc_variable.h>
 #include <tlm/scc/pe/intor_if.h>
 #include <tlm_utils/peq_with_cb_and_phase.h>
@@ -35,6 +35,11 @@
 namespace axi {
 //! protocol engine implementations
 namespace pe {
+
+inline unsigned get_cci_randomized_value(cci::cci_param<int> const& p) {
+    if(p.get_value()<0) return scc::MT19937::uniform(0, -p.get_value());
+    return p.get_value();
+}
 /**
  * the target protocol engine base class
  */
@@ -57,34 +62,34 @@ public:
 	 * @brief the number of supported outstanding transactions. If this limit is reached the target starts to do
 	 * back-pressure
 	 */
-	sc_core::sc_attribute<unsigned> max_outstanding_tx{"max_outstanding_tx", 0};
+	cci::cci_param<unsigned> max_outstanding_tx{"max_outstanding_tx", 0};
 	/**
 	 * @brief enable data interleaving on read responses if rd_data_beat_delay is greater than 0
 	 */
-	sc_core::sc_attribute<bool> rd_data_interleaving{"rd_data_interleaving", true};
+	cci::cci_param<bool> rd_data_interleaving{"rd_data_interleaving", true};
 	/**
 	 * @brief the latency between between BEGIN(_PARTIAL)_REQ and END(_PARTIAL)_REQ (AWVALID to AWREADY and WVALID to
 	 * WREADY) -> AWR, WBR
 	 */
-	scc::sc_attribute_randomized<int> wr_data_accept_delay{"wr_data_accept_delay", 0};
+	cci::cci_param<int> wr_data_accept_delay{"wr_data_accept_delay", 0};
 	/**
 	 * @brief the latency between between BEGIN_REQ and END_REQ (ARVALID to ARREADY) -> APR
 	 */
-	scc::sc_attribute_randomized<int> rd_addr_accept_delay{"rd_addr_accept_delay", 0};
+	cci::cci_param<int> rd_addr_accept_delay{"rd_addr_accept_delay", 0};
 	/**
 	 * @brief the latency between between END(_PARTIAL)_RESP and BEGIN(_PARTIAL)_RESP (RREADY to RVALID) -> RBV
 	 */
-	scc::sc_attribute_randomized<int> rd_data_beat_delay{"rd_data_beat_delay", 0};
+	cci::cci_param<int> rd_data_beat_delay{"rd_data_beat_delay", 0};
 	/**
 	 * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
 	 * (if registered) -> RIV
 	 */
-	scc::sc_attribute_randomized<int> rd_resp_delay{"rd_resp_delay", 0};
+	cci::cci_param<int> rd_resp_delay{"rd_resp_delay", 0};
 	/**
 	 * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
 	 * (if registered) -> BV
 	 */
-	scc::sc_attribute_randomized<int> wr_resp_delay{"wr_resp_delay", 0};
+	cci::cci_param<int> wr_resp_delay{"wr_resp_delay", 0};
 
 	void b_transport(payload_type& trans, sc_core::sc_time& t) override;
 

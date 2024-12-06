@@ -2,7 +2,7 @@
 namespace axi {
 namespace pe {
 
-rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, scc::sc_attribute_randomized<int>& rd_resp_delay, scc::sc_attribute_randomized<int>& wr_resp_delay)
+rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, cci::cci_param<int>& rd_resp_delay, cci::cci_param<int>& wr_resp_delay)
 : rd_resp_delay(rd_resp_delay)
 , wr_resp_delay(wr_resp_delay){
     fw_i.bind(*this);
@@ -40,9 +40,9 @@ void rate_limiting_buffer::start_of_simulation() {
 
 void rate_limiting_buffer::transport(tlm::tlm_generic_payload &trans, bool lt_transport) {
     if(trans.is_write())
-        wr_req2resp_fifo.push_back(std::make_tuple(&trans, wr_resp_delay.value));
+        wr_req2resp_fifo.push_back(std::make_tuple(&trans, get_cci_randomized_value(wr_resp_delay)));
     else if(trans.is_read())
-        rd_req2resp_fifo.push_back(std::make_tuple(&trans, rd_resp_delay.value));
+        rd_req2resp_fifo.push_back(std::make_tuple(&trans, get_cci_randomized_value(rd_resp_delay)));
 }
 
 void rate_limiting_buffer::process_req2resp_fifos() {

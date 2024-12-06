@@ -56,14 +56,16 @@ public:
     sc_core::sc_port<tlm::scc::pe::intor_fw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> fw_o{"fw_o"};
 
     sc_core::sc_export<tlm::scc::pe::intor_bw_nb> bw_i{"bw_i"};
-
-
-    scc::sc_attribute_randomized<int> rd_resp_delay{"rd_resp_delay", 0};
     /**
-     * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
+     * @brief the latency between read request and response phase. Will be overwritten by the return of the callback function
+     * (if registered) -> RIV
+     */
+    cci::cci_param<int> rd_resp_delay{"rd_resp_delay", 0};
+    /**
+     * @brief the latency between write request and response phase. Will be overwritten by the return of the callback function
      * (if registered) -> BV
      */
-    scc::sc_attribute_randomized<int> wr_resp_delay{"wr_resp_delay", 0};
+    cci::cci_param<int> wr_resp_delay{"wr_resp_delay", 0};
 
     void b_transport(payload_type& trans, sc_core::sc_time& t) override;
 
@@ -112,7 +114,7 @@ public:
     void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) override {}
 
 
-    ~ace_target_pe();
+    virtual ~ace_target_pe();
 
     /**
      * the constructor. Protected as it should only be called by derived classes
