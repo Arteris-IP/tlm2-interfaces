@@ -23,6 +23,8 @@
 #include <chi/pe/chi_rn_initiator.h>
 #include <scc/report.h>
 #include <util/strprintf.h>
+#include <tlm/scc/tlm_mm.h>
+#include <tlm/scc/tlm_gp_shared.h>
 
 using namespace sc_core;
 using namespace chi;
@@ -516,7 +518,6 @@ chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,
 
     SC_METHOD(clk_counter);
     sensitive << clk_i.pos();
-
     SC_THREAD(snoop_dispatch);
 }
 
@@ -532,6 +533,18 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
     for(auto p: tx_state_pool)
         delete p;
 }
+
+void chi::pe::chi_rn_initiator_b::clk_counter() {
+    if(m_clock_counter>1 &&
+            snp_credit_sent.get()<15 &&
+            snp_counter.get()<snp_req_credit_limit.get_value()) {
+        auto credit2send = std::min<unsigned>(15-snp_credit_sent.get(), snp_req_credit_limit.get_value()-snp_counter.get());
+        grant_credit(credit2send);
+        snp_credit_sent+=credit2send;
+    }
+    m_clock_counter++;
+}
+
 
 void chi::pe::chi_rn_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
     if(bw_o.get_interface()) {
@@ -561,7 +574,13 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
         if(phase == tlm::BEGIN_REQ) {
             if(trans.has_mm())
                 trans.acquire();
+            snp_credit_sent--;
             snp_peq.notify(trans, t);
+            if(snp_counter<snp_req_credit_limit.get_value()) {
+                snp_counter++;
+                snp_credit_sent++;
+                trans.set_auto_extension(new chi_credit_extension(credit_type_e::REQ));
+            }
         } else {
             auto it = tx_state_by_trans.find(to_id(trans));
             sc_assert(it != tx_state_by_trans.end());
@@ -816,6 +835,7 @@ bool expectCompCMO(chi::chi_ctrl_extension* ext){
         return false;
     }
 }
+
 bool expectPersist(chi::chi_ctrl_extension* ext){
     switch(ext->req.get_opcode()){
     case req_optype_e::WriteBackFullCleanShPerSep:
@@ -829,6 +849,7 @@ bool expectPersist(chi::chi_ctrl_extension* ext){
         return false;
     }
 }
+
 enum { WAIT_CTRL=0x1, WAIT_DATA=0x2, WAIT_COMPCMO=4, WAIT_PERSIST=8};
 void chi::pe::chi_rn_initiator_b::exec_read_write_protocol(const unsigned int txn_id, payload_type& trans,
         chi::pe::chi_rn_initiator_b::tx_state*& txs) {
@@ -1168,6 +1189,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
     if(ext) {
         ext->set_src_id(src_id.get_value());
         send_wdata(trans, txs);
+        snp_counter--;
         return;
     }
     // dataless response or stash
@@ -1240,6 +1262,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans,
             SCCFATAL(SCMOD) << "Illegal protocol state (maybe just not implemented?)";
         }
     }
+    snp_counter--;
     wait(clk_i.posedge_event()); // sync to clock before releasing resource
     if(snp_ext->resp.get_data_pull())
         send_comp_ack(trans, txs);
@@ -1317,4 +1340,14 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
         if(trans->has_mm())
             trans->release();
     }
+}
+
+void chi::pe::chi_rn_initiator_b::grant_credit(unsigned amount){
+    tlm::tlm_phase ph = tlm::BEGIN_REQ;
+    auto t = sc_core::SC_ZERO_TIME;
+    tlm::scc::tlm_gp_shared_ptr gp = tlm::scc::tlm_mm<chi_protocol_types>::get().allocate<chi_credit_extension>();
+    auto ext = gp->template get_extension<chi_credit_extension>();
+    ext->type = credit_type_e::REQ;
+    ext->count = amount;
+    socket_fw->nb_transport_fw(*gp, ph, t);
 }
