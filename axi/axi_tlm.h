@@ -924,6 +924,14 @@ struct axi_protocol_types {
 /**
  * definition of the additional protocol phases
  */
+enum SC_API tlm_phase_enum
+{
+  UNINITIALIZED_PHASE=0,
+  BEGIN_REQ= tlm::BEGIN_REQ,
+  END_REQ= tlm::END_REQ,
+  BEGIN_RESP= tlm::BEGIN_RESP,
+  END_RESP= tlm::END_RESP
+};
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_REQ);
 DECLARE_EXTENDED_PHASE(END_PARTIAL_REQ);
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_RESP);
