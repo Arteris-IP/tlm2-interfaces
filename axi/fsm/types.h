@@ -19,7 +19,7 @@
 #include <array>
 #include <axi/axi_tlm.h>
 #include <functional>
-
+#include <tlm/tlm_gp_shared.h>
 namespace axi {
 namespace fsm {
 
@@ -57,7 +57,7 @@ struct fsm_handle {
     //! pointer to the FSM
     AxiProtocolFsm* fsm = nullptr;
     //! pointer to the associated AXITLM payload
-    axi::axi_protocol_types::tlm_payload_type* trans = nullptr;
+    tlm::tlm_payload_shared_ptr<axi::axi_protocol_types::tlm_payload_type> trans = nullptr;
     //! beat count of this transaction
     size_t beat_count = 0;
     //! indicator if this is a snoop access

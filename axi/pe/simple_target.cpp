@@ -115,14 +115,14 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
-            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
         } else {// accepted, schedule response
             outstanding_tx[fsm_hndl->trans->get_command()]++;
             if(wr_data_accept_delay.value)
-                schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.value-1);
+                schedule(EndPartReqE, fsm_hndl->trans.get(), wr_data_accept_delay.value-1);
             else
-                schedule(EndPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+                schedule(EndPartReqE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
         }
     };
     fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
@@ -133,15 +133,15 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
         if(!fsm_hndl->beat_count && max_outstanding_tx.value && outstanding_cnt[fsm_hndl->trans->get_command()]>max_outstanding_tx.value) {
-            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans;
+            stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
             stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
         } else { // accepted, schedule response
             if(!fsm_hndl->beat_count) outstanding_tx[fsm_hndl->trans->get_command()]++;
             auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.value : wr_data_accept_delay.value;
             if(latency)
-                schedule(EndReqE, fsm_hndl->trans, latency-1);
+                schedule(EndReqE, fsm_hndl->trans.get(), latency-1);
             else
-                schedule(EndReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+                schedule(EndReqE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
         }
     };
     fsm_hndl->fsm->cb[EndReqE] = [this, fsm_hndl]() -> void {
@@ -160,8 +160,8 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
         auto latency =
             operation_cb ? operation_cb(*fsm_hndl->trans) : fsm_hndl->trans->is_read() ? rd_resp_delay.value : wr_resp_delay.value;
         if(latency < std::numeric_limits<unsigned>::max()) {
-            auto size = get_burst_lenght(fsm_hndl->trans) - 1;
-            schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans, latency);
+            auto size = get_burst_lenght(fsm_hndl->trans.get()) - 1;
+            schedule(size && fsm_hndl->trans->is_read() ? BegPartRespE : BegRespE, fsm_hndl->trans.get(), latency);
         }
     };
     fsm_hndl->fsm->cb[BegPartRespE] = [this, fsm_hndl]() -> void {
@@ -176,12 +176,12 @@ void axi_target_pe_b::setup_callbacks(fsm_handle* fsm_hndl) {
     };
     fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
         fsm_hndl->trans->is_read() ? rd_resp_ch.post() : wr_resp_ch.post();
-        auto size = get_burst_lenght(fsm_hndl->trans) - 1;
+        auto size = get_burst_lenght(fsm_hndl->trans.get()) - 1;
         fsm_hndl->beat_count++;
         if(rd_data_beat_delay.value)
-            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.value);
+            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans.get(), rd_data_beat_delay.value);
         else
-            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, SC_ZERO_TIME, true);
+            schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans.get(), SC_ZERO_TIME, true);
     };
     fsm_hndl->fsm->cb[BegRespE] = [this, fsm_hndl]() -> void {
         // scheduling the response
@@ -305,7 +305,7 @@ void axi::pe::axi_target_pe_b::send_rd_resp_beat_thread() {
             rd_resp_ch.wait();
             SCCTRACE(SCMOD)<<__FUNCTION__<<" starting exclusive read response for address 0x"<<std::hex<<fsm_hndl->trans->get_address();
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
-                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
+                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans.get(), 0);
             }
         }
     }
@@ -325,7 +325,7 @@ void axi::pe::axi_target_pe_b::send_wr_resp_beat_thread() {
             // wait to get ownership of the response channel
             wr_resp_ch.wait();
             if(socket_bw->nb_transport_bw(*fsm_hndl->trans, phase, t) == tlm::TLM_UPDATED) {
-                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans, 0);
+                schedule(phase == tlm::END_RESP ? EndRespE : EndPartRespE, fsm_hndl->trans.get(), 0);
             }
         }
     }

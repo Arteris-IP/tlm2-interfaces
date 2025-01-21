@@ -85,7 +85,7 @@ void simple_initiator_b::transport(payload_type& trans, bool blocking) {
 		}
 		if(trans.has_mm())
 			trans.acquire();
-		react(RequestPhaseBeg, fsm->trans);
+		react(RequestPhaseBeg, fsm->trans.get());
 		SCCTRACE(SCMOD) << "started non-blocking protocol";
 		sc_core::wait(fsm->finish);
 		if(trans.has_mm())
@@ -107,34 +107,34 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
 		tlm::tlm_phase phase = axi::BEGIN_PARTIAL_REQ;
 		auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
 		if(ret == tlm::TLM_UPDATED) {
-			schedule(EndPartReqE, fsm_hndl->trans, t, true);
+			schedule(EndPartReqE, fsm_hndl->trans.get(), t, true);
 		}
 		if(protocol_cb[BegPartReqE])
 			protocol_cb[BegPartReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
 	};
 	fsm_hndl->fsm->cb[EndPartReqE] = [this, fsm_hndl]() -> void {
 		fsm_hndl->beat_count++;
-		if(fsm_hndl->beat_count < (get_burst_lenght(fsm_hndl->trans) - 1))
+		if(fsm_hndl->beat_count < (get_burst_lenght(fsm_hndl->trans.get()) - 1))
 			if(scc::get_value(wr_data_beat_delay) > 0)
-				schedule(BegPartReqE, fsm_hndl->trans, scc::get_value(wr_data_beat_delay) - 1);
+				schedule(BegPartReqE, fsm_hndl->trans.get(), scc::get_value(wr_data_beat_delay) - 1);
 			else
-				schedule(BegPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+				schedule(BegPartReqE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
 		else if(scc::get_value(wr_data_beat_delay) > 0)
-			schedule(BegReqE, fsm_hndl->trans, scc::get_value(wr_data_beat_delay) - 1);
+			schedule(BegReqE, fsm_hndl->trans.get(), scc::get_value(wr_data_beat_delay) - 1);
 		else
-			schedule(BegReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+			schedule(BegReqE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
 		if(protocol_cb[EndPartReqE])
 			protocol_cb[EndPartReqE](*fsm_hndl->trans, fsm_hndl->is_snoop);
 	};
 	fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
 		if(fsm_hndl->is_snoop) {
-			schedule(EndReqE, fsm_hndl->trans, SC_ZERO_TIME);
+			schedule(EndReqE, fsm_hndl->trans.get(), SC_ZERO_TIME);
 		} else {
 			sc_time t;
 			tlm::tlm_phase phase = tlm::BEGIN_REQ;
 			auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
 			if(ret == tlm::TLM_UPDATED) {
-				schedule(EndReqE, fsm_hndl->trans, t, true);
+				schedule(EndReqE, fsm_hndl->trans.get(), t, true);
 			}
 		}
 		if(protocol_cb[BegReqE])
@@ -161,7 +161,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
 			}
 			if(latency < std::numeric_limits<unsigned>::max()) {
 				auto evt = ext->is_snoop_data_transfer() && ext->get_length() > 0 ? BegPartRespE : BegRespE;
-				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans, latency));
+				snp_resp_queue.push_back(std::make_tuple(evt, fsm_hndl->trans.get(), latency));
 			}
 		} else {
 			// auto ext = fsm_hndl->trans->get_extension<axi::axi4_extension>();
@@ -180,18 +180,18 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
 			auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
 		} else {
 			if(scc::get_value(rd_data_accept_delay))
-				schedule(EndPartRespE, fsm_hndl->trans, scc::get_value(rd_data_accept_delay));
+				schedule(EndPartRespE, fsm_hndl->trans.get(), scc::get_value(rd_data_accept_delay));
 			else
-				schedule(EndPartRespE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+				schedule(EndPartRespE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
 		}
 		if(protocol_cb[BegPartRespE])
 			protocol_cb[BegPartRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
 	};
 	fsm_hndl->fsm->cb[EndPartRespE] = [this, fsm_hndl]() -> void {
 		if(fsm_hndl->is_snoop) {
-			auto size = get_burst_lenght(fsm_hndl->trans)-1;
+			auto size = get_burst_lenght(fsm_hndl->trans.get())-1;
 			fsm_hndl->beat_count++;
-			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
+			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans.get(), 0);
 		} else {
 			sc_time t(clk_if?clk_if->period()-1_ps:SC_ZERO_TIME);
 			tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
@@ -209,9 +209,9 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
 		} else {
 			auto del = fsm_hndl->trans->is_read() ? scc::get_value(rd_data_accept_delay) : scc::get_value(wr_resp_accept_delay);
 			if(del)
-				schedule(EndRespE, fsm_hndl->trans, del);
+				schedule(EndRespE, fsm_hndl->trans.get(), del);
 			else
-				schedule(EndRespE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
+				schedule(EndRespE, fsm_hndl->trans.get(), sc_core::SC_ZERO_TIME);
 		}
 		if(protocol_cb[BegRespE])
 			protocol_cb[BegRespE](*fsm_hndl->trans, fsm_hndl->is_snoop);
@@ -224,7 +224,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
 			tlm::tlm_phase phase = tlm::END_RESP;
 			auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
 			if(coherent){
-				schedule(Ack, fsm_hndl->trans, scc::get_value(ack_resp_delay));
+				schedule(Ack, fsm_hndl->trans.get(), scc::get_value(ack_resp_delay));
 			}else
 				fsm_hndl->finish.notify();
 		}
@@ -295,10 +295,11 @@ void simple_initiator_b::process_snoop_resp(){
 void simple_initiator_b::snoop_resp(payload_type& trans, bool sync) {
 	auto fsm_hndl = active_fsm[&trans];
 	sc_assert(fsm_hndl != nullptr);
+    SCCTRACE(instance_name) << "got snoop response of trans " <<std::hex<<&trans<<" to address 0x"<<trans.get_address();
 	auto ext = fsm_hndl->trans->get_extension<ace_extension>();
 	auto size = ext->get_length();
 	protocol_time_point_e e = ext->is_snoop_data_transfer() && size > 0 ? BegPartRespE : BegRespE;
-	snp_resp_queue.push_back(std::make_tuple(e, fsm_hndl->trans, 0));
+	snp_resp_queue.push_back(std::make_tuple(e, fsm_hndl->trans.get(), 0));
 }
 
 void simple_initiator_b::invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}

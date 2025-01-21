@@ -83,7 +83,7 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
             fsm_hndl->trans = ace ? tlm::tlm_mm<>::get().allocate<ace_extension>() : tlm::tlm_mm<>::get().allocate<axi4_extension>();
             payload_type& gp = *(fsm_hndl->trans);
         }
-        active_fsm.insert(std::make_pair(fsm_hndl->trans, fsm_hndl));
+        active_fsm.insert(std::make_pair(fsm_hndl->trans.get(), fsm_hndl));
         fsm_hndl->start=sc_time_stamp();
         return fsm_hndl;
     } else {
@@ -125,6 +125,7 @@ void base::process_fsm_clk_queue() {
 }
 
 void base::react(protocol_time_point_e event, payload_type* trans) {
+    SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec;
 	SCCTRACE(instance_name)<<"reacting on event "<<evt2str(static_cast<unsigned>(event))<<" for trans "<<std::hex<<trans<<std::dec <<" (axi_id:"<<axi::get_axi_id(trans)<<")";
     auto fsm_hndl = active_fsm[trans];
     if(!fsm_hndl) {
@@ -167,7 +168,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
         if(!coherent || fsm_hndl->is_snoop) {
         	fsm_hndl->trans->acquire();
         	fsm_hndl->fsm->process_event(EndResp());
-        	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+        	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans.get())<<")";
         	fsm_hndl->trans->release();
         	active_fsm.erase(trans);
         	fsm_hndl->trans = nullptr;
@@ -180,7 +181,7 @@ void base::react(protocol_time_point_e event, payload_type* trans) {
     case Ack:
     	fsm_hndl->trans->acquire();
     	fsm_hndl->fsm->process_event(AckRecv());
-    	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans)<<")";
+    	SCCTRACE(instance_name) << "freeing fsm for trans " << std::hex << fsm_hndl->trans.get() << std::dec <<" (axi_id:"<<axi::get_axi_id(fsm_hndl->trans.get())<<")";
     	fsm_hndl->trans->release();
     	active_fsm.erase(trans);
     	fsm_hndl->trans = nullptr;
