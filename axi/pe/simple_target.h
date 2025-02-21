@@ -22,6 +22,7 @@
 #include <axi/fsm/base.h>
 #include <functional>
 #include <scc/ordered_semaphore.h>
+#include <scc/sc_variable.h>
 #include <unordered_set>
 #include <tlm_utils/peq_with_cb_and_phase.h>
 
@@ -171,8 +172,8 @@ protected:
     void start_of_simulation() override;
     std::array<unsigned, 3>  outstanding_cnt{{0,0,0}}; // count for limiting
     std::array<unsigned, 3>  outstanding_tx{{0,0,0}}; // just for tracing, always active
-    scc::sc_variable_t<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
-    scc::sc_variable_t<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
+    scc::sc_variable<unsigned> outstanding_rd_tx_v{"outstanding_rd_tx", outstanding_tx[tlm::TLM_READ_COMMAND]};
+    scc::sc_variable<unsigned> outstanding_wr_tx_v{"outstanding_wr_tx", outstanding_tx[tlm::TLM_WRITE_COMMAND]};
     std::array<tlm::tlm_generic_payload*, 3> stalled_tx{nullptr,nullptr,nullptr};
     std::array<axi::fsm::protocol_time_point_e, 3> stalled_tp{{axi::fsm::CB_CNT,axi::fsm::CB_CNT,axi::fsm::CB_CNT}};
     void nb_fw(payload_type& trans, const phase_type& phase) {
