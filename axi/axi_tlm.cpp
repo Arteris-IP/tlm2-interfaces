@@ -233,21 +233,34 @@ const std::array<std::array<bool, 4>, 16> wr_valid{{
 }};
 } // namespace
 template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext) {
-    auto offset = to_int(ext->get_snoop());
-    if(offset < 32) { // a read access
-        if(!rd_valid[offset & 0xf][to_int(ext->get_domain())])
+    auto snoop = to_int(ext->get_snoop());
+    auto cache = ext->get_cache();
+    auto domain = ext->get_domain();
+    if(snoop < 32) { // a read access
+        if(!rd_valid[snoop & 0xf][to_int(domain)])
             return "illegal read snoop value";
     } else {
-        if(!wr_valid[offset & 0xf][to_int(ext->get_domain())])
+        if(!wr_valid[snoop & 0xf][to_int(ext->get_domain())])
             return "illegal write snoop value";
+    }
+    if(cache<2 && domain != axi::domain_e::SYSTEM)
+        return "non-cacheable transactions require AXDOMAIN setting of SYSTEM(0x3) based on specification";
+    if(cache>3 && domain == axi::domain_e::SYSTEM)
+        return "cacheable transaction must not set AXDOMAIN to SYSTEM(0x3) based on specification";
+    if((cache & 2) == 0 && domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM) {
+        if( domain != domain_e::INNER_SHAREABLE)
+            return "illegal AXDOMAIN=INNER_SHAREABLE(0x1) for no non-cacheable access";
+        return "illegal AXDOMAIN=OUTER_SHAREABLE(0x2) for no non-cacheable access";
     }
     // check table ED3-7 and D3-8 of IHI0022H
     switch(ext->get_snoop()) {
     case snoop_e::READ_NO_SNOOP:
+        if(domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM)
+            return "illegal AXDOMAIN for no non-coherent READ_NO_SNOOP access";
+        break;
     case snoop_e::WRITE_NO_SNOOP: // non coherent access to coherent domain
-        if(ext->get_domain() != domain_e::NON_SHAREABLE && ext->get_domain() != domain_e::SYSTEM) {
-            return "illegal domain for no non-coherent access";
-        }
+        if(domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM)
+            return "illegal AXDOMAIN for no non-coherent WRITE_NO_SNOOP access";
         break;
     case snoop_e::READ_ONCE:
     case snoop_e::READ_SHARED:
@@ -260,8 +273,10 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     case snoop_e::WRITE_UNIQUE:
     case snoop_e::WRITE_LINE_UNIQUE:
     case snoop_e::EVICT:
-        if(ext->get_domain() != domain_e::INNER_SHAREABLE && ext->get_domain() != domain_e::OUTER_SHAREABLE) {
-            return "illegal domain for coherent access";
+        if(domain != domain_e::INNER_SHAREABLE && domain != domain_e::OUTER_SHAREABLE) {
+            if(domain != domain_e::NON_SHAREABLE)
+                return "illegal AXDOMAIN=NON_SHAREABLE(0x0) for coherent access";
+            return "illegal AXDOMAIN=SYSTEM(0x3) for coherent access";
         }
         break;
     case snoop_e::CLEAN_SHARED:
@@ -270,30 +285,27 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     case snoop_e::WRITE_CLEAN:
     case snoop_e::WRITE_BACK:
     case snoop_e::WRITE_EVICT:
-        if(ext->get_domain() == domain_e::SYSTEM) {
-            return "illegal domain for coherent access";
+        if(domain == domain_e::SYSTEM) {
+            return "illegal AXDOMAIN=SYSTEM(0x3) for coherent access";
         }
         break;
     default:
         break;
     }
     if((ext->get_barrier() == bar_e::MEMORY_BARRIER || ext->get_barrier() == bar_e::SYNCHRONISATION_BARRIER) &&
-       (offset & 0xf) != 0)
+       (snoop & 0xf) != 0)
         return "illegal barrier/snoop value combination";
-    switch(ext->get_cache()) {
+    switch(cache) {
     case 4:
     case 5:
     case 8:
     case 9:
     case 12:
     case 13:
-        return "illegal cache value";
+        return "illegal AXCACHE value";
     default:
         break;
     }
-    if((ext->get_cache() & 2) == 0 && ext->get_domain() != domain_e::NON_SHAREABLE &&
-       ext->get_domain() != domain_e::SYSTEM)
-        return "illegal domain for no non-cachable access";
     return nullptr;
 }
 
@@ -305,7 +317,7 @@ template <> char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* e
     case 9:
     case 12:
     case 13:
-        return "illegal cache value";
+        return "illegal AXCACHE value";
     }
     return nullptr;
 }
@@ -318,7 +330,7 @@ template <> char const* is_valid_msg<axi::axi3_extension>(axi::axi3_extension* e
     case 9:
     case 12:
     case 13:
-        return "illegal cache value";
+        return "illegal AXCACHE value";
     }
     return nullptr;
 }

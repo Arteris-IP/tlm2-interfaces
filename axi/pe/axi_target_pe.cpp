@@ -59,13 +59,6 @@ axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_
 , bw_intor(new bw_intor_impl(this)) {
 	instance_name = name();
 
-	add_attribute(max_outstanding_tx);
-	add_attribute(rd_data_interleaving);
-	add_attribute(wr_data_accept_delay);
-	add_attribute(rd_addr_accept_delay);
-	add_attribute(rd_data_beat_delay);
-	add_attribute(rd_resp_delay);
-	add_attribute(wr_resp_delay);
 	bw_i.bind(*bw_intor);
 
 	SC_METHOD(fsm_clk_method);
@@ -92,7 +85,7 @@ void axi_target_pe::start_of_simulation() {
 }
 
 void axi_target_pe::b_transport(payload_type& trans, sc_time& t) {
-	auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
+	auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? get_cci_randomized_value(rd_resp_delay) : get_cci_randomized_value(wr_resp_delay);
 	trans.set_dmi_allowed(false);
 	trans.set_response_status(tlm::TLM_OK_RESPONSE);
 	if(clk_if)
@@ -119,15 +112,15 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		outstanding_cnt[fsm_hndl->trans->get_command()]++;
 	};
 	fsm_hndl->fsm->cb[BegPartReqE] = [this, fsm_hndl]() -> void {
-		if(!fsm_hndl->beat_count && max_outstanding_tx.value &&
-				outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
+		if(!fsm_hndl->beat_count && max_outstanding_tx.get_value() &&
+				outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.get_value()) {
 			stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
 			stalled_tp[fsm_hndl->trans->get_command()] = EndPartReqE;
 		} else { // accepted, schedule response
             if(!fsm_hndl->beat_count)
                 getOutStandingTx(fsm_hndl->trans->get_command())++;
-			if(wr_data_accept_delay.get_value())
-				schedule(EndPartReqE, fsm_hndl->trans, wr_data_accept_delay.get_value() - 1);
+			if(auto delay = get_cci_randomized_value(wr_data_accept_delay))
+				schedule(EndPartReqE, fsm_hndl->trans, delay - 1);
 			else
 				schedule(EndPartReqE, fsm_hndl->trans, sc_core::SC_ZERO_TIME);
 		}
@@ -139,14 +132,14 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		fsm_hndl->beat_count++;
 	};
 	fsm_hndl->fsm->cb[BegReqE] = [this, fsm_hndl]() -> void {
-		if(!fsm_hndl->beat_count && max_outstanding_tx.value &&
-				outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.value) {
+		if(!fsm_hndl->beat_count && max_outstanding_tx.get_value() &&
+				outstanding_cnt[fsm_hndl->trans->get_command()] > max_outstanding_tx.get_value()) {
 			stalled_tx[fsm_hndl->trans->get_command()] = fsm_hndl->trans.get();
 			stalled_tp[fsm_hndl->trans->get_command()] = EndReqE;
 		} else { // accepted, schedule response
 			if(!fsm_hndl->beat_count)
 				getOutStandingTx(fsm_hndl->trans->get_command())++;
-			auto latency = fsm_hndl->trans->is_read() ? rd_addr_accept_delay.get_value() : wr_data_accept_delay.get_value();
+			auto latency = fsm_hndl->trans->is_read() ? get_cci_randomized_value(rd_addr_accept_delay) : get_cci_randomized_value(wr_data_accept_delay);
 			if(latency)
 				schedule(EndReqE, fsm_hndl->trans, latency - 1);
 			else
@@ -171,7 +164,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 			fw_o->transport(*(fsm_hndl->trans));
 		else {
 			auto latency = operation_cb ? operation_cb(*fsm_hndl->trans)
-					: fsm_hndl->trans->is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
+					: fsm_hndl->trans->is_read() ? get_cci_randomized_value(rd_resp_delay) : get_cci_randomized_value(wr_resp_delay);
 			if(latency < std::numeric_limits<unsigned>::max()) {
 				if(fsm_hndl->trans->is_write())
 					wr_req2resp_fifo.push_back(std::make_tuple(fsm_hndl->trans.get(), latency));
@@ -196,7 +189,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 		fsm_hndl->beat_count++;
 		SCCTRACE(SCMOD)<< " in EndPartialResp with beat_count = " << fsm_hndl->beat_count << " expected size = " << size;
 		if(rd_data_beat_delay.get_value())
-			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, rd_data_beat_delay.get_value());
+			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, get_cci_randomized_value(rd_data_beat_delay));
 		else
 			schedule(fsm_hndl->beat_count < size ? BegPartRespE : BegRespE, fsm_hndl->trans, SC_ZERO_TIME, true);
 	};
@@ -223,7 +216,7 @@ void axi_target_pe::setup_callbacks(fsm_handle* fsm_hndl) {
 			active_rdresp_id.erase(axi::get_axi_id(fsm_hndl->trans.get()));
 		if(stalled_tx[cmd]) {
 			auto* trans = stalled_tx[cmd];
-			auto latency = trans->is_read() ? rd_addr_accept_delay.get_value() : wr_data_accept_delay.get_value();
+			auto latency = trans->is_read() ? get_cci_randomized_value(rd_addr_accept_delay) : get_cci_randomized_value(wr_data_accept_delay);
 			if(latency)
 				schedule(stalled_tp[cmd], trans, latency - 1);
 			else
@@ -272,7 +265,7 @@ void axi::pe::axi_target_pe::start_rd_resp_thread() {
 	auto residual_clocks = 0.0;
 	while(true) {
 		auto* trans = rd_resp_fifo.read();
-		if(!rd_data_interleaving.value || rd_data_beat_delay.get_value() == 0) {
+		if(!rd_data_interleaving.get_value() || rd_data_beat_delay.get_value() == 0) {
 			while(!rd_resp.get_value())
 				wait(clk_i.posedge_event());
 			rd_resp.wait();
@@ -284,8 +277,8 @@ void axi::pe::axi_target_pe::start_rd_resp_thread() {
 			wait(clk_i.posedge_event());
 		}
 		active_rdresp_id.insert(id);
-		if(rd_data_beat_delay.get_value())
-			schedule(e, trans, rd_data_beat_delay.get_value() - 1);
+		if(auto delay = get_cci_randomized_value(rd_data_beat_delay))
+			schedule(e, trans, delay-1U);
 		else
 			schedule(e, trans, SC_ZERO_TIME);
 	}
@@ -309,7 +302,9 @@ void axi::pe::axi_target_pe::send_rd_resp_beat_thread() {
 			auto fsm_hndl = std::get<0>(entry);
 			auto tp = std::get<1>(entry);
 			sc_time t;
-			tlm::tlm_phase phase{tp == BegPartRespE ? axi::BEGIN_PARTIAL_RESP : tlm::tlm_phase(tlm::BEGIN_RESP)};
+			tlm::tlm_phase phase{axi::BEGIN_PARTIAL_RESP};
+			if(tp == BegRespE)
+			    phase= tlm::BEGIN_RESP;
 			// wait to get ownership of the response channel
 			while(!rd_resp_ch.get_value())
 				wait(clk_i.posedge_event());

@@ -21,6 +21,7 @@
 #include <axi/pe/ace_target_pe.h>
 #include <axi/fsm/protocol_fsm.h>
 #include <axi/fsm/types.h>
+#include <scc/mt19937_rng.h>
 #include <scc/report.h>
 #include <scc/utilities.h>
 #include <systemc>
@@ -49,6 +50,7 @@ struct ace_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
         }
         return std::numeric_limits<unsigned>::max();
     }
+    virtual ~bw_intor_impl() = default;
 };
 
 SC_HAS_PROCESS(ace_target_pe);
@@ -60,8 +62,6 @@ ace_target_pe::ace_target_pe(const sc_core::sc_module_name& nm, size_t transfer_
     isckt_axi.bind(*this);
     instance_name = name();
 
-    add_attribute(rd_resp_delay);
-    add_attribute(wr_resp_delay);
     bw_i.bind(*bw_intor);
 
     SC_METHOD(fsm_clk_method);
@@ -80,9 +80,13 @@ void ace_target_pe::start_of_simulation() {
         SCCFATAL(SCMOD) << "No backward interface registered!";
 }
 
+inline unsigned get_cci_randomized_value(cci::cci_param<int> const& p) {
+    if(p.get_value()<0) return ::scc::MT19937::uniform(0, -p.get_value());
+    return p.get_value();
+}
 
 void ace_target_pe::b_transport(payload_type& trans, sc_time& t) {
-    auto latency = operation_cb ? operation_cb(trans) : trans.is_read() ? rd_resp_delay.get_value() : wr_resp_delay.get_value();
+    auto latency = operation_cb ? operation_cb(trans) : trans.is_read()?get_cci_randomized_value(rd_resp_delay):get_cci_randomized_value(wr_resp_delay);
     trans.set_dmi_allowed(false);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
     if(clk_if)

@@ -1,12 +1,15 @@
-#include "ordered_target.h"
+#include "replay_target.h"
+#include <yaml-cpp/exceptions.h>
+#include <yaml-cpp/node/parse.h>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
+
 namespace axi {
 namespace pe {
 
-rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, cci::cci_param<int>& rd_resp_delay, cci::cci_param<int>& wr_resp_delay)
-: rd_resp_delay(rd_resp_delay)
-, wr_resp_delay(wr_resp_delay){
+replay_buffer::replay_buffer(const sc_core::sc_module_name &nm):sc_core::sc_module(nm) {
     fw_i.bind(*this);
-    SC_HAS_PROCESS(rate_limiting_buffer);
+    SC_HAS_PROCESS(replay_buffer);
     SC_METHOD(process_req2resp_fifos);
     dont_initialize();
     sensitive << clk_i.pos();
@@ -14,38 +17,75 @@ rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name &nm, cc
     SC_THREAD(start_rd_resp_thread);
 }
 
-void rate_limiting_buffer::end_of_elaboration() {
+void replay_buffer::end_of_elaboration() {
     clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface());
 }
 
-void rate_limiting_buffer::start_of_simulation() {
-    if(clk_if) {
-        if(total_bw_limit_byte_per_sec.get_value()>0.0) {
-            time_per_byte_total = sc_core::sc_time(1.0 / total_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
-            if(rd_bw_limit_byte_per_sec.get_value() > 0.0 || wr_bw_limit_byte_per_sec.get_value() > 0.0) {
-                SCCWARN(SCMOD)<<"total bandwidth is specified, ignoring settings of rd_bw_limit_byte_per_sec and wr_bw_limit_byte_per_sec";
-                rd_bw_limit_byte_per_sec.set_value(-1);
-                wr_bw_limit_byte_per_sec.set_value(-1);
+void replay_buffer::start_of_simulation() {
+    if(replay_file_name.get_value().length()) {
+        std::ifstream ifs(replay_file_name.get_value());
+        if(ifs.is_open()) {
+            std::string line;
+            std::getline(ifs, line);
+            while (std::getline(ifs, line)) {
+                auto token = util::split(line, ',');
+                auto addr = strtoull(token[1].c_str(), nullptr, 10);
+                auto id = strtoull(token[2].c_str(), nullptr, 10);
+                auto start_cycle = strtoull(token[3].c_str(), nullptr, 10);
+                auto req_resp_lat=strtoull(token[4].c_str(), nullptr, 10);
+                if(token[0]=="READ") {
+                    if(id>=rd_sequence.size())
+                        rd_sequence.resize(id+1);
+                    rd_sequence[id].emplace_back(addr, req_resp_lat);
+                } else if(token[0]=="WRITE") {
+                    if(id>=wr_sequence.size())
+                        wr_sequence.resize(id+1);
+                    wr_sequence[id].emplace_back(addr, req_resp_lat);
+                }
             }
-
         }
-        if(rd_bw_limit_byte_per_sec.get_value() > 0.0) {
-            time_per_byte_rd = sc_core::sc_time(1.0 / rd_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
-        }
-        if(wr_bw_limit_byte_per_sec.get_value() > 0.0) {
-            time_per_byte_wr = sc_core::sc_time(1.0 / wr_bw_limit_byte_per_sec.get_value(), sc_core::SC_SEC);
-        }
+        SCCINFO(SCMOD)<<"SEQ file name of replay target = "<<replay_file_name.get_value();
     }
 }
 
-void rate_limiting_buffer::transport(tlm::tlm_generic_payload &trans, bool lt_transport) {
-    if(trans.is_write())
-        wr_req2resp_fifo.push_back(std::make_tuple(&trans, get_cci_randomized_value(wr_resp_delay)));
-    else if(trans.is_read())
-        rd_req2resp_fifo.push_back(std::make_tuple(&trans, get_cci_randomized_value(rd_resp_delay)));
+void replay_buffer::transport(tlm::tlm_generic_payload &trans, bool lt_transport) {
+    auto id = axi::get_axi_id(trans);
+    auto addr = trans.get_address();
+    auto cycle = clk_if? sc_core::sc_time_stamp()/clk_if->period():0;
+    if(trans.is_write()) {
+        if(id<wr_sequence.size() && wr_sequence[id].size()) {
+            auto it = std::find_if(std::begin(wr_sequence[id]), std::end(wr_sequence[id]), [addr](entry_t const & e){
+                return std::get<0>(e) == addr;
+            });
+            if(it != std::end(wr_sequence[id])) {
+                wr_req2resp_fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
+                wr_sequence[id].erase(it);
+                return;
+            }
+        }
+        if(replay_file_name.get_value().length()) {
+            SCCWARN(SCMOD)<<"No transaction in write sequence buffer for "<<trans;
+        }
+        wr_req2resp_fifo.push_back(std::make_tuple(&trans, 0));
+    } else if(trans.is_read()) {
+        if(id<rd_sequence.size() && rd_sequence[id].size()) {
+            auto it = std::find_if(std::begin(rd_sequence[id]), std::end(rd_sequence[id]), [addr](entry_t const & e){
+                return std::get<0>(e) == addr;
+            });
+            if(it != std::end(rd_sequence[id])) {
+                rd_req2resp_fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
+                rd_sequence[id].erase(it);
+                return;
+            }
+        }
+        if(replay_file_name.get_value().length()) {
+            SCCWARN(SCMOD)<<"No transaction in read sequence buffer for "<<trans;
+        }
+        rd_req2resp_fifo.push_back(std::make_tuple(&trans, 0));
+    }
 }
 
-void rate_limiting_buffer::process_req2resp_fifos() {
+void replay_buffer::process_req2resp_fifos() {
     while(rd_req2resp_fifo.avail()) {
         auto& entry = rd_req2resp_fifo.front();
         if(std::get<1>(entry) == 0) {
@@ -68,7 +108,7 @@ void rate_limiting_buffer::process_req2resp_fifos() {
     }
 }
 
-void rate_limiting_buffer::start_rd_resp_thread() {
+void replay_buffer::start_rd_resp_thread() {
     auto residual_clocks = 0.0;
     while(true) {
         wait(rd_resp_fifo.data_written_event());
@@ -96,7 +136,7 @@ void rate_limiting_buffer::start_rd_resp_thread() {
     }
 }
 
-void rate_limiting_buffer::start_wr_resp_thread() {
+void replay_buffer::start_wr_resp_thread() {
     auto residual_clocks = 0.0;
     while(true) {
         wait(wr_resp_fifo.data_written_event());
@@ -123,6 +163,5 @@ void rate_limiting_buffer::start_wr_resp_thread() {
             }
     }
 }
-
 }
 }

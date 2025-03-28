@@ -62,6 +62,8 @@ inline std::ostream& operator<<(std::ostream& os, E e) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, tlm::tlm_generic_payload const& t);
+
 //  REQ channel request type enumeration class
 enum class req_optype_e : uint8_t {
     // Table 12-14 REQ channel opcodes and Page No:318
@@ -932,7 +934,13 @@ template <typename TYPES = chi::chi_protocol_types>
 class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
 public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
-/**
+#if SC_VERSION_MAJOR<3
+    using type_index = sc_core::sc_type_index;
+#else
+    using type_index = std::type_index;
+#endif
+
+    /**
  * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to
  * RN response)
  */
@@ -964,7 +972,7 @@ struct chi_initiator_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 
@@ -1000,16 +1008,18 @@ struct chi_target_socket
      * @brief get the type of protocol
      * @return the kind typeid
      */
-    sc_core::sc_type_index get_protocol_types() const override { return typeid(TYPES); }
+    type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
 /*****************************************************************************
  * free function easing handling of transactions and extensions
  *****************************************************************************/
 
-template <typename EXT> inline bool is_valid(EXT& ext) { return is_valid(&ext); }
+template <typename EXT> inline bool is_valid(EXT& ext) { return is_valid_msg(&ext) == nullptr; }
 
-template <typename EXT> bool is_valid(EXT* ext);
+template <typename EXT> bool is_valid(EXT* ext) { return is_valid_msg(ext) == nullptr; }
+
+template <typename EXT> char const* is_valid_msg(EXT* ext);
 
 inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     switch(req_e->req.get_opcode()) {
@@ -1035,7 +1045,12 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
         case chi::rsp_optype_e::CompCMO:
         case chi::rsp_optype_e::CompStashDone:
             return true;
+        default:
+            break;
         }
+        break;
+    default:
+        break;
     }
     return false;
 }
@@ -1070,6 +1085,8 @@ inline bool is_request_order(const chi::chi_ctrl_extension* req_e) {
         case chi::req_optype_e::WriteUniquePtlStash:
         case chi::req_optype_e::WriteUniqueZero:
             return true;
+        default:
+            break;
         }
         return is_atomic(req_e);
     } else
@@ -1128,7 +1145,7 @@ template <> inline rsp_resperrtype_e into<rsp_resperrtype_e>(typename std::under
 //! @param the TxnID of the channel
 // A transaction request includes a TxnID that is used to identify the transaction from a given Requester
 inline void common::set_txn_id(unsigned int txn_id) {
-    sc_assert(txn_id <= 1024); // TxnID field is defined to accommodate up to 1024 outstanding transactions.
+    sc_assert(txn_id <= 4096); // TxnID field is defined to accommodate up to 1024 outstanding transactions.
     this->txn_id = txn_id;
 }
 

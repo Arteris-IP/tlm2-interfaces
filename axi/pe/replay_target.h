@@ -24,7 +24,7 @@
 namespace axi {
 //! protocol engine implementations
 namespace pe {
-class rate_limiting_buffer: public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
+class replay_buffer: public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
 public:
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -32,32 +32,9 @@ public:
 
     sc_core::sc_port<tlm::scc::pe::intor_bw_nb, 1, sc_core::SC_ZERO_OR_MORE_BOUND> bw_o{"bw_o"};
 
-    /**
-     * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
-     * (if registered) -> RIV
-     */
-    cci::cci_param<int>& rd_resp_delay;
-    /**
-     * @brief the latency between request and response phase. Will be overwritten by the return of the callback function
-     * (if registered) -> BV
-     */
-    cci::cci_param<int>& wr_resp_delay;
-    /**
-     * @brief the bandwidth limit for read accesses. A value of -1 disables the limiting
-     */
-    cci::cci_param<double> rd_bw_limit_byte_per_sec{"rd_bw_limit_byte_per_sec", -1.0};
-    /**
-     * @brief the bandwidth limit for write accesses. A value of -1 disables the limiting
-     */
-    cci::cci_param<double> wr_bw_limit_byte_per_sec{"wr_bw_limit_byte_per_sec", -1.0};
-    /**
-     * @brief the bandwidth limit for read accesses. A value of -1 disables the limiting
-     */
-    cci::cci_param<double> total_bw_limit_byte_per_sec{"total_bw_limit_byte_per_sec", -1.0};
+    cci::cci_param<std::string> replay_file_name{"replay_file_name", ""};
 
-    rate_limiting_buffer(const sc_core::sc_module_name& nm, cci::cci_param<int>& rd_resp_delay, cci::cci_param<int>& wr_resp_delay);
-
-    virtual ~rate_limiting_buffer() = default;
+    replay_buffer(const sc_core::sc_module_name& nm);
     /**
      * execute the transport of the payload. Independent of the underlying layer this function is blocking
      *
@@ -72,10 +49,17 @@ public:
      * @param sync if true send with next rising clock edge of the pe otherwise send it immediately
      */
     void snoop_resp(tlm::tlm_generic_payload& payload, bool sync = false) override {}
+
+    void end_of_reset() {
+        reset_end_cycle=sc_core::sc_time_stamp()/clk_if->period();
+    }
 protected:
     sc_core::sc_clock* clk_if{nullptr};
+    uint64_t reset_end_cycle{0};
+    using entry_t = std::tuple<uint64_t, unsigned>;
+    std::vector<std::vector<entry_t>> rd_sequence, wr_sequence;
     sc_core::sc_time time_per_byte_rd, time_per_byte_wr, time_per_byte_total;
-    //! queues realizing the min latency
+    //! queues realizing the latencies
     scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>> rd_req2resp_fifo{"rd_req2resp_fifo"};
     scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>> wr_req2resp_fifo{"wr_req2resp_fifo"};
     //! queues to handle bandwidth limit
@@ -85,7 +69,6 @@ protected:
     double total_residual_clocks{0.0};
     void end_of_elaboration() override;
     void start_of_simulation() override;
-
     void process_req2resp_fifos();
     void start_rd_resp_thread();
     void start_wr_resp_thread();
@@ -97,12 +80,15 @@ protected:
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-class ordered_target : public sc_core::sc_module, public target_info_if {
+class replay_target : public sc_core::sc_module, public target_info_if {
 public:
     using base = axi_target_pe;
     using payload_type = base::payload_type;
     using phase_type = base::phase_type;
+
     sc_core::sc_in<bool> clk_i{"clk_i"};
+
+    sc_core::sc_in<bool> rst_i{"rst_i"};
 
     axi::axi_target_socket<BUSWIDTH, TYPES, N, POL> sckt{"sckt"};
 
@@ -110,30 +96,36 @@ public:
      * @brief the constructor
      * @param nm module instance name
      */
-    ordered_target(const sc_core::sc_module_name& nm)
+    replay_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
     , pe("pe", BUSWIDTH)
-    , rate_limit_buffer("rate_limit_buffer", pe.rd_resp_delay, pe.wr_resp_delay){
+    , repl_buffer("repl_buffer"){
         sckt(pe);
         pe.clk_i(clk_i);
-        rate_limit_buffer.clk_i(clk_i);
-        pe.fw_o(rate_limit_buffer.fw_i);
-        rate_limit_buffer.bw_o(pe.bw_i);
+        repl_buffer.clk_i(clk_i);
+        pe.fw_o(repl_buffer.fw_i);
+        repl_buffer.bw_o(pe.bw_i);
+        SC_HAS_PROCESS(replay_target);
+        SC_METHOD(end_of_reset);
+        sensitive<<rst_i.neg();
     }
 
-    ordered_target() = delete;
+    replay_target() = delete;
 
-    ordered_target(ordered_target const&) = delete;
+    replay_target(replay_target const&) = delete;
 
-    ordered_target(ordered_target&&) = delete;
+    replay_target(replay_target&&) = delete;
 
-    ordered_target& operator=(ordered_target const&) = delete;
+    replay_target& operator=(replay_target const&) = delete;
 
-    ordered_target& operator=(ordered_target&&) = delete;
+    replay_target& operator=(replay_target&&) = delete;
 
     size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx();}
 
 protected:
+    void end_of_reset() {
+        repl_buffer.end_of_reset();
+    }
     void end_of_elaboration(){
         auto* ifs = sckt.get_base_port().get_interface(0);
         sc_assert(ifs!=nullptr);
@@ -141,7 +133,7 @@ protected:
     }
 public:
     axi_target_pe pe;
-    rate_limiting_buffer rate_limit_buffer;
+    replay_buffer repl_buffer;
 };
 } // namespace pe
 } // namespace axi

@@ -136,7 +136,7 @@ struct base {
     }
 
     inline void react(axi::fsm::protocol_time_point_e event, payload_type* trans) {
-        SCCTRACE(instance_name) << "reacting on event " << evt2str(static_cast<unsigned>(event)) << " for trans "
+        SCCTRACE(instance_name) << "processing event " << evt2str(static_cast<unsigned>(event)) << " for trans "
                                 << *trans;
         auto fsm_hndl = active_fsm[trans];
         if(!fsm_hndl) {

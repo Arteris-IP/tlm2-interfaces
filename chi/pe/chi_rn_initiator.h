@@ -21,7 +21,7 @@
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
-#include <cci_cfg/cci_param_typed.h>
+#include <cci_configuration>
 #include <systemc>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
@@ -106,6 +106,8 @@ public:
 
     cci::cci_param<bool> use_legacy_mapping{"use_legacy_mapping", false};
 
+    cci::cci_param<unsigned> snp_req_credit_limit{"snp_req_credit_limit", std::numeric_limits<unsigned>::max()};
+
     void add_protocol_cb(channel_e e, cb_function_t cb) {
         assert(e < CH_CNT);
         protocol_cb[e] = cb;
@@ -127,6 +129,12 @@ protected:
     std::string instance_name;
 
     scc::ordered_semaphore req_credits{"TxReqCredits", 0U, true}; // L-credits provided by completer(HN)
+
+    scc::sc_variable<unsigned> snp_counter{"SnpInFlight", 0};
+
+    scc::sc_variable<unsigned> snp_credit_sent{"SnpCreditGranted", 0};
+
+    void grant_credit(unsigned amount=1);
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 
@@ -153,7 +161,11 @@ protected:
 
     scc::ordered_semaphore wdat_chnl{1};
 
+    scc::ordered_semaphore prio_wdat_chnl{1};
+
     scc::ordered_semaphore sresp_chnl{1};
+
+    scc::ordered_semaphore prio_sresp_chnl{1};
 
     sc_core::sc_event any_tx_finished;
 
@@ -163,7 +175,7 @@ private:
     void send_wdata(payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state* txs);
     void handle_snoop_response(payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state* txs);
     void send_comp_ack(payload_type& trans, tx_state*& txs);
-    void clk_counter() { m_clock_counter++; }
+    void clk_counter();
     unsigned get_clk_cnt() { return m_clock_counter; }
 
     void create_data_ext(payload_type& trans);

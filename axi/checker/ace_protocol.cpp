@@ -317,7 +317,7 @@ void ace_protocol::check_properties(const payload_type &trans) {
             }
             if(ace_ext->get_length() && (1u<<ace_ext->get_size()) != bw) {
                 SCCERR(name)<<"Illegal ACE settings: According to D3.1.6 Transaction constraints of ARM IHI 0022H  the following setting is illegal:\n"
-                << "AxLEN:"<<to_char(ace_ext->get_length())<<", AxSIZE:"<<to_char(ace_ext->get_size())<<" with bus with:"<<bw;
+                << "AxLEN:"<<static_cast<unsigned>(ace_ext->get_length())<<", AxSIZE:"<<static_cast<unsigned>(ace_ext->get_size())<<" with bus with:"<<bw;
             }
             auto width = bw;
             switch(ace_ext->get_burst()) {
