@@ -602,7 +602,7 @@ private:
  */
 struct data {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to this message*/
-    void set_db_id(uint8_t);
+    void set_db_id(uint16_t);
     uint8_t get_db_id() const;
     /* Set the opcode of Data packet */
     void set_opcode(dat_optype_e opcode);
@@ -665,16 +665,16 @@ struct data {
     uint16_t get_tu() const;
 
 private:
-    uint8_t db_id{0};
-    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
-    dat_resptype_e resp{dat_resptype_e::CompData_I};
-    uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
-    uint16_t tgt_id{0}, home_n_id{0};
-    dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
-    uint32_t rsvdc{0};
     uint64_t data_check{0};
     uint64_t tag{0};
+    uint32_t rsvdc{0};
+    uint16_t db_id{0};
+    uint16_t tgt_id{0}, home_n_id{0};
     uint16_t tu{0};
+    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
+    dat_resptype_e resp{dat_resptype_e::CompData_I};
+    dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
+    uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
     uint8_t tag_op{0};
     bool trace_tag{false};
 };
@@ -686,8 +686,8 @@ private:
 struct response {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
     this message*/
-    void set_db_id(uint8_t);
-    uint8_t get_db_id() const;
+    void set_db_id(uint16_t);
+    uint16_t get_db_id() const;
     /*The PCrdType field indicates the credit type associated with the request*/
     void set_pcrd_type(uint8_t);
     uint8_t get_pcrd_type() const;
@@ -723,14 +723,15 @@ struct response {
     bool is_trace_tag() const;
 
 private:
-    uint8_t db_id{0}, pcrd_type{0}, fwd_state{0};
-    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
-    bool data_pull{false};
-    rsp_optype_e opcode{rsp_optype_e::INVALID};
-    rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
     uint32_t tag_group_id{0};
     uint16_t tgt_id{0};
+    uint16_t db_id{0};
+    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
+    rsp_optype_e opcode{rsp_optype_e::INVALID};
+    rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
+    uint8_t pcrd_type{0}, fwd_state{0};
     uint8_t tag_op{0};
+    bool data_pull{false};
     bool trace_tag{false};
 };
 
