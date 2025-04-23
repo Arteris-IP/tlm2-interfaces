@@ -603,7 +603,7 @@ private:
 struct data {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to this message*/
     void set_db_id(uint16_t);
-    uint8_t get_db_id() const;
+    uint16_t get_db_id() const;
     /* Set the opcode of Data packet */
     void set_opcode(dat_optype_e opcode);
     dat_optype_e get_opcode() const;
@@ -1371,8 +1371,8 @@ inline bool snp_request::is_trace_tag() const { return trace_tag; }
 
 /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
 this message*/
-inline void data::set_db_id(uint8_t db_id) { this->db_id = db_id; }
-inline uint8_t data::get_db_id() const { return db_id; }
+inline void data::set_db_id(uint16_t db_id) { this->db_id = db_id; }
+inline uint16_t data::get_db_id() const { return db_id; }
 
 /*Response Error status. Indicates the error status associated with a data
   transfer*/
@@ -1448,8 +1448,8 @@ inline uint16_t data::get_tu() const { return tu; }
 
 /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
         this message*/
-inline void response::set_db_id(uint8_t db_id) { this->db_id = db_id; }
-inline uint8_t response::get_db_id() const { return db_id; }
+inline void response::set_db_id(uint16_t db_id) { this->db_id = db_id; }
+inline uint16_t response::get_db_id() const { return db_id; }
 
 /*The PCrdType field indicates the credit type associated with the request*/
 inline void response::set_pcrd_type(uint8_t pcrd_type) { this->pcrd_type = pcrd_type; }
