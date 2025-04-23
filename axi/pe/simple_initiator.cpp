@@ -30,11 +30,12 @@ using namespace axi::pe;
 /******************************************************************************
  * initiator
  ******************************************************************************/
+#if SYSTEMC_VERSION < 20250221
 SC_HAS_PROCESS(simple_initiator_b);
-
+#endif
 simple_initiator_b::simple_initiator_b(const sc_core::sc_module_name& nm,
-                                       sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
-                                       size_t transfer_width, bool ack_phase)
+                                       sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port, size_t transfer_width,
+                                       bool ack_phase)
 : sc_module(nm)
 , base(transfer_width, ack_phase)
 , socket_fw(port) {
@@ -212,7 +213,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
         if(fsm_hndl->is_snoop) {
             auto size = axi::get_burst_length(*fsm_hndl->trans);
             fsm_hndl->beat_count++;
-            schedule(fsm_hndl->beat_count < (size-1) ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
+            schedule(fsm_hndl->beat_count < (size - 1) ? BegPartRespE : BegRespE, fsm_hndl->trans, 0);
         } else {
             sc_time t(clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME);
             tlm::tlm_phase phase = axi::END_PARTIAL_RESP;
@@ -228,8 +229,7 @@ void axi::pe::simple_initiator_b::setup_callbacks(axi::fsm::fsm_handle* fsm_hndl
             sc_time t;
             auto ret = socket_fw->nb_transport_fw(*fsm_hndl->trans, phase, t);
         } else {
-            auto del = fsm_hndl->trans->is_read() ? ::scc::get_value(rd_data_accept_delay)
-                                                  : ::scc::get_value(wr_resp_accept_delay);
+            auto del = fsm_hndl->trans->is_read() ? ::scc::get_value(rd_data_accept_delay) : ::scc::get_value(wr_resp_accept_delay);
             if(del)
                 schedule(EndRespE, fsm_hndl->trans, del);
             else
@@ -304,8 +304,7 @@ void simple_initiator_b::process_snoop_resp() {
                 else {
                     snp.wait();
                     auto gp = std::get<1>(entry);
-                    SCCTRACE(instance_name)
-                        << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *gp;
+                    SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *gp;
                     react(std::get<0>(entry), std::get<1>(entry));
                 }
             } else {

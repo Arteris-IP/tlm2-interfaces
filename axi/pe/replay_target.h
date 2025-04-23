@@ -16,15 +16,15 @@
 
 #pragma once
 
+#include "target_info_if.h"
 #include <axi/pe/axi_target_pe.h>
 #include <cci_configuration>
-#include "target_info_if.h"
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
 //! protocol engine implementations
 namespace pe {
-class replay_buffer: public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
+class replay_buffer : public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
 public:
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -50,9 +50,8 @@ public:
      */
     void snoop_resp(tlm::tlm_generic_payload& payload, bool sync = false) override {}
 
-    void end_of_reset() {
-        reset_end_cycle=sc_core::sc_time_stamp()/clk_if->period();
-    }
+    void end_of_reset() { reset_end_cycle = sc_core::sc_time_stamp() / clk_if->period(); }
+
 protected:
     sc_core::sc_clock* clk_if{nullptr};
     uint64_t reset_end_cycle{0};
@@ -72,7 +71,6 @@ protected:
     void process_req2resp_fifos();
     void start_rd_resp_thread();
     void start_wr_resp_thread();
-
 };
 /**
  * the target socket protocol engine(s) adapted to a particular target socket configuration,
@@ -99,15 +97,17 @@ public:
     replay_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
     , pe("pe", BUSWIDTH)
-    , repl_buffer("repl_buffer"){
+    , repl_buffer("repl_buffer") {
         sckt(pe);
         pe.clk_i(clk_i);
         repl_buffer.clk_i(clk_i);
         pe.fw_o(repl_buffer.fw_i);
         repl_buffer.bw_o(pe.bw_i);
+#if SYSTEMC_VERSION < 20250221
         SC_HAS_PROCESS(replay_target);
+#endif
         SC_METHOD(end_of_reset);
-        sensitive<<rst_i.neg();
+        sensitive << rst_i.neg();
     }
 
     replay_target() = delete;
@@ -120,17 +120,16 @@ public:
 
     replay_target& operator=(replay_target&&) = delete;
 
-    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx();}
+    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx(); }
 
 protected:
-    void end_of_reset() {
-        repl_buffer.end_of_reset();
-    }
-    void end_of_elaboration(){
+    void end_of_reset() { repl_buffer.end_of_reset(); }
+    void end_of_elaboration() {
         auto* ifs = sckt.get_base_port().get_interface(0);
-        sc_assert(ifs!=nullptr);
+        sc_assert(ifs != nullptr);
         pe.set_bw_interface(ifs);
     }
+
 public:
     axi_target_pe pe;
     replay_buffer repl_buffer;
