@@ -533,7 +533,7 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 
 void chi::pe::chi_rn_initiator_b::clk_counter() {
     if(m_clock_counter > 1 && snp_credit_sent.get() < 15 && snp_counter.get() < snp_req_credit_limit.get_value()) {
-        auto credit2send = std::min<unsigned>(15 - snp_credit_sent.get(), snp_req_credit_limit.get_value() - snp_counter.get());
+        auto credit2send = std::min<unsigned>(15 - snp_credit_sent.get(), std::min<int>(0, snp_req_credit_limit.get_value() - snp_counter.get()));
         grant_credit(credit2send);
         snp_credit_sent += credit2send;
     }
