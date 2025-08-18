@@ -968,7 +968,7 @@ struct chi_initiator_socket
      * @return the kind string
      */
     const char* kind() const override { return "chi_trx_initiator_socket"; }
-#if SYSTEMC_VERSION >= 20181013 // not the right version but we assume TLM is always bundled with SystemC
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // not the right version but we assume TLM is always bundled with SystemC
     /**
      * @brief get the type of protocol
      * @return the kind typeid
@@ -1004,7 +1004,7 @@ struct chi_target_socket
      * @return the kind string
      */
     const char* kind() const override { return "chi_trx_target_socket"; }
-#if SYSTEMC_VERSION >= 20181013
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC)
     /**
      * @brief get the type of protocol
      * @return the kind typeid
