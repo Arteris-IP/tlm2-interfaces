@@ -322,7 +322,8 @@ void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, s
         (*req) = trans;
         req->parent = h;
         req->id = h.get_id();
-        b_timed_peq.notify(*req, tlm::BEGIN_REQ, delay);
+        tlm::tlm_phase begin_req = tlm::BEGIN_REQ;
+        b_timed_peq.notify(*req, begin_req, delay);
     }
 
     for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::inst().get())
@@ -359,7 +360,8 @@ void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, s
     b_trHandle[trans.get_command()]->end_transaction(h, delay.value(), sc_core::sc_time_stamp());
     // and now the stuff for the timed tx
     if(b_streamHandleTimed) {
-        b_timed_peq.notify(*req, tlm::END_RESP, delay);
+        tlm::tlm_phase end_resp = tlm::END_RESP;
+        b_timed_peq.notify(*req, end_resp, delay);
     }
 }
 
@@ -468,7 +470,10 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
             req->acquire();
             (*req) = trans;
             req->parent = h;
-            nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase,
+            tlm::tlm_phase tlm_completed = tlm::TLM_COMPLETED;
+            tlm::tlm_phase begin_req = tlm::BEGIN_REQ;
+            tlm::tlm_phase end_resp = tlm::END_RESP;
+            nb_timed_peq.notify(*req, (status == tlm_completed && phase == begin_req) ? end_resp : phase,
                                 delay);
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
@@ -562,7 +567,10 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
             req->acquire();
             (*req) = trans;
             req->parent = h;
-            nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase,
+            tlm::tlm_phase tlm_completed = tlm::TLM_COMPLETED;
+            tlm::tlm_phase begin_req = tlm::BEGIN_REQ;
+            tlm::tlm_phase end_resp = tlm::END_RESP;
+            nb_timed_peq.notify(*req, (status == tlm_completed && phase == begin_req) ? end_resp : phase,
                                 delay);
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {

@@ -996,7 +996,7 @@ struct axi_initiator_socket
      */
     const char* kind() const override { return "axi_initiator_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
-#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
@@ -1028,7 +1028,7 @@ struct axi_target_socket
      */
     const char* kind() const override { return "axi_target_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
-#if SYSTEMC_VERSION >= 20181013 // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
@@ -1059,7 +1059,7 @@ struct ace_initiator_socket
      * @return the kind string
      */
     const char* kind() const override { return "axi_initiator_socket"; }
-#if SYSTEMC_VERSION >= 20181013 // not the right version but we assume TLM is always bundled with SystemC
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // not the right version but we assume TLM is always bundled with SystemC
     /**
      * @brief get the type of protocol
      * @return the kind typeid
@@ -1094,7 +1094,7 @@ struct ace_target_socket
      */
     const char* kind() const override { return "axi_target_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
-#if SYSTEMC_VERSION >= 20181013 // not the right version but we assume TLM is always bundled with SystemC
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // not the right version but we assume TLM is always bundled with SystemC
     /**
      * @brief get the type of protocol
      * @return the kind typeid
