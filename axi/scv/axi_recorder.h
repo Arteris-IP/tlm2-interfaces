@@ -470,10 +470,9 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_payl
             req->acquire();
             (*req) = trans;
             req->parent = h;
-            tlm::tlm_phase tlm_completed = tlm::TLM_COMPLETED;
             tlm::tlm_phase begin_req = tlm::BEGIN_REQ;
             tlm::tlm_phase end_resp = tlm::END_RESP;
-            nb_timed_peq.notify(*req, (status == tlm_completed && phase == begin_req) ? end_resp : phase,
+            nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == begin_req) ? end_resp : phase,
                                 delay);
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
@@ -567,10 +566,9 @@ tlm::tlm_sync_enum axi_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_payl
             req->acquire();
             (*req) = trans;
             req->parent = h;
-            tlm::tlm_phase tlm_completed = tlm::TLM_COMPLETED;
             tlm::tlm_phase begin_req = tlm::BEGIN_REQ;
             tlm::tlm_phase end_resp = tlm::END_RESP;
-            nb_timed_peq.notify(*req, (status == tlm_completed && phase == begin_req) ? end_resp : phase,
+            nb_timed_peq.notify(*req, (status == tlm::TLM_COMPLETED && phase == begin_req) ? end_resp : phase,
                                 delay);
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
