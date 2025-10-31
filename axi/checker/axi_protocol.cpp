@@ -208,8 +208,8 @@ constexpr unsigned comb(axi::bar_e bar, axi::domain_e domain, axi::snoop_e snoop
 };
 
 void axi_protocol::check_properties(const payload_type &trans) {
-    check_datawith_settings(trans);
     if(auto* axi4_ext = trans.get_extension<axi::axi4_extension>()){
+        check_datawith_settings(trans);
         if(axi4_ext->get_cache()&0xc0) {
             if(!axi4_ext->get_cache())
                 SCCERR(name)<<"Illegal AXI settings: active allocate bit(s) requires modifiable bit set";
@@ -228,6 +228,12 @@ void axi_protocol::check_properties(const payload_type &trans) {
             case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
             case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
             case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
+            case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
+            case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
+            case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
+            case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
+                check_datawith_settings(trans);
+                break;
             case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::CLEAN_SHARED):
             case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::CLEAN_SHARED):
             case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::CLEAN_SHARED):
@@ -237,11 +243,7 @@ void axi_protocol::check_properties(const payload_type &trans) {
             case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::MAKE_INVALID):
             case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::MAKE_INVALID):
             case comb(bar_e::RESPECT_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::MAKE_INVALID):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::NON_SHAREABLE, snoop_e::READ_NO_SNOOP):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::READ_ONCE):
-            case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::READ_NO_SNOOP):
-
+                break;
             case comb(bar_e::RESPECT_BARRIER, domain_e::NON_SHAREABLE, snoop_e::WRITE_NO_SNOOP):
             case comb(bar_e::RESPECT_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
             case comb(bar_e::RESPECT_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
@@ -252,7 +254,8 @@ void axi_protocol::check_properties(const payload_type &trans) {
             case comb(bar_e::MEMORY_BARRIER, domain_e::INNER_SHAREABLE, snoop_e::WRITE_UNIQUE):
             case comb(bar_e::MEMORY_BARRIER, domain_e::OUTER_SHAREABLE, snoop_e::WRITE_UNIQUE):
             case comb(bar_e::MEMORY_BARRIER, domain_e::SYSTEM, snoop_e::WRITE_NO_SNOOP):
-              break;
+                check_datawith_settings(trans);
+                break;
             default:
                 SCCERR(name)<<"Illegal ACEL settings: According to D11.2 ACE-Lite signal requirements of ARM IHI 0022H  the following setting is illegal:\n"
                 << "AxBAR:"<<to_char(bar)<<", AxDOMAIN:"<<to_char(domain)<<", AxSNOOP:"<<to_char(snoop);
