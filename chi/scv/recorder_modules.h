@@ -53,9 +53,6 @@ public:
         // bind the sockets to the module
         tsckt.bind(*this);
         isckt.bind(*this);
-        add_attribute(BASE::enableBlTracing);
-        add_attribute(BASE::enableNbTracing);
-        add_attribute(BASE::enableTimedTracing);
     }
 
     virtual ~chitlm_recorder_module() {}
