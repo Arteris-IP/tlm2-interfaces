@@ -55,12 +55,6 @@ public:
     template <unsigned int BUSWIDTH = 32, int N = 1, sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
     using target_socket_type = axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>;
 
-    using recording_types = tlm::scc::scv::impl::tlm_recording_types<TYPES>;
-    using mm = tlm::scc::tlm_mm<recording_types>;
-    using tlm_recording_payload = tlm::scc::scv::impl::tlm_recording_payload<TYPES>;
-
-    SC_HAS_PROCESS(axi_recorder<TYPES>); // NOLINT
-
     //! \brief the attribute to selectively enable/disable recording of blocking protocol tx
     cci::cci_param<bool> enableBlTracing;
 
@@ -294,7 +288,6 @@ private:
 
 template <typename TYPES>
 void axi_recorder<TYPES>::b_transport(typename TYPES::tlm_payload_type& trans, sc_core::sc_time& delay) {
-    tlm_recording_payload* req{nullptr};
     if(!isRecordingBlockingTxEnabled()) {
         get_fw_if()->b_transport(trans, delay);
         return;
