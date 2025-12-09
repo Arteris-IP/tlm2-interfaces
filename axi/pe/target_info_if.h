@@ -8,6 +8,8 @@
 #ifndef _AXI_PE_TARGET_INFO_IF_H_
 #define _AXI_PE_TARGET_INFO_IF_H_
 
+#include <cstddef>
+
 namespace axi {
 namespace pe {
 

@@ -33,11 +33,11 @@ uint8_t log2n(uint8_t siz) { return ((siz > 1) ? 1 + log2n(siz >> 1) : 0); }
 
 } // anonymous namespace
 
+#if SYSTEMC_VERSION < 20250221
 SC_HAS_PROCESS(axi_initiator_b);
-
-axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm,
-        sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
-        size_t transfer_width, flavor_e flavor)
+#endif
+axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
+                                 size_t transfer_width, flavor_e flavor)
 : sc_module(nm)
 , socket_fw(port)
 , transfer_width_in_bytes(transfer_width / 8)
@@ -72,14 +72,14 @@ void axi_initiator_b::b_snoop(payload_type& trans, sc_core::sc_time& t) {
 }
 
 tlm::tlm_sync_enum axi_initiator_b::nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) {
-    SCCTRACE(SCMOD) << __FUNCTION__ << " received with phase " << phase << " with delay = " << t <<  " with trans " << trans;
-    if(phase == tlm::BEGIN_REQ) {   // snoop
+    SCCTRACE(SCMOD) << __FUNCTION__ << " received with phase " << phase << " with delay = " << t << " with trans " << trans;
+    if(phase == tlm::BEGIN_REQ) { // snoop
         snp_peq.notify(trans, t);
-    } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) {  //snoop
+    } else if(phase == END_PARTIAL_RESP || phase == tlm::END_RESP) { // snoop
         auto it = snp_state_by_id.find(&trans);
         sc_assert(it != snp_state_by_id.end());
         it->second->peq.notify(std::make_tuple(&trans, phase), t);
-    } else {  // read/write
+    } else { // read/write
         auto it = tx_state_by_tx.find(&trans);
         sc_assert(it != tx_state_by_tx.end());
         auto txs = it->second;
@@ -135,8 +135,10 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
             bool success;
             std::tie(it, success) = tx_state_by_tx.insert(std::make_pair(&trans, new tx_state()));
         }
-        if(trans.is_read()) rd_waiting++;
-        else wr_waiting++;
+        if(trans.is_read())
+            rd_waiting++;
+        else
+            wr_waiting++;
         auto& txs = it->second;
         auto timing_e = trans.set_auto_extension<atp::timing_params>(nullptr);
 
@@ -157,7 +159,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
         }
         SCCTRACE(SCMOD) << "start transport " << trans;
         tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
-        if(!trans.is_read()) { // data less via write channel
+        if(!trans.is_read()) {                   // data less via write channel
             if(!data_interleaving.get_value()) { // Note that AXI4 does not allow write data interleaving, and ncore3 only supports AXI4.
                 sem_lock lck(wr_chnl);
                 wr_waiting--;
@@ -172,8 +174,8 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                         protocol_cb[axi::fsm::BegPartReqE](trans, false);
                     auto res = send(trans, txs, axi::BEGIN_PARTIAL_REQ);
                     if(axi::END_PARTIAL_REQ != res)
-                        SCCFATAL(SCMOD) << "target responded with " << res << " for the " << i << "th beat of "
-                        << burst_length << " beats  in transaction " << trans;
+                        SCCFATAL(SCMOD) << "target responded with " << res << " for the " << i << "th beat of " << burst_length
+                                        << " beats  in transaction " << trans;
                     for(unsigned i = 0; i < (timing_e ? timing_e->wbv : wbv.get_value()); ++i)
                         wait(clk_i.posedge_event());
                     if(protocol_cb[axi::fsm::EndPartReqE])
@@ -189,7 +191,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 SCCTRACE(SCMOD) << "starting " << burst_length << " write beats of " << trans;
                 for(unsigned i = 0; i < burst_length - 1; ++i) {
                     sem_lock lck(wr_chnl);
-                    if(i==0){
+                    if(i == 0) {
                         wr_waiting--;
                         wr_outstanding++;
                         /// Timing
@@ -202,7 +204,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                         wait(clk_i.posedge_event());
                 }
                 sem_lock lck(wr_chnl);
-                if(burst_length==1){
+                if(burst_length == 1) {
                     wr_waiting--;
                     wr_outstanding++;
                 }
@@ -258,14 +260,13 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 socket_fw->nb_transport_fw(trans, phase, delay);
                 if(burst_length)
                     SCCWARN(SCMOD) << "got wrong number of burst beats, expected " << exp_burst_length << ", got "
-                    << exp_burst_length - burst_length;
+                                   << exp_burst_length - burst_length;
                 wait(clk_i.posedge_event());
                 if(protocol_cb[axi::fsm::EndRespE])
                     protocol_cb[axi::fsm::EndRespE](trans, false);
                 finished = true;
-            } else if(std::get<0>(entry) == &trans &&
-                    std::get<1>(entry) == axi::BEGIN_PARTIAL_RESP) { // RDAT without CRESP case
-                SCCTRACE(SCMOD) << "received beat = "<< burst_length<<" with trans " << trans;
+            } else if(std::get<0>(entry) == &trans && std::get<1>(entry) == axi::BEGIN_PARTIAL_RESP) { // RDAT without CRESP case
+                SCCTRACE(SCMOD) << "received beat = " << burst_length << " with trans " << trans;
                 auto delay_in_cycles = timing_e ? timing_e->rbr : rbr.get_value();
                 for(unsigned i = 0; i < delay_in_cycles; ++i)
                     wait(clk_i.posedge_event());
@@ -281,7 +282,7 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 }
                 if(protocol_cb[axi::fsm::EndPartRespE])
                     protocol_cb[axi::fsm::EndPartRespE](trans, false);
-          }
+            }
         } while(!finished);
         if(flavor == flavor_e::ACE) {
             if(trans.is_read() && rla.get_value() != std::numeric_limits<unsigned>::max()) {
@@ -301,8 +302,10 @@ void axi_initiator_b::transport(payload_type& trans, bool blocking) {
                 wait(clk_i.posedge_event());
             }
         }
-        if(trans.is_read()) rd_outstanding--;
-        else wr_outstanding--;
+        if(trans.is_read())
+            rd_outstanding--;
+        else
+            wr_outstanding--;
         SCCTRACE(SCMOD) << "finished non-blocking protocol";
         if(enable_id_serializing.get_value()) {
             id_mtx[axi_id]->post();
@@ -350,9 +353,9 @@ void axi_initiator_b::snoop_thread() {
             snoop_resp(*trans);
         }
         // finish snoop response, should release tlm gp_shared_ptr
-        SCCTRACE(SCMOD)<<" finish snoop response, release gp_shared_ptr";
+        SCCTRACE(SCMOD) << " finish snoop response, release gp_shared_ptr";
         snoops_in_flight--;
-        trans=nullptr;
+        trans = nullptr;
     }
 }
 
@@ -360,10 +363,10 @@ void axi_initiator_b::snoop_resp(payload_type& trans, bool sync) {
     auto it = snp_state_by_id.find(&trans);
     sc_assert(it != snp_state_by_id.end());
     auto& txs = it->second;
-    auto data_len=trans.get_data_length();
-    auto burst_length = data_len/transfer_width_in_bytes;
-    if(burst_length<1)
-        burst_length=1;
+    auto data_len = trans.get_data_length();
+    auto burst_length = data_len / transfer_width_in_bytes;
+    if(burst_length < 1)
+        burst_length = 1;
     tlm::tlm_phase next_phase{tlm::UNINITIALIZED_PHASE};
     auto delay_in_cycles = wbv.get_value();
     sem_lock lck(sresp_chnl);

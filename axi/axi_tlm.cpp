@@ -302,7 +302,7 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     case 9:
     case 12:
     case 13:
-        return "illegal AXCACHE value";
+        return "reserved AxCACHE value";
     default:
         break;
     }
@@ -317,7 +317,7 @@ template <> char const* is_valid_msg<axi::axi4_extension>(axi::axi4_extension* e
     case 9:
     case 12:
     case 13:
-        return "illegal AXCACHE value";
+        return "reserved AxCACHE value";
     }
     return nullptr;
 }
@@ -330,7 +330,7 @@ template <> char const* is_valid_msg<axi::axi3_extension>(axi::axi3_extension* e
     case 9:
     case 12:
     case 13:
-        return "illegal AXCACHE value";
+        return "illegal AxCACHE value";
     }
     return nullptr;
 }

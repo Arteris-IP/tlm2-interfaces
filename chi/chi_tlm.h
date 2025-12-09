@@ -38,9 +38,8 @@ template <typename E> inline E into(typename std::underlying_type<E>::type t);
  * @param t
  * @return
  */
-template <
-typename E, typename ULT = typename std::underlying_type<E>::type,
-typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
+template <typename E, typename ULT = typename std::underlying_type<E>::type,
+          typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
 inline constexpr ULT to_int(E t) {
     return static_cast<typename std::underlying_type<E>::type>(t);
 }
@@ -84,9 +83,9 @@ enum class req_optype_e : uint8_t {
     EOBarrier = 0x0E,
     ECBarrier = 0x0F,
     // RESERVED    0x10
-    ReadNoSnpSep = 0x11, //CHI-E
+    ReadNoSnpSep = 0x11, // CHI-E
     // RESERVED    0x12
-    CleanSharedPersistSep = 0x13, //CHI-E
+    CleanSharedPersistSep = 0x13, // CHI-E
     DVMOp = 0x14,
     WriteEvictFull = 0x15,
     WriteCleanPtl = 0x16, // As per CHI issue-A
@@ -235,7 +234,7 @@ enum class dat_resptype_e : uint8_t {
     // Read and Atomic Completion
     CompData_I = 0b000, // Copy of cacheline cannot be kept
     CompData_SC = 0b001,
-    CompData_UC = 0b010,   // Final state of cacheline can be UC or UCE or SC or I
+    CompData_UC = 0b010, // Final state of cacheline can be UC or UCE or SC or I
     CompData_UD_PD = 0b110,
     CompData_SD_PD = 0b111,
     DataSepResp_I = 0b000,
@@ -284,7 +283,7 @@ enum class rsp_optype_e : uint8_t {
     SnpRespFwded = 0x9,
     TagMatch = 0xA,
     RespSepData = 0xB,
-    Persist =0xC,
+    Persist = 0xC,
     CompPersist = 0xD,
     DBIDRespOrd = 0xE,
     // Reserved = 0xF
@@ -304,29 +303,28 @@ enum class rsp_resptype_e : uint8_t {
     SnpResp_UD = 0b010,
     SnpResp_SD = 0b011,
     // Table 4-7 Permitted Dataless transaction completion
-    Comp_I = 0b000,  // final state must be I
-    Comp_UC = 0b010, // final state can be UC, UCE,SC or I
-    Comp_SC = 0b001, // final state SC or I
+    Comp_I = 0b000,     // final state must be I
+    Comp_UC = 0b010,    // final state can be UC, UCE,SC or I
+    Comp_SC = 0b001,    // final state SC or I
     Comp_UD_PD = 0b110, // final state SC or I
     // Table 4-11 Permitted Non-forward type snoop responses with data
     SnpRespData_I = 0b000, // dat opcode =0x1 Snoop response with data.
     SnpRespData_UC = 0b010,
-    SnpRespData_UD = 0b010, // dat opcode = 0x1 Snoop response with data. Cache line state is UC or UD.
-    SnpRespData_SC = 0b001, // dat opcode = 0x1 Snoop response with data. Cache line state is SC.
-    SnpRespData_SD = 0b011, // dat opcode = 0x1 Snoop response with data. Cache line state is SD.
-    SnpRespData_I_PD = 0b100, // dat opcode = 0x1 Snoop response with data. Cache line state is I. Responsibility for updating the memory is passed to the Home.
-    SnpRespData_UC_PD = 0b110, // dat opcode = 0x1 Snoop response with data. Cache line state is UC. Responsibility for updating the memory is passed to the Home.
-    SnpRespData_SC_PD = 0b101, // dat opcode = 0x1 Snoop response with data. Cache line state is SC. Responsibility for updating the memory is passed to the Home.
-    SnpRespDataPtl_I_PD = 0b100, // dat opcode = 0x5 Snoop response with partial data. Cache line state is I. Responsibility for updating the memory is passed to the Home.
-    SnpRespDataPtl_UD = 0b010, // dat opcode = 0x5 Snoop response with partial data.
+    SnpRespData_UD = 0b010,   // dat opcode = 0x1 Snoop response with data. Cache line state is UC or UD.
+    SnpRespData_SC = 0b001,   // dat opcode = 0x1 Snoop response with data. Cache line state is SC.
+    SnpRespData_SD = 0b011,   // dat opcode = 0x1 Snoop response with data. Cache line state is SD.
+    SnpRespData_I_PD = 0b100, // dat opcode = 0x1 Snoop response with data. Cache line state is I. Responsibility for updating the memory is
+                              // passed to the Home.
+    SnpRespData_UC_PD = 0b110, // dat opcode = 0x1 Snoop response with data. Cache line state is UC. Responsibility for updating the memory
+                               // is passed to the Home.
+    SnpRespData_SC_PD = 0b101, // dat opcode = 0x1 Snoop response with data. Cache line state is SC. Responsibility for updating the memory
+                               // is passed to the Home.
+    SnpRespDataPtl_I_PD = 0b100, // dat opcode = 0x5 Snoop response with partial data. Cache line state is I. Responsibility for updating
+                                 // the memory is passed to the Home.
+    SnpRespDataPtl_UD = 0b010,   // dat opcode = 0x5 Snoop response with partial data.
 };
 
-enum class rsp_resperrtype_e : uint8_t {
-    OK = 0b00,
-    EXOK = 0b01,
-    DERR = 0b10,
-    NDERR = 0b11
-};
+enum class rsp_resperrtype_e : uint8_t { OK = 0b00, EXOK = 0b01, DERR = 0b10, NDERR = 0b11 };
 
 enum class credit_type_e : uint8_t {
     LINK,
@@ -512,15 +510,15 @@ struct request {
     void set_likely_shared(bool = true);
     bool is_likely_shared() const;
     /* Indicates the operation to be performed on the tags present in
-	the corresponding DAT channel */
+    the corresponding DAT channel */
     void set_tag_op(uint8_t);
     uint8_t get_tag_op() const;
     /* Precise contents are IMPLEMENTATION DEFINED. Typically
-	expected to contain Exception Level, TTBR value, and CPU identifier */
+    expected to contain Exception Level, TTBR value, and CPU identifier */
     void set_tag_group_id(uint32_t);
     uint32_t get_tag_group_id() const;
     /* Memory System Performance Resource Partitioning and Monitoring.
-	Efficiently utilizes the memory resources among users and monitors their use */
+    Efficiently utilizes the memory resources among users and monitors their use */
     void set_mpam(uint16_t);
     uint16_t get_mpam() const;
     /* Reserved for customer use. Any value is valid in a Protocol flit. Propagation of this field through the
@@ -529,13 +527,12 @@ struct request {
     uint32_t get_rsvdc() const; // Reserved for customer use.
 
 private:
-    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0},
-    order{0};
+    uint8_t tgt_id{0}, lp_id{0}, return_txn_id{0}, stash_lp_id{0}, size{0}, max_flit{0}, mem_attr{0}, pcrd_type{0}, order{0};
     bool endian{false}, trace_tag{false};
     uint16_t return_n_id{0}, stash_n_id{0};
     req_optype_e opcode{req_optype_e::ReqLCrdReturn};
-    bool stash_n_id_valid{false}, stash_lp_id_valid{false}, ns{false}, exp_comp_ack{false}, allow_retry{false},
-    snp_attr{false}, excl{false}, snoop_me{false}, likely_shared{false};
+    bool stash_n_id_valid{false}, stash_lp_id_valid{false}, ns{false}, exp_comp_ack{false}, allow_retry{false}, snp_attr{false},
+        excl{false}, snoop_me{false}, likely_shared{false};
     uint32_t rsvdc{0}, tag_group_id{0};
     uint16_t mpam{0};
     uint8_t tag_op{0};
@@ -602,8 +599,8 @@ private:
  */
 struct data {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to this message*/
-    void set_db_id(uint8_t);
-    uint8_t get_db_id() const;
+    void set_db_id(uint16_t);
+    uint16_t get_db_id() const;
     /* Set the opcode of Data packet */
     void set_opcode(dat_optype_e opcode);
     dat_optype_e get_opcode() const;
@@ -654,7 +651,7 @@ struct data {
     void set_trace_tag(bool);
     bool is_trace_tag() const;
     /* Indicates the operation to be performed on the tags present in
-	the corresponding DAT channel */
+    the corresponding DAT channel */
     void set_tag_op(uint8_t);
     uint8_t get_tag_op() const;
     /* Provides up to 8 sets of 4-bit tags, each associated with a 16-byte, aligned address location. */
@@ -665,16 +662,16 @@ struct data {
     uint16_t get_tu() const;
 
 private:
-    uint8_t db_id{0};
-    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
-    dat_resptype_e resp{dat_resptype_e::CompData_I};
-    uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
-    uint16_t tgt_id{0}, home_n_id{0};
-    dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
-    uint32_t rsvdc{0};
     uint64_t data_check{0};
     uint64_t tag{0};
+    uint32_t rsvdc{0};
+    uint16_t db_id{0};
+    uint16_t tgt_id{0}, home_n_id{0};
     uint16_t tu{0};
+    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
+    dat_resptype_e resp{dat_resptype_e::CompData_I};
+    dat_optype_e opcode{dat_optype_e::DataLCrdReturn};
+    uint8_t fwd_state{0}, data_pull{0}, data_source{0}, cc_id{0}, data_id{0}, poison{0};
     uint8_t tag_op{0};
     bool trace_tag{false};
 };
@@ -686,8 +683,8 @@ private:
 struct response {
     /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
     this message*/
-    void set_db_id(uint8_t);
-    uint8_t get_db_id() const;
+    void set_db_id(uint16_t);
+    uint16_t get_db_id() const;
     /*The PCrdType field indicates the credit type associated with the request*/
     void set_pcrd_type(uint8_t);
     uint8_t get_pcrd_type() const;
@@ -711,11 +708,11 @@ struct response {
     void set_tgt_id(uint16_t);
     uint16_t get_tgt_id() const;
     /* Indicates the operation to be performed on the tags present in
-	the corresponding DAT channel */
+    the corresponding DAT channel */
     void set_tag_op(uint8_t);
     uint8_t get_tag_op() const;
     /* Precise contents are IMPLEMENTATION DEFINED. Typically
-	expected to contain Exception Level, TTBR value, and CPU identifier */
+    expected to contain Exception Level, TTBR value, and CPU identifier */
     void set_tag_group_id(uint32_t);
     uint32_t get_tag_group_id() const;
     /*Trace Tag. Provides additional support for the debugging, tracing, and performance measurement of systems*/
@@ -723,14 +720,15 @@ struct response {
     bool is_trace_tag() const;
 
 private:
-    uint8_t db_id{0}, pcrd_type{0}, fwd_state{0};
-    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
-    bool data_pull{false};
-    rsp_optype_e opcode{rsp_optype_e::INVALID};
-    rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
     uint32_t tag_group_id{0};
     uint16_t tgt_id{0};
+    uint16_t db_id{0};
+    rsp_resperrtype_e resp_err{rsp_resperrtype_e::OK};
+    rsp_optype_e opcode{rsp_optype_e::INVALID};
+    rsp_resptype_e resp{rsp_resptype_e::SnpResp_I};
+    uint8_t pcrd_type{0}, fwd_state{0};
     uint8_t tag_op{0};
+    bool data_pull{false};
     bool trace_tag{false};
 };
 
@@ -762,9 +760,7 @@ struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) {
-        *this = static_cast<const chi_ctrl_extension&>(ext);
-    } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_ctrl_extension&>(ext); } // use assignment operator
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -840,9 +836,7 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) {
-        *this = static_cast<const chi_data_extension&>(ext);
-    } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_data_extension&>(ext); } // use assignment operator
 
     void set_txn_id(unsigned int id) { cmn.set_txn_id(id); }
 
@@ -882,9 +876,7 @@ struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, p
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) {
-        *this = static_cast<const chi_credit_extension&>(ext);
-    } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_credit_extension&>(ext); } // use assignment operator
 };
 
 //! aliases for payload and phase types
@@ -916,8 +908,7 @@ template <typename TYPES = chi::chi_protocol_types> using chi_fw_transport_if = 
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload>
-class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -932,25 +923,24 @@ public:
  */
 template <typename TYPES = chi::chi_protocol_types>
 class chi_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
-public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
+                            public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
-#if SC_VERSION_MAJOR<3
-    using type_index = sc_core::sc_type_index;
+#if SC_VERSION_MAJOR < 3
+using type_index = sc_core::sc_type_index;
 #else
-    using type_index = std::type_index;
+using type_index = std::type_index;
 #endif
 
-    /**
+/**
  * CHI initiator socket class using payloads carrying CHI transaction request and response (RN to HN request and HN to
  * RN response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
-        sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
+          sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
 struct chi_initiator_socket
-        : public tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
+: public tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-            tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -967,7 +957,7 @@ struct chi_initiator_socket
      * @return the kind string
      */
     const char* kind() const override { return "chi_trx_initiator_socket"; }
-#if SYSTEMC_VERSION >= 20181013 // not the right version but we assume TLM is always bundled with SystemC
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // not the right version but we assume TLM is always bundled with SystemC
     /**
      * @brief get the type of protocol
      * @return the kind typeid
@@ -981,12 +971,10 @@ struct chi_initiator_socket
  * response)
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = chi_protocol_types, int N = 1,
-        sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct chi_target_socket
-        : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
+          sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
+struct chi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-            tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, chi_fw_transport_if<TYPES>, chi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1003,7 +991,7 @@ struct chi_target_socket
      * @return the kind string
      */
     const char* kind() const override { return "chi_trx_target_socket"; }
-#if SYSTEMC_VERSION >= 20181013
+#if SYSTEMC_VERSION >= 20181013 || defined(NCSC)
     /**
      * @brief get the type of protocol
      * @return the kind typeid
@@ -1025,7 +1013,7 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     switch(req_e->req.get_opcode()) {
     case chi::req_optype_e::CleanUnique:
     case chi::req_optype_e::MakeUnique:
-    case chi::req_optype_e::Evict :
+    case chi::req_optype_e::Evict:
     case chi::req_optype_e::StashOnceUnique:
     case chi::req_optype_e::StashOnceSepUnique:
     case chi::req_optype_e::StashOnceShared:
@@ -1055,16 +1043,47 @@ inline bool is_dataless(const chi::chi_ctrl_extension* req_e) {
     return false;
 }
 
+inline bool is_dataless(const chi::chi_snp_extension* req_e) {
+    switch(req_e->req.get_opcode()) {
+    case snp_optype_e::SnpLCrdReturn:
+    case snp_optype_e::SnpShared:
+    case snp_optype_e::SnpClean:
+    case snp_optype_e::SnpOnce:
+    case snp_optype_e::SnpNotSharedDirty:
+    case snp_optype_e::SnpUnique:
+    case snp_optype_e::SnpCleanShared:
+    case snp_optype_e::SnpCleanInvalid:
+    case snp_optype_e::SnpMakeInvalid:
+    case snp_optype_e::SnpDVMOp:
+    case snp_optype_e::SnpQuery:
+    case snp_optype_e::SnpPreferUnique:
+    case snp_optype_e::SnpPreferUniqueFwd:
+    case snp_optype_e::SnpUniqueFwd:
+        return false;
+    case snp_optype_e::SnpSharedFwd:
+    case snp_optype_e::SnpCleanFwd:
+    case snp_optype_e::SnpOnceFwd:
+    case snp_optype_e::SnpNotSharedDirtyFwd:
+    case snp_optype_e::SnpUniqueStash:
+    case snp_optype_e::SnpMakeInvalidStash:
+    case snp_optype_e::SnpStashUnique:
+    case snp_optype_e::SnpStashShared:
+        return true;
+    default:
+        return false;
+    }
+}
+
 inline bool is_atomic(const chi::chi_ctrl_extension* req_e) {
-    return req_e->req.get_opcode()>=chi::req_optype_e::AtomicStoreAdd && req_e->req.get_opcode()<=chi::req_optype_e::AtomicCompare;
+    return req_e->req.get_opcode() >= chi::req_optype_e::AtomicStoreAdd && req_e->req.get_opcode() <= chi::req_optype_e::AtomicCompare;
 }
 
 inline bool is_request_order(const chi::chi_ctrl_extension* req_e) {
-    if(req_e->req.get_order()==2) {
+    if(req_e->req.get_order() == 2) {
         switch(req_e->req.get_opcode()) {
         case chi::req_optype_e::ReadNoSnp:
         case chi::req_optype_e::ReadNoSnpSep:
-        case chi::req_optype_e::ReadOnce :
+        case chi::req_optype_e::ReadOnce:
         case chi::req_optype_e::ReadOnceCleanInvalid:
         case chi::req_optype_e::ReadOnceMakeInvalid:
         case chi::req_optype_e::WriteNoSnpFull:
@@ -1125,7 +1144,7 @@ template <> inline dat_resptype_e into<dat_resptype_e>(typename std::underlying_
 
 template <> inline rsp_optype_e into<rsp_optype_e>(typename std::underlying_type<rsp_optype_e>::type t) {
     assert(t >= static_cast<typename std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::RespLCrdReturn) &&
-            t < static_cast<std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::INVALID));
+           t < static_cast<std::underlying_type<rsp_optype_e>::type>(rsp_optype_e::INVALID));
     return static_cast<rsp_optype_e>(t);
 }
 
@@ -1211,13 +1230,33 @@ inline void request::set_mem_attr(uint8_t mem_attr) {
 }
 inline uint8_t request::get_mem_attr() const { return mem_attr; }
 
-inline void request:: set_device(bool is_device) {if(is_device) this->mem_attr |= 2 ; else this->mem_attr &= ~2U;}
+inline void request::set_device(bool is_device) {
+    if(is_device)
+        this->mem_attr |= 2;
+    else
+        this->mem_attr &= ~2U;
+}
 inline bool request::is_device() const { return this->mem_attr & 2; }
-inline void request:: set_ewa(bool is_device) {if(is_device) this->mem_attr |= 1 ; else this->mem_attr &= ~1U;}
+inline void request::set_ewa(bool is_device) {
+    if(is_device)
+        this->mem_attr |= 1;
+    else
+        this->mem_attr &= ~1U;
+}
 inline bool request::is_ewa() const { return this->mem_attr & 1; }
-inline void request:: set_allocate(bool is_device) {if(is_device) this->mem_attr |= 8 ; else this->mem_attr &= ~8U;}
+inline void request::set_allocate(bool is_device) {
+    if(is_device)
+        this->mem_attr |= 8;
+    else
+        this->mem_attr &= ~8U;
+}
 inline bool request::is_allocate() const { return this->mem_attr & 8; }
-inline void request:: set_cacheable(bool is_device) {if(is_device) this->mem_attr |= 4 ; else this->mem_attr &= ~4U;}
+inline void request::set_cacheable(bool is_device) {
+    if(is_device)
+        this->mem_attr |= 4;
+    else
+        this->mem_attr &= ~4U;
+}
 inline bool request::is_cacheable() const { return this->mem_attr & 4; }
 
 /* Protocol Credit Type. Indicates the type of Protocol Credit being used by a
@@ -1297,12 +1336,12 @@ inline bool request::is_likely_shared() const { return likely_shared; }
 inline void request::set_rsvdc(uint32_t rsvdc) { this->rsvdc = rsvdc; }
 inline uint32_t request::get_rsvdc() const { return rsvdc; }
 
-inline void request::set_tag_op(uint8_t tag_op){ this->tag_op = tag_op; }
+inline void request::set_tag_op(uint8_t tag_op) { this->tag_op = tag_op; }
 inline uint8_t request::get_tag_op() const { return tag_op; }
-inline void request::set_tag_group_id(uint32_t tag_group_id){ this->tag_group_id = tag_group_id; }
+inline void request::set_tag_group_id(uint32_t tag_group_id) { this->tag_group_id = tag_group_id; }
 inline uint32_t request::get_tag_group_id() const { return tag_group_id; }
-inline void request::set_mpam(uint16_t mpam){ this->mpam = mpam; }
-inline uint16_t request::get_mpam() const  { return mpam; }
+inline void request::set_mpam(uint16_t mpam) { this->mpam = mpam; }
+inline uint16_t request::get_mpam() const { return mpam; }
 
 //===== End of [2] request
 
@@ -1370,8 +1409,8 @@ inline bool snp_request::is_trace_tag() const { return trace_tag; }
 
 /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
 this message*/
-inline void data::set_db_id(uint8_t db_id) { this->db_id = db_id; }
-inline uint8_t data::get_db_id() const { return db_id; }
+inline void data::set_db_id(uint16_t db_id) { this->db_id = db_id; }
+inline uint16_t data::get_db_id() const { return db_id; }
 
 /*Response Error status. Indicates the error status associated with a data
   transfer*/
@@ -1447,8 +1486,8 @@ inline uint16_t data::get_tu() const { return tu; }
 
 /* Data Buffer ID. The ID provided to be used as the TxnID in the response to
         this message*/
-inline void response::set_db_id(uint8_t db_id) { this->db_id = db_id; }
-inline uint8_t response::get_db_id() const { return db_id; }
+inline void response::set_db_id(uint16_t db_id) { this->db_id = db_id; }
+inline uint16_t response::get_db_id() const { return db_id; }
 
 /*The PCrdType field indicates the credit type associated with the request*/
 inline void response::set_pcrd_type(uint8_t pcrd_type) { this->pcrd_type = pcrd_type; }
@@ -1479,9 +1518,9 @@ inline void response::set_opcode(rsp_optype_e opcode) { this->opcode = opcode; }
 inline rsp_optype_e response::get_opcode() const { return opcode; }
 
 inline void response::set_tag_op(uint8_t tag_op) { this->tag_op = tag_op; }
-inline uint8_t response::get_tag_op() const{ return tag_op; }
+inline uint8_t response::get_tag_op() const { return tag_op; }
 inline void response::set_tag_group_id(uint32_t tag_group_id) { this->tag_group_id = tag_group_id; }
-inline uint32_t response::get_tag_group_id() const{ return tag_group_id; }
+inline uint32_t response::get_tag_group_id() const { return tag_group_id; }
 /*Trace Tag. Provides additional support for the debugging, tracing, and
 performance measurement of systems*/
 inline void response::set_trace_tag(bool trace_tag) { this->trace_tag = trace_tag; }
