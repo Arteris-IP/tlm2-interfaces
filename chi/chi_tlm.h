@@ -1111,6 +1111,30 @@ inline bool is_request_order(const chi::chi_ctrl_extension* req_e) {
     } else
         return false;
 }
+inline bool is_snoopable(const chi::chi_ctrl_extension* req_e) {
+    switch(req_e->req.get_opcode()) {
+    case chi::req_optype_e::ReadNoSnp:
+    case chi::req_optype_e::ReadNoSnpSep:
+    case chi::req_optype_e::CleanShared:
+    case chi::req_optype_e::CleanSharedPersist:
+    case chi::req_optype_e::CleanInvalid:
+    case chi::req_optype_e::MakeInvalid:
+    case chi::req_optype_e::WriteNoSnpFull:
+    case chi::req_optype_e::WriteNoSnpFullCleanInv:
+    case chi::req_optype_e::WriteNoSnpFullCleanSh:
+    case chi::req_optype_e::WriteNoSnpFullCleanShPerSep:
+    case chi::req_optype_e::WriteNoSnpPtl:
+    case chi::req_optype_e::WriteNoSnpPtlCleanInv:
+    case chi::req_optype_e::WriteNoSnpPtlCleanSh:
+    case chi::req_optype_e::WriteNoSnpPtlCleanShPerSep:
+    case chi::req_optype_e::WriteNoSnpZero:
+    case chi::req_optype_e::AtomicCompare:
+        return false;
+    default:
+        return !chi::is_atomic(req_e);
+    }
+}
+
 /*****************************************************************************
  * Implementation details
  *****************************************************************************/
