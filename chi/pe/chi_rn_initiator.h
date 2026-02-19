@@ -37,6 +37,7 @@ enum channel_e {
     CRSP,
     RDAT,
     SNP,
+    ACK,
     CH_CNT
 };
 
@@ -184,7 +185,7 @@ private:
                                   chi::pe::chi_rn_initiator_b::tx_state*& txs);
     void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans,
                               chi::pe::chi_rn_initiator_b::tx_state*& txs);
-    void send_cresp_response(payload_type& trans);
+    void finish_cresp_response(payload_type& trans);
     void update_data_extension(chi::chi_data_extension* data_ext, payload_type& trans);
 
     unsigned m_clock_counter{0};
