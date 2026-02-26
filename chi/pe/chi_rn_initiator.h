@@ -37,7 +37,6 @@ enum channel_e {
     CRSP,
     RDAT,
     SNP,
-    ACK,
     CH_CNT
 };
 

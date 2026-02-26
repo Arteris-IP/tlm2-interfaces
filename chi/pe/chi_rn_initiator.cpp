@@ -790,8 +790,8 @@ void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& 
     if(make_rsp_from_req(trans, chi::rsp_optype_e::CompAck)) {
         sem_lock lck(sresp_chnl);
         SCCDEBUG(SCMOD) << "Send the CompAck response on SRSP channel, addr: 0x" << std::hex << trans.get_address();
-        if(protocol_cb[ACK])
-            protocol_cb[ACK](ACK, trans);
+        if(protocol_cb[SRSP])
+            protocol_cb[SRSP](SRSP, trans);
         tlm::tlm_phase phase = chi::ACK;
         auto delay = SC_ZERO_TIME;
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
