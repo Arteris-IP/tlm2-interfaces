@@ -18,12 +18,12 @@
 
 #include <axi/axi_tlm.h>
 #include <axi/fsm/protocol_fsm.h>
-#include <tlm/scc/pe/intor_if.h>
+#include <cci_configuration>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
-#include <cci_configuration>
 #include <systemc>
+#include <tlm/scc/pe/intor_if.h>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
 #include <unordered_map>
@@ -31,13 +31,10 @@
 namespace axi {
 namespace pe {
 
-class axi_initiator_b :
-        public sc_core::sc_module,
-        public axi::ace_bw_transport_if<axi::axi_protocol_types>,
-        public tlm::scc::pe::intor_fw_b
-{
+class axi_initiator_b : public sc_core::sc_module,
+                        public axi::ace_bw_transport_if<axi::axi_protocol_types>,
+                        public tlm::scc::pe::intor_fw_b {
 public:
-
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
@@ -123,7 +120,6 @@ public:
         assert(e < axi::fsm::CB_CNT);
         protocol_cb[e] = cb;
     }
-
 
 protected:
     unsigned calculate_beats(payload_type& p) {

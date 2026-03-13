@@ -23,7 +23,6 @@ namespace axi {
 //! protocol engine implementations
 namespace pe {
 
-
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi::axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
 class simple_ace_target : public ace_target_pe {
@@ -62,7 +61,7 @@ protected:
 
     void end_of_elaboration() override {
         base::end_of_elaboration();
-        set_bw_interface(socket.get_base_port().operator -> ());
+        set_bw_interface(socket.get_base_port().operator->());
     }
 };
 

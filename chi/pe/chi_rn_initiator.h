@@ -16,13 +16,13 @@
 
 #pragma once
 
+#include <cci_configuration>
 #include <chi/chi_tlm.h>
-#include <tlm/scc/pe/intor_if.h>
 #include <scc/ordered_semaphore.h>
 #include <scc/peq.h>
 #include <scc/sc_variable.h>
-#include <cci_configuration>
 #include <systemc>
+#include <tlm/scc/pe/intor_if.h>
 #include <tlm_utils/peq_with_get.h>
 #include <tuple>
 #include <unordered_map>
@@ -30,21 +30,11 @@
 namespace chi {
 namespace pe {
 
-enum channel_e {
-    REQ = 0,
-    WDAT,
-    SRSP,
-    CRSP,
-    RDAT,
-    SNP,
-    CH_CNT
-};
+enum channel_e { REQ = 0, WDAT, SRSP, CRSP, RDAT, SNP, CH_CNT };
 
-class chi_rn_initiator_b :
-        public sc_core::sc_module,
-        public chi::chi_bw_transport_if<chi::chi_protocol_types>,
-        public tlm::scc::pe::intor_fw_b
-{
+class chi_rn_initiator_b : public sc_core::sc_module,
+                           public chi::chi_bw_transport_if<chi::chi_protocol_types>,
+                           public tlm::scc::pe::intor_fw_b {
 public:
     using payload_type = chi::chi_protocol_types::tlm_payload_type;
     using phase_type = chi::chi_protocol_types::tlm_phase_type;
@@ -81,8 +71,8 @@ public:
      */
     void snoop_resp(payload_type& trans, bool sync = false) override;
 
-    chi_rn_initiator_b(sc_core::sc_module_name nm,
-                       sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port, size_t transfer_width);
+    chi_rn_initiator_b(sc_core::sc_module_name nm, sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& port,
+                       size_t transfer_width);
 
     virtual ~chi_rn_initiator_b();
 
@@ -112,6 +102,7 @@ public:
         assert(e < CH_CNT);
         protocol_cb[e] = cb;
     }
+
 protected:
     void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
@@ -134,7 +125,7 @@ protected:
 
     scc::sc_variable<unsigned> snp_credit_sent{"SnpCreditGranted", 0};
 
-    void grant_credit(unsigned amount=1);
+    void grant_credit(unsigned amount = 1);
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 
@@ -180,10 +171,8 @@ private:
 
     void create_data_ext(payload_type& trans);
     void send_packet(tlm::tlm_phase phase, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state* txs);
-    void exec_read_write_protocol(const unsigned int txn_id, payload_type& trans,
-                                  chi::pe::chi_rn_initiator_b::tx_state*& txs);
-    void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans,
-                              chi::pe::chi_rn_initiator_b::tx_state*& txs);
+    void exec_read_write_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
+    void exec_atomic_protocol(const unsigned int txn_id, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state*& txs);
     void finish_cresp_response(payload_type& trans);
     void update_data_extension(chi::chi_data_extension* data_ext, payload_type& trans);
 

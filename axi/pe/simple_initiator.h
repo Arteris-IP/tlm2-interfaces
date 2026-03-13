@@ -68,7 +68,7 @@ public:
 
     tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t);
 
-    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range){}
+    void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) {}
 
     void set_clock_period(sc_core::sc_time clk_period) { this->clk_period = clk_period; }
 
@@ -130,8 +130,7 @@ protected:
      * @param port
      * @param transfer_width
      */
-    explicit simple_initiator_b(const sc_core::sc_module_name& nm,
-                                sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
+    explicit simple_initiator_b(const sc_core::sc_module_name& nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,
                                 size_t transfer_width, bool coherent = false);
 
     simple_initiator_b() = delete;

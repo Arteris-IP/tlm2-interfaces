@@ -30,8 +30,7 @@ namespace scv {
  * The transaction recorder is simply bound between an existing pair of
  * initiator and target sockets
  */
-template <unsigned int BUSWIDTH, typename TYPES, typename BASE>
-class chitlm_recorder_module : public sc_core::sc_module, public BASE {
+template <unsigned int BUSWIDTH, typename TYPES, typename BASE> class chitlm_recorder_module : public sc_core::sc_module, public BASE {
 public:
     //! The target socket of the recorder to be bound to the initiator
     typename BASE::template target_socket_type<BUSWIDTH> tsckt{"tsckt"};
@@ -66,8 +65,7 @@ private:
 };
 
 template <unsigned int BUSWIDTH = 32>
-using chi_trx_recorder_module =
-    chitlm_recorder_module<BUSWIDTH, chi::chi_protocol_types, chi_trx_recorder<chi::chi_protocol_types>>;
+using chi_trx_recorder_module = chitlm_recorder_module<BUSWIDTH, chi::chi_protocol_types, chi_trx_recorder<chi::chi_protocol_types>>;
 
 } // namespace scv
 } // namespace chi

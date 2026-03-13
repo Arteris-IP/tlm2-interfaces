@@ -39,12 +39,12 @@ namespace pe {
  * the target protocol engine base class
  */
 class ace_target_pe : public sc_core::sc_module,
-                   protected axi::fsm::base,
-                   public axi::axi_bw_transport_if<axi::axi_protocol_types>,
-                   public axi::ace_fw_transport_if<axi::axi_protocol_types> {
+                      protected axi::fsm::base,
+                      public axi::axi_bw_transport_if<axi::axi_protocol_types>,
+                      public axi::ace_fw_transport_if<axi::axi_protocol_types> {
     struct bw_intor_impl;
-public:
 
+public:
     using payload_type = axi::axi_protocol_types::tlm_payload_type;
     using phase_type = axi::axi_protocol_types::tlm_phase_type;
 
@@ -105,14 +105,13 @@ public:
      */
     const sc_core::sc_event& tx_finish_event() { return finish_evt; }
 
-     /* overwrite function, defined in axi_bw_transport_if */
+    /* overwrite function, defined in axi_bw_transport_if */
     tlm::tlm_sync_enum nb_transport_bw(payload_type& trans, phase_type& phase, sc_core::sc_time& t) override {
-        SCCTRACE(SCMOD)  << " in nb_transport_bw () " ;
+        SCCTRACE(SCMOD) << " in nb_transport_bw () ";
         return socket_bw->nb_transport_bw(trans, phase, t);
     }
 
     void invalidate_direct_mem_ptr(sc_dt::uint64 start_range, sc_dt::uint64 end_range) override {}
-
 
     virtual ~ace_target_pe();
 
@@ -123,7 +122,7 @@ public:
      */
     explicit ace_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width);
 
-    void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) {socket_bw=ifs;}
+    void set_bw_interface(axi::axi_bw_transport_if<axi_protocol_types>* ifs) { socket_bw = ifs; }
 
     void snoop(payload_type& trans);
 
@@ -158,8 +157,7 @@ protected:
     std::function<unsigned(payload_type& trans)> operation_cb;
     sc_core::sc_fifo<payload_type*> rd_resp_fifo{1}, wr_resp_fifo{1};
 
-    sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> wr_resp_beat_fifo{128},
-    rd_resp_beat_fifo{128};
+    sc_core::sc_fifo<std::tuple<fsm::fsm_handle*, axi::fsm::protocol_time_point_e>> wr_resp_beat_fifo{128}, rd_resp_beat_fifo{128};
     scc::ordered_semaphore rd_resp{1}, wr_resp_ch{1}, rd_resp_ch{1};
 
     sc_core::sc_clock* clk_if{nullptr};
@@ -172,7 +170,6 @@ protected:
     }
     tlm_utils::peq_with_cb_and_phase<ace_target_pe> fw_peq{this, &ace_target_pe::nb_fw};
     std::unordered_set<unsigned> active_rdresp_id;
-
 };
 
 } // namespace pe

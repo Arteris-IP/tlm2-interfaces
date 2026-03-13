@@ -41,9 +41,8 @@ template <typename E> inline E into(typename std::underlying_type<E>::type t);
  * @param t
  * @return
  */
-template <
-    typename E, typename ULT = typename std::underlying_type<E>::type,
-    typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
+template <typename E, typename ULT = typename std::underlying_type<E>::type,
+          typename X = typename std::enable_if<std::is_enum<E>::value && !std::is_convertible<E, ULT>::value, bool>::type>
 inline constexpr ULT to_int(E t) {
     return static_cast<typename std::underlying_type<E>::type>(t);
 }
@@ -87,10 +86,10 @@ enum class domain_e : uint8_t { NON_SHAREABLE = 0x0, INNER_SHAREABLE = 0x1, OUTE
  * the barrier type enumeration class
  */
 enum class bar_e : uint8_t {
-    RESPECT_BARRIER = 0x0,          //! Normal access, respecting barriers
-    MEMORY_BARRIER = 0x1,           //! Memory barrier
-    IGNORE_BARRIER = 0x2,           //! Normal access, ignoring barriers
-    SYNCHRONISATION_BARRIER = 0x3   //!Synchronization barrier
+    RESPECT_BARRIER = 0x0,        //! Normal access, respecting barriers
+    MEMORY_BARRIER = 0x1,         //! Memory barrier
+    IGNORE_BARRIER = 0x2,         //! Normal access, ignoring barriers
+    SYNCHRONISATION_BARRIER = 0x3 //! Synchronization barrier
 };
 
 /**
@@ -924,13 +923,12 @@ struct axi_protocol_types {
 /**
  * definition of the additional protocol phases
  */
-enum SC_API tlm_phase_enum
-{
-  UNINITIALIZED_PHASE=0,
-  BEGIN_REQ= tlm::BEGIN_REQ,
-  END_REQ= tlm::END_REQ,
-  BEGIN_RESP= tlm::BEGIN_RESP,
-  END_RESP= tlm::END_RESP
+enum SC_API tlm_phase_enum {
+    UNINITIALIZED_PHASE = 0,
+    BEGIN_REQ = tlm::BEGIN_REQ,
+    END_REQ = tlm::END_REQ,
+    BEGIN_RESP = tlm::BEGIN_RESP,
+    END_RESP = tlm::END_RESP
 };
 DECLARE_EXTENDED_PHASE(BEGIN_PARTIAL_REQ);
 DECLARE_EXTENDED_PHASE(END_PARTIAL_REQ);
@@ -940,8 +938,7 @@ DECLARE_EXTENDED_PHASE(ACK);
 /**
  * interface definition for the blocking backward interface. This is need to allow snoop accesses in blocking mode
  */
-template <typename TRANS = tlm::tlm_generic_payload>
-class bw_blocking_transport_if : public virtual sc_core::sc_interface {
+template <typename TRANS = tlm::tlm_generic_payload> class bw_blocking_transport_if : public virtual sc_core::sc_interface {
 public:
     /**
      * @brief snoop access to a snooped master
@@ -963,13 +960,13 @@ template <typename TYPES = axi_protocol_types>
 class ace_bw_transport_if : public tlm::tlm_bw_transport_if<TYPES>,
                             public virtual bw_blocking_transport_if<typename TYPES::tlm_payload_type> {};
 
-#if SC_VERSION_MAJOR<3
-    using type_index = sc_core::sc_type_index;
+#if SC_VERSION_MAJOR < 3
+using type_index = sc_core::sc_type_index;
 #else
-    using type_index = std::type_index;
+using type_index = std::type_index;
 #endif
 
-    /**
+/**
  * AXI initiator socket class using payloads carrying AXI3 or AXi4 extensions
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
@@ -977,8 +974,7 @@ template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N
 struct axi_initiator_socket
 : public tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-        tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -997,7 +993,7 @@ struct axi_initiator_socket
     const char* kind() const override { return "axi_initiator_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
 #if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
-                                // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
+                                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
@@ -1006,11 +1002,9 @@ struct axi_initiator_socket
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct axi_target_socket
-: public tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
+struct axi_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-        tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, axi_fw_transport_if<TYPES>, axi_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1029,7 +1023,7 @@ struct axi_target_socket
     const char* kind() const override { return "axi_target_socket"; }
     // not the right version but we assume TLM is always bundled with SystemC
 #if SYSTEMC_VERSION >= 20181013 || defined(NCSC) // ((TLM_VERSION_MAJOR > 2) || (TLM_VERSION==2 && TLM_VERSION_MINOR>0) ||(TLM_VERSION==2
-                                // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
+                                                 // && TLM_VERSION_MINOR>0 && TLM_VERSION_PATCH>4))
     type_index get_protocol_types() const override { return typeid(TYPES); }
 #endif
 };
@@ -1041,8 +1035,7 @@ template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N
 struct ace_initiator_socket
 : public tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-        tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_initiator_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1072,11 +1065,9 @@ struct ace_initiator_socket
  */
 template <unsigned int BUSWIDTH = 32, typename TYPES = axi_protocol_types, int N = 1,
           sc_core::sc_port_policy POL = sc_core::SC_ONE_OR_MORE_BOUND>
-struct ace_target_socket
-: public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
+struct ace_target_socket : public tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL> {
     //! base type alias
-    using base_type =
-        tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
+    using base_type = tlm::tlm_base_target_socket<BUSWIDTH, ace_fw_transport_if<TYPES>, ace_bw_transport_if<TYPES>, N, POL>;
     /**
      * @brief default constructor using a generated instance name
      */
@@ -1118,9 +1109,8 @@ inline bool is_dataless(axi::ace_extension const* ext) {
     if(!ext)
         return false;
     auto snp = ext->get_snoop();
-    return snp == snoop_e::CLEAN_UNIQUE || snp == snoop_e::MAKE_UNIQUE || snp == snoop_e::CLEAN_SHARED ||
-           snp == snoop_e::CLEAN_INVALID || snp == snoop_e::MAKE_INVALID || snp == snoop_e::EVICT ||
-           snp == snoop_e::STASH_ONCE_SHARED || snp == snoop_e::STASH_ONCE_UNIQUE;
+    return snp == snoop_e::CLEAN_UNIQUE || snp == snoop_e::MAKE_UNIQUE || snp == snoop_e::CLEAN_SHARED || snp == snoop_e::CLEAN_INVALID ||
+           snp == snoop_e::MAKE_INVALID || snp == snoop_e::EVICT || snp == snoop_e::STASH_ONCE_SHARED || snp == snoop_e::STASH_ONCE_UNIQUE;
 }
 
 inline unsigned get_axi_id(axi::axi_protocol_types::tlm_payload_type const& trans) {
@@ -1191,9 +1181,7 @@ inline unsigned get_burst_length(const axi::axi_protocol_types::tlm_payload_type
  * @param trans
  * @return the number of beats
  */
-inline unsigned get_burst_length(const axi::axi_protocol_types::tlm_payload_type* trans) {
-    return get_burst_length(*trans);
-}
+inline unsigned get_burst_length(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_length(*trans); }
 /**
  * get size of a burst in bytes which is 2^AxBURST
  * @param r
@@ -1226,9 +1214,7 @@ inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type& 
  * @param trans
  * @return the burst size in bytes
  */
-inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) {
-    return get_burst_size(*trans);
-}
+inline unsigned get_burst_size(const axi::axi_protocol_types::tlm_payload_type* trans) { return get_burst_size(*trans); }
 
 inline burst_e get_burst_type(const axi::axi_protocol_types::tlm_payload_type& trans) {
     if(auto e = trans.get_extension<axi::ace_extension>())
@@ -1671,17 +1657,13 @@ template <typename REQ, typename RESP> inline void axi_extension<REQ, RESP>::add
     response_arr.push_back(arr);
 }
 
-template <typename REQ, typename RESP>
-inline const std::vector<response>& axi_extension<REQ, RESP>::get_response_array() const {
+template <typename REQ, typename RESP> inline const std::vector<response>& axi_extension<REQ, RESP>::get_response_array() const {
     return response_arr;
 }
 
-template <typename REQ, typename RESP> inline std::vector<response>& axi_extension<REQ, RESP>::get_response_array() {
-    return response_arr;
-}
+template <typename REQ, typename RESP> inline std::vector<response>& axi_extension<REQ, RESP>::get_response_array() { return response_arr; }
 
-template <typename REQ, typename RESP>
-inline void axi_extension<REQ, RESP>::set_response_array_complete(bool complete) {
+template <typename REQ, typename RESP> inline void axi_extension<REQ, RESP>::set_response_array_complete(bool complete) {
     response_array_complete = complete;
 }
 

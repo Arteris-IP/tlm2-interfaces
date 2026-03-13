@@ -23,115 +23,116 @@ namespace {
 std::array<std::string, 3> cmd_str{"R", "W", "I"};
 }
 std::array<char const*, 103> opc2str = {
-	    "ReqLCrdReturn",
-	    "ReadShared",
-	    "ReadClean",
-	    "ReadOnce",
-	    "ReadNoSnp",
-	    "PCrdReturn",
-	    "Reserved",
-	    "ReadUnique",
-	    "CleanShared",
-	    "CleanInvalid",
-	    "MakeInvalid",
-	    "CleanUnique",
-	    "MakeUnique",
-	    "Evict",
-	    "EOBarrier",
-	    "ECBarrier",
-	    "RESERVED",
-	    "ReadNoSnpSep",
-		"RESERVED",
-		"CleanSharedPersistSep",
-	    "DVMOp",
-	    "WriteEvictFull",
-	    "WriteCleanPtl",
-	    "WriteCleanFull",
-	    "WriteUniquePtl",
-	    "WriteUniqueFull",
-	    "WriteBackPtl",
-	    "WriteBackFull",
-	    "WriteNoSnpPtl",
-	    "WriteNoSnpFull",
-		"RESERVED",
-		"RESERVED",
-	    "WriteUniqueFullStash",
-	    "WriteUniquePtlStash",
-	    "StashOnceShared",
-	    "StashOnceUnique",
-	    "ReadOnceCleanInvalid",
-	    "ReadOnceMakeInvalid",
-	    "ReadNotSharedDirty",
-	    "CleanSharedPersist",
-	    "AtomicStoreAdd",
-	    "AtomicStoreClr",
-	    "AtomicStoreEor",
-	    "AtomicStoreSet",
-	    "AtomicStoreSmax",
-	    "AtomicStoreSmin",
-	    "AtomicStoreUmax",
-	    "AtomicStoreUmin",
-	    "AtomicLoadAdd",
-	    "AtomicLoadClr",
-	    "AtomicLoadEor",
-	    "AtomicLoadSet",
-	    "AtomicLoadSmax",
-	    "AtomicLoadSmin",
-	    "AtomicLoadUmax",
-	    "AtomicLoadUmin",
-	    "AtomicSwap",
-	    "AtomicCompare",
-	    "PrefetchTgt",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"MakeReadUnique",
-		"WriteEvictOrEvict",
-		"WriteUniqueZero",
-		"WriteNoSnpZero",
-		"RESERVED",
-		"RESERVED",
-		"StashOnceSepShared",
-		"StashOnceSepUnique",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"ReadPreferUnique",
-		"RESERVED",
-		"RESERVED",
-		"RESERVED",
-		"WriteNoSnpFullCleanSh",
-		"WriteNoSnpFullCleanInv",
-		"WriteNoSnpFullCleanShPerSep",
-		"RESERVED",
-		"WriteUniqueFullCleanSh",
-		"RESERVED",
-		"WriteUniqueFullCleanShPerSep",
-		"RESERVED",
-		"WriteBackFullCleanSh",
-		"WriteBackFullCleanInv",
-		"WriteBackFullCleanShPerSep",
-		"RESERVED",
-		"WriteCleanFullCleanSh",
-		"RESERVED",
-		"WriteCleanFullCleanShPerSep",
-		"RESERVED",
-		"WriteNoSnpPtlCleanSh",
-		"WriteNoSnpPtlCleanInv",
-		"WriteNoSnpPtlCleanShPerSep",
-		"RESERVED",
-		"WriteUniquePtlCleanSh",
-		"RESERVED",
-		"WriteUniquePtlCleanShPerSep",
+    "ReqLCrdReturn",
+    "ReadShared",
+    "ReadClean",
+    "ReadOnce",
+    "ReadNoSnp",
+    "PCrdReturn",
+    "Reserved",
+    "ReadUnique",
+    "CleanShared",
+    "CleanInvalid",
+    "MakeInvalid",
+    "CleanUnique",
+    "MakeUnique",
+    "Evict",
+    "EOBarrier",
+    "ECBarrier",
+    "RESERVED",
+    "ReadNoSnpSep",
+    "RESERVED",
+    "CleanSharedPersistSep",
+    "DVMOp",
+    "WriteEvictFull",
+    "WriteCleanPtl",
+    "WriteCleanFull",
+    "WriteUniquePtl",
+    "WriteUniqueFull",
+    "WriteBackPtl",
+    "WriteBackFull",
+    "WriteNoSnpPtl",
+    "WriteNoSnpFull",
+    "RESERVED",
+    "RESERVED",
+    "WriteUniqueFullStash",
+    "WriteUniquePtlStash",
+    "StashOnceShared",
+    "StashOnceUnique",
+    "ReadOnceCleanInvalid",
+    "ReadOnceMakeInvalid",
+    "ReadNotSharedDirty",
+    "CleanSharedPersist",
+    "AtomicStoreAdd",
+    "AtomicStoreClr",
+    "AtomicStoreEor",
+    "AtomicStoreSet",
+    "AtomicStoreSmax",
+    "AtomicStoreSmin",
+    "AtomicStoreUmax",
+    "AtomicStoreUmin",
+    "AtomicLoadAdd",
+    "AtomicLoadClr",
+    "AtomicLoadEor",
+    "AtomicLoadSet",
+    "AtomicLoadSmax",
+    "AtomicLoadSmin",
+    "AtomicLoadUmax",
+    "AtomicLoadUmin",
+    "AtomicSwap",
+    "AtomicCompare",
+    "PrefetchTgt",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "MakeReadUnique",
+    "WriteEvictOrEvict",
+    "WriteUniqueZero",
+    "WriteNoSnpZero",
+    "RESERVED",
+    "RESERVED",
+    "StashOnceSepShared",
+    "StashOnceSepUnique",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "ReadPreferUnique",
+    "RESERVED",
+    "RESERVED",
+    "RESERVED",
+    "WriteNoSnpFullCleanSh",
+    "WriteNoSnpFullCleanInv",
+    "WriteNoSnpFullCleanShPerSep",
+    "RESERVED",
+    "WriteUniqueFullCleanSh",
+    "RESERVED",
+    "WriteUniqueFullCleanShPerSep",
+    "RESERVED",
+    "WriteBackFullCleanSh",
+    "WriteBackFullCleanInv",
+    "WriteBackFullCleanShPerSep",
+    "RESERVED",
+    "WriteCleanFullCleanSh",
+    "RESERVED",
+    "WriteCleanFullCleanShPerSep",
+    "RESERVED",
+    "WriteNoSnpPtlCleanSh",
+    "WriteNoSnpPtlCleanInv",
+    "WriteNoSnpPtlCleanShPerSep",
+    "RESERVED",
+    "WriteUniquePtlCleanSh",
+    "RESERVED",
+    "WriteUniquePtlCleanShPerSep",
 };
 template <> const char* to_char<req_optype_e>(req_optype_e v) {
-	auto idx = static_cast<unsigned>(v);
-	if(idx<opc2str.size())
-		return opc2str[idx];
-	else return "RESERVED";
+    auto idx = static_cast<unsigned>(v);
+    if(idx < opc2str.size())
+        return opc2str[idx];
+    else
+        return "RESERVED";
 }
 
 template <> const char* to_char<dat_optype_e>(dat_optype_e v) {
@@ -184,21 +185,21 @@ template <> const char* to_char<rsp_optype_e>(rsp_optype_e v) {
     case rsp_optype_e::SnpRespFwded:
         return "SnpRespFwded";
     case rsp_optype_e::TagMatch:
-    	return "TagMatch";
+        return "TagMatch";
     case rsp_optype_e::RespSepData:
         return "RespSepData";
     case rsp_optype_e::Persist:
-    	return "Persist";
+        return "Persist";
     case rsp_optype_e::CompPersist:
-    	return "CompPersist";
+        return "CompPersist";
     case rsp_optype_e::DBIDRespOrd:
-    	return "DBIDRespOrd";
+        return "DBIDRespOrd";
     case rsp_optype_e::StashDone:
-    	return "StashDone";
+        return "StashDone";
     case rsp_optype_e::CompStashDone:
-    	return "CompStashDone";
+        return "CompStashDone";
     case rsp_optype_e::CompCMO:
-    	return "CompCMO";
+        return "CompCMO";
     case rsp_optype_e::INVALID:
         return "---";
     default:
@@ -331,16 +332,15 @@ template <> const char* to_char<credit_type_e>(credit_type_e v) {
 }
 
 std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t) {
-    char const* ch =
-        t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
+    char const* ch = t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
     os << "CMD:" << cmd_str[t.get_command()] << ", " << ch << "ADDR:0x" << std::hex << t.get_address() << ", TXLEN:0x"
        << t.get_data_length();
-    if(auto ext = t.get_extension<chi::chi_ctrl_extension>()){
-        os << ", TXNID:"<<ext->get_txn_id();
-        os << ", OPC:"<<chi::to_char(ext->req.get_opcode());
+    if(auto ext = t.get_extension<chi::chi_ctrl_extension>()) {
+        os << ", TXNID:" << ext->get_txn_id();
+        os << ", OPC:" << chi::to_char(ext->req.get_opcode());
     } else if(auto ext = t.get_extension<chi::chi_snp_extension>()) {
-        os << ", TXNID:"<<ext->get_txn_id();
-        os << ", OPC:"<<chi::to_char(ext->req.get_opcode());
+        os << ", TXNID:" << ext->get_txn_id();
+        os << ", OPC:" << chi::to_char(ext->req.get_opcode());
     }
     os << " [ptr:" << &t << "]";
     return os;
@@ -357,7 +357,8 @@ template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension
     case req_optype_e::WriteUniquePtlStash:
         break;
     default:
-        if(!is_dataless(ext) && sz<6) return "Coherent transactions allow only cache line size data transfers";
+        if(!is_dataless(ext) && sz < 6)
+            return "Coherent transactions allow only cache line size data transfers";
     }
     return nullptr;
 }
@@ -377,8 +378,7 @@ class tlm_id_ext_recording : public tlm_extensions_recording_if<chi_protocol_typ
         }
     }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {
-    }
+    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {}
 };
 
 class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
@@ -522,26 +522,21 @@ using namespace tlm::scc::scv;
 __attribute__((constructor))
 #endif
 bool register_extensions() {
-    tlm::scc::tlm_id_extension ext(nullptr); // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        ext.ID, new tlm_id_ext_recording()); // NOLINT
-    chi::chi_ctrl_extension extchi_req; // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        extchi_req.ID,
-        new chi::chi_ctrl_ext_recording()); // NOLINT
-    chi::chi_data_extension extchi_data;    // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        extchi_data.ID,
-        new chi::chi_data_ext_recording()); // NOLINT
-    chi::chi_snp_extension extchi_snp;      // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        extchi_snp.ID,
-        new chi::chi_snp_ext_recording());   // NOLINT
-    chi::chi_credit_extension extchi_credit; // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        extchi_credit.ID,
-        new chi::chi_credit_ext_recording()); // NOLINT
-    return true;                              // NOLINT
+    tlm::scc::tlm_id_extension ext(nullptr);                                                                                // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(ext.ID, new tlm_id_ext_recording()); // NOLINT
+    chi::chi_ctrl_extension extchi_req;                                                                                     // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_req.ID,
+                                                                                       new chi::chi_ctrl_ext_recording()); // NOLINT
+    chi::chi_data_extension extchi_data;                                                                                   // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_data.ID,
+                                                                                       new chi::chi_data_ext_recording()); // NOLINT
+    chi::chi_snp_extension extchi_snp;                                                                                     // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_snp.ID,
+                                                                                       new chi::chi_snp_ext_recording()); // NOLINT
+    chi::chi_credit_extension extchi_credit;                                                                              // NOLINT
+    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_credit.ID,
+                                                                                       new chi::chi_credit_ext_recording()); // NOLINT
+    return true;                                                                                                             // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv

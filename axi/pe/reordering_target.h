@@ -15,14 +15,14 @@
  */
 #pragma once
 
-#include <axi/pe/axi_target_pe.h>
 #include "target_info_if.h"
+#include <axi/pe/axi_target_pe.h>
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
 //! protocol engine implementations
 namespace pe {
-class tx_reorderer: public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
+class tx_reorderer : public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
 public:
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -57,14 +57,16 @@ public:
      * @param sync if true send with next rising clock edge of the pe otherwise send it immediately
      */
     void snoop_resp(tlm::tlm_generic_payload& payload, bool sync = false) override {}
+
 protected:
     void clock_cb();
     struct que_entry {
         tlm::scc::tlm_gp_shared_ptr trans;
         unsigned age{0};
-        que_entry(tlm::tlm_generic_payload& gp):trans(&gp){}
+        que_entry(tlm::tlm_generic_payload& gp)
+        : trans(&gp) {}
     };
-    std::array<std::unordered_map<unsigned , std::deque<que_entry>>, 3> reorder_buffer;
+    std::array<std::unordered_map<unsigned, std::deque<que_entry>>, 3> reorder_buffer;
 };
 /**
  * the AXI target which shuffles the responses from the order they arrived
@@ -106,14 +108,15 @@ public:
 
     reordering_target& operator=(reordering_target&&) = delete;
 
-    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx();}
+    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx(); }
 
 protected:
     void end_of_elaboration() override {
         auto* ifs = sckt.get_base_port().get_interface(0);
-        sc_assert(ifs!=nullptr);
+        sc_assert(ifs != nullptr);
         pe.set_bw_interface(ifs);
     }
+
 public:
     axi_target_pe pe;
     tx_reorderer reorder_buffer{"reorder_buffer"};

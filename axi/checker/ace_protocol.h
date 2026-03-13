@@ -17,32 +17,32 @@
 #ifndef _AXI_CHECKER_ACE_PROTOCOL_H_
 #define _AXI_CHECKER_ACE_PROTOCOL_H_
 
-#include <axi/axi_tlm.h>
 #include "checker_if.h"
-#include <tlm/scc/tlm_gp_shared.h>
 #include <array>
-#include <unordered_map>
+#include <axi/axi_tlm.h>
 #include <deque>
+#include <tlm/scc/tlm_gp_shared.h>
+#include <unordered_map>
 
 namespace axi {
 namespace checker {
 
-class ace_protocol: public checker_if<axi::axi_protocol_types> {
-    using payload_type=axi::axi_protocol_types::tlm_payload_type;
-    using phase_type=axi::axi_protocol_types::tlm_phase_type;
+class ace_protocol : public checker_if<axi::axi_protocol_types> {
+    using payload_type = axi::axi_protocol_types::tlm_payload_type;
+    using phase_type = axi::axi_protocol_types::tlm_phase_type;
     constexpr static unsigned umax = std::numeric_limits<unsigned>::max();
+
 public:
     ace_protocol(std::string const& name, unsigned bus_width_in_bytes, unsigned rd_response_timeout, unsigned wr_response_timeout)
     : name(name)
     , bw(bus_width_in_bytes)
     , rd_response_timeout(rd_response_timeout)
-    , wr_response_timeout(wr_response_timeout)
-    {}
+    , wr_response_timeout(wr_response_timeout) {}
     virtual ~ace_protocol();
-    ace_protocol(const ace_protocol &other) = delete;
-    ace_protocol(ace_protocol &&other) = delete;
-    ace_protocol& operator=(const ace_protocol &other) = delete;
-    ace_protocol& operator=(ace_protocol &&other) = delete;
+    ace_protocol(const ace_protocol& other) = delete;
+    ace_protocol(ace_protocol&& other) = delete;
+    ace_protocol& operator=(const ace_protocol& other) = delete;
+    ace_protocol& operator=(ace_protocol&& other) = delete;
     void fw_pre(payload_type const& trans, phase_type const& phase) override;
     void fw_post(payload_type const& trans, phase_type const& phase, tlm::tlm_sync_enum rstat) override;
     void bw_pre(payload_type const& trans, phase_type const& phase) override;
@@ -51,6 +51,7 @@ public:
     unsigned const bw;
     unsigned const rd_response_timeout;
     unsigned const wr_response_timeout;
+
 private:
     std::array<phase_type, 3> req_beat;
     std::array<phase_type, 3> resp_beat;
@@ -61,7 +62,7 @@ private:
     std::array<std::unordered_map<unsigned, std::deque<uintptr_t>>, 3> open_tx_by_id;
     std::unordered_map<unsigned, std::deque<uintptr_t>> resp_by_id;
     std::unordered_map<unsigned, unsigned> rd_resp_beat_count;
-    bool check_phase_change(payload_type const& trans, const phase_type &phase);
+    bool check_phase_change(payload_type const& trans, const phase_type& phase);
     void request_update(payload_type const& trans);
     void response_update(payload_type const& trans);
     void check_properties(payload_type const& trans);

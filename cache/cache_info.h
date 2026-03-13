@@ -38,9 +38,7 @@ struct cache_info : public tlm::tlm_extension<cache_info> {
         cache_info* e = new cache_info(cache_state);
         return e;
     }
-    void copy_from(tlm_extension_base const& from) override {
-        cache_state = static_cast<cache_info const&>(from).cache_state;
-    }
+    void copy_from(tlm_extension_base const& from) override { cache_state = static_cast<cache_info const&>(from).cache_state; }
 
     cache_info() = delete;
     cache_info(state state_param)

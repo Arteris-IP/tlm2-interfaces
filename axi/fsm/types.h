@@ -43,9 +43,8 @@ enum protocol_time_point_e {
 };
 
 inline const char* evt2str(unsigned evt) {
-    static const char* lut[] = {
-        "RequestPhaseBeg",  "WValidE",      "WReadyE",      "BegPartReqE", "EndPartReqE", "BegReqE", "EndReqE",
-        "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",    "Ack"};
+    static const char* lut[] = {"RequestPhaseBeg",  "WValidE",      "WReadyE",      "BegPartReqE", "EndPartReqE", "BegReqE", "EndReqE",
+                                "ResponsePhaseBeg", "BegPartRespE", "EndPartRespE", "BegRespE",    "EndRespE",    "Ack"};
     return lut[evt];
 }
 //! alias for the callback function
@@ -85,7 +84,7 @@ struct fsm_handle {
         trans = nullptr;
         beat_count = 0;
         is_snoop = false;
-        gp=nullptr;
+        gp = nullptr;
         aux.i64 = 0;
         start = sc_core::SC_ZERO_TIME;
         state = 0;

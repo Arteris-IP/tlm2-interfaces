@@ -158,36 +158,28 @@ template <> const char* to_char<resp_e>(resp_e v) {
 }
 
 std::ostream& operator<<(std::ostream& os, const tlm::tlm_generic_payload& t) {
-    char const* ch =
-        t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
+    char const* ch = t.get_command() == tlm::TLM_READ_COMMAND ? "AR" : (t.get_command() == tlm::TLM_WRITE_COMMAND ? "AW" : "");
     os << "CMD:" << cmd_str[t.get_command()] << ", " << ch << "ADDR:0x" << std::hex << t.get_address() << ", TXLEN:0x"
        << t.get_data_length();
     if(auto e = t.get_extension<axi::ace_extension>()) {
-        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
-           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
-           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
-           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
-           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
-           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex << static_cast<unsigned>(e->get_length()) << ", "
+           << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size()) << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst())
+           << ", " << ch << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
            << "REGION:" << static_cast<unsigned>(e->get_region()) << ", " << ch << "SNOOP:0x" << std::hex
-           << (static_cast<unsigned>(e->get_snoop()) & 0xf) << std::dec << ", " << ch
-           << "DOMAIN:" << to_char(e->get_domain()) << ", " << ch << "BAR:" << to_char(e->get_barrier()) << ", " << ch
-           << "UNIQUE:" << e->get_unique();
+           << (static_cast<unsigned>(e->get_snoop()) & 0xf) << std::dec << ", " << ch << "DOMAIN:" << to_char(e->get_domain()) << ", " << ch
+           << "BAR:" << to_char(e->get_barrier()) << ", " << ch << "UNIQUE:" << e->get_unique();
     } else if(auto e = t.get_extension<axi::axi4_extension>()) {
-        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
-           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
-           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
-           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
-           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
-           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex << static_cast<unsigned>(e->get_length()) << ", "
+           << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size()) << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst())
+           << ", " << ch << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
            << "REGION:" << static_cast<unsigned>(e->get_region());
     } else if(auto e = t.get_extension<axi::axi3_extension>()) {
-        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex
-           << static_cast<unsigned>(e->get_length()) << ", " << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size())
-           << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst()) << ", " << ch
-           << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
-           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch
-           << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
+        os << ", " << ch << "ID:" << e->get_id() << ", " << ch << "LEN:0x" << std::hex << static_cast<unsigned>(e->get_length()) << ", "
+           << ch << "SIZE:0x" << static_cast<unsigned>(e->get_size()) << std::dec << ", " << ch << "BURST:" << to_char(e->get_burst())
+           << ", " << ch << "PROT:" << static_cast<unsigned>(e->get_prot()) << ", " << ch
+           << "CACHE:" << static_cast<unsigned>(e->get_cache()) << ", " << ch << "QOS:" << static_cast<unsigned>(e->get_qos()) << ", " << ch
            << "REGION:" << static_cast<unsigned>(e->get_region());
     }
     os << " [ptr:" << &t << "]";
@@ -243,12 +235,12 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
         if(!wr_valid[snoop & 0xf][to_int(ext->get_domain())])
             return "illegal write snoop value";
     }
-    if(cache<2 && domain != axi::domain_e::SYSTEM)
+    if(cache < 2 && domain != axi::domain_e::SYSTEM)
         return "non-cacheable transactions require AXDOMAIN setting of SYSTEM(0x3) based on specification";
-    if(cache>3 && domain == axi::domain_e::SYSTEM)
+    if(cache > 3 && domain == axi::domain_e::SYSTEM)
         return "cacheable transaction must not set AXDOMAIN to SYSTEM(0x3) based on specification";
     if((cache & 2) == 0 && domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM) {
-        if( domain != domain_e::INNER_SHAREABLE)
+        if(domain != domain_e::INNER_SHAREABLE)
             return "illegal AXDOMAIN=INNER_SHAREABLE(0x1) for no non-cacheable access";
         return "illegal AXDOMAIN=OUTER_SHAREABLE(0x2) for no non-cacheable access";
     }
@@ -292,8 +284,7 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     default:
         break;
     }
-    if((ext->get_barrier() == bar_e::MEMORY_BARRIER || ext->get_barrier() == bar_e::SYNCHRONISATION_BARRIER) &&
-       (snoop & 0xf) != 0)
+    if((ext->get_barrier() == bar_e::MEMORY_BARRIER || ext->get_barrier() == bar_e::SYNCHRONISATION_BARRIER) && (snoop & 0xf) != 0)
         return "illegal barrier/snoop value combination";
     switch(cache) {
     case 4:

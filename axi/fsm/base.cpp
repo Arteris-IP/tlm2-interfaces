@@ -21,21 +21,22 @@
 #include "base.h"
 #include "protocol_fsm.h"
 #include <scc/report.h>
+#include <scc/utilities.h>
 #include <systemc>
 #include <tlm/scc/tlm_id.h>
 #include <tlm/scc/tlm_mm.h>
-#include <scc/utilities.h>
 
 using namespace sc_core;
 using namespace tlm;
 namespace axi {
 namespace fsm {
 
-fsm_handle::fsm_handle():fsm{new AxiProtocolFsm()} {
+fsm_handle::fsm_handle()
+: fsm{new AxiProtocolFsm()} {
     fsm->initiate();
 }
 
-fsm_handle::~fsm_handle(){
+fsm_handle::~fsm_handle() {
     fsm->terminate();
     delete fsm;
 }
@@ -82,8 +83,8 @@ fsm_handle* base::find_or_create(payload_type* gp, bool ace) {
         if(gp != nullptr) {
             fsm_hndl->trans = gp;
         } else {
-            fsm_hndl->trans = ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>()
-                                  : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
+            fsm_hndl->trans =
+                ace ? tlm::scc::tlm_mm<>::get().allocate<ace_extension>() : tlm::scc::tlm_mm<>::get().allocate<axi4_extension>();
         }
         active_fsm.insert(std::make_pair(fsm_hndl->trans.get(), fsm_hndl));
         fsm_hndl->start = sc_time_stamp();
@@ -111,8 +112,7 @@ void base::process_fsm_clk_queue() {
         while(fsm_clk_queue.avail()) {
             auto entry = fsm_clk_queue.front();
             if(std::get<2>(entry) == 0) {
-                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans "
-                                        << *std::get<1>(entry);
+                SCCTRACE(instance_name) << "processing event " << evt2str(std::get<0>(entry)) << " of trans " << *std::get<1>(entry);
                 react(std::get<0>(entry), std::get<1>(entry));
             } else {
                 std::get<2>(entry) -= 1;
@@ -126,16 +126,15 @@ void base::process_fsm_clk_queue() {
 }
 
 void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
-    SCCTRACE(instance_name)<< "in react() base has  coherent =" << coherent << " with event " << evt2str(event);
-    fsm_hndl->state=event;
+    SCCTRACE(instance_name) << "in react() base has  coherent =" << coherent << " with event " << evt2str(event);
+    fsm_hndl->state = event;
     switch(event) {
     case WValidE:
         fsm_hndl->fsm->process_event(WReq());
         return;
     case WReadyE:
     case RequestPhaseBeg:
-        if(is_burst(*fsm_hndl->trans) && fsm_hndl->trans->is_write() &&
-           !is_dataless(fsm_hndl->trans->get_extension<axi::ace_extension>()))
+        if(is_burst(*fsm_hndl->trans) && fsm_hndl->trans->is_write() && !is_dataless(fsm_hndl->trans->get_extension<axi::ace_extension>()))
             fsm_hndl->fsm->process_event(BegPartReq());
         else
             fsm_hndl->fsm->process_event(BegReq());
@@ -162,7 +161,7 @@ void base::react(protocol_time_point_e event, axi::fsm::fsm_handle* fsm_hndl) {
         fsm_hndl->fsm->process_event(BegResp());
         return;
     case EndRespE:
-        SCCTRACE(instance_name)<< "in EndResp of base() with coherent =" << coherent;
+        SCCTRACE(instance_name) << "in EndResp of base() with coherent =" << coherent;
         if(!coherent || fsm_hndl->is_snoop) {
             SCCTRACE(instance_name) << "freeing fsm for trans " << *fsm_hndl->trans;
             fsm_hndl->fsm->process_event(EndResp());
@@ -260,5 +259,5 @@ tlm_sync_enum base::nb_bw(payload_type& trans, phase_type const& phase, sc_time&
     return TLM_ACCEPTED;
 }
 
-}
-}
+} // namespace fsm
+} // namespace axi

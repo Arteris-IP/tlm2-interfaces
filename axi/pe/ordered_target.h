@@ -16,15 +16,15 @@
 
 #pragma once
 
+#include "target_info_if.h"
 #include <axi/pe/axi_target_pe.h>
 #include <cci_configuration>
-#include "target_info_if.h"
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
 //! protocol engine implementations
 namespace pe {
-class rate_limiting_buffer: public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
+class rate_limiting_buffer : public sc_core::sc_module, tlm::scc::pe::intor_fw_nb {
 public:
     sc_core::sc_in<bool> clk_i{"clk_i"};
 
@@ -72,6 +72,7 @@ public:
      * @param sync if true send with next rising clock edge of the pe otherwise send it immediately
      */
     void snoop_resp(tlm::tlm_generic_payload& payload, bool sync = false) override {}
+
 protected:
     sc_core::sc_clock* clk_if{nullptr};
     sc_core::sc_time time_per_byte_rd, time_per_byte_wr, time_per_byte_total;
@@ -89,7 +90,6 @@ protected:
     void process_req2resp_fifos();
     void start_rd_resp_thread();
     void start_wr_resp_thread();
-
 };
 /**
  * the target socket protocol engine(s) adapted to a particular target socket configuration,
@@ -113,7 +113,7 @@ public:
     ordered_target(const sc_core::sc_module_name& nm)
     : sc_core::sc_module(nm)
     , pe("pe", BUSWIDTH)
-    , rate_limit_buffer("rate_limit_buffer", pe.rd_resp_delay, pe.wr_resp_delay){
+    , rate_limit_buffer("rate_limit_buffer", pe.rd_resp_delay, pe.wr_resp_delay) {
         sckt(pe);
         pe.clk_i(clk_i);
         rate_limit_buffer.clk_i(clk_i);
@@ -131,14 +131,15 @@ public:
 
     ordered_target& operator=(ordered_target&&) = delete;
 
-    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx();}
+    size_t get_outstanding_tx_count() override { return pe.getAllOutStandingTx(); }
 
 protected:
-    void end_of_elaboration(){
+    void end_of_elaboration() {
         auto* ifs = sckt.get_base_port().get_interface(0);
-        sc_assert(ifs!=nullptr);
+        sc_assert(ifs != nullptr);
         pe.set_bw_interface(ifs);
     }
+
 public:
     axi_target_pe pe;
     rate_limiting_buffer rate_limit_buffer;

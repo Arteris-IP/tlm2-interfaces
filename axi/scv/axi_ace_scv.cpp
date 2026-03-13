@@ -30,8 +30,7 @@ class tlm_id_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<a
         }
     }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {
-    }
+    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {}
 };
 
 class axi3_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
@@ -136,18 +135,18 @@ __attribute__((constructor))
 #endif
 bool register_extensions() {
     tlm::scc::tlm_id_extension ext(nullptr); // NOLINT
-    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        ext.ID, new tlm_id_ext_recording()); // NOLINT
-    axi::axi3_extension ext3; // NOLINT
+    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext.ID,
+                                                                                                      new tlm_id_ext_recording()); // NOLINT
+    axi::axi3_extension ext3;                                                                                                      // NOLINT
     tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         ext3.ID, new axi::scv::axi3_ext_recording()); // NOLINT
-    axi::axi4_extension ext4;                    // NOLINT
+    axi::axi4_extension ext4;                         // NOLINT
     tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         ext4.ID, new axi::scv::axi4_ext_recording()); // NOLINT
-    axi::ace_extension extace;                   // NOLINT
+    axi::ace_extension extace;                        // NOLINT
     tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
         extace.ID, new axi::scv::ace_ext_recording()); // NOLINT
-    return true;                                  // NOLINT
+    return true;                                       // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv

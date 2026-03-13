@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <axi/pe/axi_target_pe.h>
 #include "target_info_if.h"
+#include <axi/pe/axi_target_pe.h>
 
 //! TLM2.0 components modeling AXI/ACE
 namespace axi {
@@ -44,7 +44,8 @@ public:
     : // @suppress("Class members should be properly initialized")
         simple_target(sc_core::sc_gen_unique_name("simple_target"), socket) {}
 
-    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket, flavor_e flavor= flavor_e::AXI)
+    simple_target(const sc_core::sc_module_name& nm, axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket,
+                  flavor_e flavor = flavor_e::AXI)
     : axi_target_pe(nm, BUSWIDTH, flavor)
     , socket(socket) {
         socket(*this);
@@ -61,14 +62,14 @@ public:
 
     simple_target& operator=(simple_target&&) = delete;
 
-    size_t get_outstanding_tx_count() override { return getAllOutStandingTx();}
+    size_t get_outstanding_tx_count() override { return getAllOutStandingTx(); }
 
 protected:
     axi::axi_target_socket<BUSWIDTH, TYPES, N, POL>& socket;
 
     void end_of_elaboration() override {
         base::end_of_elaboration();
-        set_bw_interface(socket.get_base_port().operator -> ());
+        set_bw_interface(socket.get_base_port().operator->());
     }
 };
 

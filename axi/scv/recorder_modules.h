@@ -31,8 +31,7 @@ namespace scv {
  * The transaction recorder is simply bound between an existing pair of
  * initiator and target sockets
  */
-template <unsigned int BUSWIDTH, typename TYPES, typename BASE>
-class axitlm_recorder_module : public sc_core::sc_module, public BASE {
+template <unsigned int BUSWIDTH, typename TYPES, typename BASE> class axitlm_recorder_module : public sc_core::sc_module, public BASE {
 public:
     SC_HAS_PROCESS(axitlm_recorder_module); // NOLINT
     //! The target socket of the recorder to be bound to the initiator
@@ -59,21 +58,23 @@ public:
 
     ~axitlm_recorder_module() {}
 
-    typename BASE::template target_socket_type<BUSWIDTH>::base_type::fw_interface_type* get_fw_if() override { return isckt.get_base_port().operator->(); }
+    typename BASE::template target_socket_type<BUSWIDTH>::base_type::fw_interface_type* get_fw_if() override {
+        return isckt.get_base_port().operator->();
+    }
 
-    typename BASE::template target_socket_type<BUSWIDTH>::base_type::bw_interface_type* get_bw_if() override { return tsckt.get_base_port().operator->(); }
+    typename BASE::template target_socket_type<BUSWIDTH>::base_type::bw_interface_type* get_bw_if() override {
+        return tsckt.get_base_port().operator->();
+    }
 
 private:
     void start_of_simulation() override { BASE::initialize_streams(); }
 };
 
 template <unsigned int BUSWIDTH = 32>
-using axi_recorder_module =
-    axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_types, axi_recorder<axi::axi_protocol_types>>;
+using axi_recorder_module = axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_types, axi_recorder<axi::axi_protocol_types>>;
 
 template <unsigned int BUSWIDTH = 32>
-using ace_recorder_module =
-    axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_types, ace_recorder<axi::axi_protocol_types>>;
+using ace_recorder_module = axitlm_recorder_module<BUSWIDTH, axi::axi_protocol_types, ace_recorder<axi::axi_protocol_types>>;
 
 } // namespace scv
 } // namespace axi

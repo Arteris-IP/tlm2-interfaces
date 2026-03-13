@@ -30,10 +30,7 @@ namespace fsm {
 //! forward declaration to reduce dependencies
 struct fsm_handle;
 
-inline std::ostream& operator<<(std::ostream& os,
-                                const std::tuple<axi::fsm::fsm_handle*, axi::fsm::protocol_time_point_e>&) {
-    return os;
-}
+inline std::ostream& operator<<(std::ostream& os, const std::tuple<axi::fsm::fsm_handle*, axi::fsm::protocol_time_point_e>&) { return os; }
 
 using axi::operator<<;
 
@@ -49,8 +46,7 @@ struct base {
      * @param transfer_width the bus width in bytes
      * @param wr_start the phase to start a write access
      */
-    base(size_t transfer_width, bool coherent = false,
-         axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
+    base(size_t transfer_width, bool coherent = false, axi::fsm::protocol_time_point_e wr_start = axi::fsm::RequestPhaseBeg);
     /**
      * @brief the destructor
      */
@@ -108,8 +104,7 @@ struct base {
         schedule(e, gp.get(), cycles);
     }
     void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, unsigned cycles) {
-        SCCTRACE(instance_name) << "pushing sync event " << evt2str(e) << " for transaction " << *gp
-                                << " (sync:" << cycles << ")";
+        SCCTRACE(instance_name) << "pushing sync event " << evt2str(e) << " for transaction " << *gp << " (sync:" << cycles << ")";
         fsm_clk_queue.push_back(std::make_tuple(e, gp, cycles));
     }
     /**
@@ -120,10 +115,8 @@ struct base {
                          bool syncronize = false) {
         schedule(e, gp.get(), delay, syncronize);
     }
-    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay,
-                  bool syncronize = false) {
-        SCCTRACE(instance_name) << "pushing event " << evt2str(e) << " for transaction " << *gp << " (delay " << delay
-                                << ")";
+    void schedule(axi::fsm::protocol_time_point_e e, payload_type* gp, sc_core::sc_time delay, bool syncronize = false) {
+        SCCTRACE(instance_name) << "pushing event " << evt2str(e) << " for transaction " << *gp << " (delay " << delay << ")";
         fsm_event_queue.notify(std::make_tuple(e, gp, syncronize), delay);
     }
     /**
@@ -131,13 +124,10 @@ struct base {
      * @param event the event triggering the FSM
      * @param trans the AXITLM transaction the event belongs to
      */
-    inline void react(axi::fsm::protocol_time_point_e event, tlm::scc::tlm_gp_shared_ptr& trans) {
-        react(event, trans.get());
-    }
+    inline void react(axi::fsm::protocol_time_point_e event, tlm::scc::tlm_gp_shared_ptr& trans) { react(event, trans.get()); }
 
     inline void react(axi::fsm::protocol_time_point_e event, payload_type* trans) {
-        SCCTRACE(instance_name) << "processing event " << evt2str(static_cast<unsigned>(event)) << " for trans "
-                                << *trans;
+        SCCTRACE(instance_name) << "processing event " << evt2str(static_cast<unsigned>(event)) << " for trans " << *trans;
         auto fsm_hndl = active_fsm[trans];
         if(!fsm_hndl) {
             SCCFATAL(instance_name) << "No valid FSM found for trans " << std::hex << trans;
