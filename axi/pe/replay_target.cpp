@@ -1,11 +1,9 @@
 #include "replay_target.h"
-#include <fstream>
-#include <yaml-cpp/exceptions.h>
-#include <yaml-cpp/node/parse.h>
-#include <yaml-cpp/yaml.h>
 
 namespace axi {
 namespace pe {
+
+const unsigned int CATCH_ALL_SEQUENCE = 0;
 
 replay_buffer::replay_buffer(const sc_core::sc_module_name& nm)
 : sc_core::sc_module(nm) {
@@ -31,7 +29,10 @@ void replay_buffer::start_of_simulation() {
             while(std::getline(ifs, line)) {
                 auto token = util::split(line, ',');
                 auto addr = strtoull(token[1].c_str(), nullptr, 10);
-                auto id = strtoull(token[2].c_str(), nullptr, 10);
+                auto id = CATCH_ALL_SEQUENCE;
+                if (token[2].c_str()[0] != '*') {
+                    id = strtoull(token[2].c_str(), nullptr, 10) + 1;
+                }
                 auto start_cycle = strtoull(token[3].c_str(), nullptr, 10);
                 auto req_resp_lat = strtoull(token[4].c_str(), nullptr, 10);
                 if(token[0] == "READ") {
@@ -42,6 +43,8 @@ void replay_buffer::start_of_simulation() {
                     if(id >= wr_sequence.size())
                         wr_sequence.resize(id + 1);
                     wr_sequence[id].emplace_back(addr, req_resp_lat);
+                } else {
+                    SCCWARN(SCMOD) << "Illegal command in replay file: " << line;
                 }
             }
         }
@@ -50,18 +53,29 @@ void replay_buffer::start_of_simulation() {
 }
 
 void replay_buffer::transport(tlm::tlm_generic_payload& trans, bool lt_transport) {
-    auto id = axi::get_axi_id(trans);
+    auto id = axi::get_axi_id(trans) + 1;
     auto addr = trans.get_address();
     auto cycle = clk_if ? sc_core::sc_time_stamp() / clk_if->period() : 0;
+
+    auto find_and_push = [&](auto& sequence, auto& fifo) {
+        auto it = std::find_if(std::begin(sequence), std::end(sequence),
+                                [addr](entry_t const& e) { return std::get<0>(e) == addr; });
+        if(it != std::end(sequence)) {
+            fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
+            sequence.erase(it);
+            return true;
+        }
+        return false;
+    };
+
     if(trans.is_write()) {
         if(id < wr_sequence.size() && wr_sequence[id].size()) {
-            auto it = std::find_if(std::begin(wr_sequence[id]), std::end(wr_sequence[id]),
-                                   [addr](entry_t const& e) { return std::get<0>(e) == addr; });
-            if(it != std::end(wr_sequence[id])) {
-                wr_req2resp_fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
-                wr_sequence[id].erase(it);
+            if(find_and_push(wr_sequence[id], wr_req2resp_fifo)) {
                 return;
             }
+        }
+        if(wr_sequence.size() && find_and_push(wr_sequence[CATCH_ALL_SEQUENCE], wr_req2resp_fifo)) {
+            return;
         }
         if(replay_file_name.get_value().length()) {
             SCCWARN(SCMOD) << "No transaction in write sequence buffer for " << trans;
@@ -69,13 +83,12 @@ void replay_buffer::transport(tlm::tlm_generic_payload& trans, bool lt_transport
         wr_req2resp_fifo.push_back(std::make_tuple(&trans, 0));
     } else if(trans.is_read()) {
         if(id < rd_sequence.size() && rd_sequence[id].size()) {
-            auto it = std::find_if(std::begin(rd_sequence[id]), std::end(rd_sequence[id]),
-                                   [addr](entry_t const& e) { return std::get<0>(e) == addr; });
-            if(it != std::end(rd_sequence[id])) {
-                rd_req2resp_fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
-                rd_sequence[id].erase(it);
+            if(find_and_push(rd_sequence[id], rd_req2resp_fifo)) {
                 return;
             }
+        }
+        if(rd_sequence.size() && find_and_push(rd_sequence[CATCH_ALL_SEQUENCE], rd_req2resp_fifo)) {
+            return;
         }
         if(replay_file_name.get_value().length()) {
             SCCWARN(SCMOD) << "No transaction in read sequence buffer for " << trans;
@@ -150,8 +163,8 @@ void replay_buffer::start_wr_resp_thread() {
                         total_residual_clocks = clocks - delay;
                         wait(delay * clk_if->period());
                         wait(clk_i.posedge_event());
-                    } else if(time_per_byte_rd.value()) {
-                        auto clocks = trans->get_data_length() * time_per_byte_rd / clk_if->period() + residual_clocks;
+                    } else if(time_per_byte_wr.value()) {
+                        auto clocks = trans->get_data_length() * time_per_byte_wr / clk_if->period() + residual_clocks;
                         auto delay = static_cast<unsigned>(clocks);
                         residual_clocks = clocks - delay;
                         wait(delay * clk_if->period());
