@@ -57,7 +57,8 @@ void replay_buffer::transport(tlm::tlm_generic_payload& trans, bool lt_transport
     auto addr = trans.get_address();
     auto cycle = clk_if ? sc_core::sc_time_stamp() / clk_if->period() : 0;
 
-    auto find_and_push = [&](auto& sequence, auto& fifo) {
+    auto find_and_push = [&](std::vector<entry_t>& sequence, 
+                             scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>>& fifo) {
         auto it = std::find_if(std::begin(sequence), std::end(sequence),
                                 [addr](entry_t const& e) { return std::get<0>(e) == addr; });
         if(it != std::end(sequence)) {
