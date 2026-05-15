@@ -370,173 +370,261 @@ template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension
 namespace chi {
 using namespace tlm::scc::scv;
 
-class tlm_id_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
+struct tlm_id_ext_record : public tlm_extension_record_if {
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
+    tlm_id_ext_record() { recordBegin = &tlm_id_ext_record::recordBeginTx; }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const&) {
+        if(auto ext = dynamic_cast<tlm::scc::tlm_id_extension*>(e)) {
             handle.record_attribute("trans.uid", ext->id);
         }
     }
-
-    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {}
 };
 
-class chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
+struct tlm_id_ext_recording : public tlm_extensions_recording_if<chi::chi_protocol_types> {
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        auto ext = trans.get_extension<chi_ctrl_extension>();
-        if(ext) {
-            handle.record_attribute("trans.chi_c.qos", ext->get_qos());
-            handle.record_attribute("trans.chi_c.src_id", ext->get_src_id());
-            handle.record_attribute("trans.chi_c.txn_id", ext->get_txn_id());
-            handle.record_attribute("trans.chi_c.tgt_id", ext->req.get_tgt_id());
-            handle.record_attribute("trans.chi_c.lp_id", ext->req.get_lp_id());
-            handle.record_attribute("trans.chi_c.return_txn_id", ext->req.get_return_txn_id());
-            handle.record_attribute("trans.chi_c.stash_lp_id", ext->req.get_stash_lp_id());
-            handle.record_attribute("trans.chi_c.size", ext->req.get_size());
-            handle.record_attribute("trans.chi_c.mem_attr", ext->req.get_mem_attr());
-            handle.record_attribute("trans.chi_c.req.pcrd_type", ext->req.get_pcrd_type());
-            handle.record_attribute("trans.chi_c.order", ext->req.get_order());
-            handle.record_attribute("trans.chi_c.endian", ext->req.is_endian());
-            handle.record_attribute("trans.chi_c.req.trace_tag", ext->req.is_trace_tag());
-            handle.record_attribute("trans.chi_c.return_n_id", ext->req.get_return_n_id());
-            handle.record_attribute("trans.chi_c.stash_n_id", ext->req.get_stash_n_id());
-            handle.record_attribute("trans.chi_c.opcode", std::string(to_char(ext->req.get_opcode())));
-            handle.record_attribute("trans.chi_c.stash_nnode_id_valid", ext->req.is_stash_n_id_valid());
-            handle.record_attribute("trans.chi_c.stash_lp_id_valid", ext->req.is_stash_lp_id_valid());
-            handle.record_attribute("trans.chi_c.non_secure", ext->req.is_non_secure());
-            handle.record_attribute("trans.chi_c.exp_comp_ack", ext->req.is_exp_comp_ack());
-            handle.record_attribute("trans.chi_c.allow_retry", ext->req.is_allow_retry());
-            handle.record_attribute("trans.chi_c.snp_attr", ext->req.is_snp_attr());
-            handle.record_attribute("trans.chi_c.excl", ext->req.is_excl());
-            handle.record_attribute("trans.chi_c.snoop_me", ext->req.is_snoop_me());
-            handle.record_attribute("trans.chi_c.likely_shared", ext->req.is_likely_shared());
-            handle.record_attribute("trans.chi_c.txn_rsvdc", ext->req.get_rsvdc()); // Reserved for customer use.
-            handle.record_attribute("trans.chi_c.tag_op", ext->req.get_tag_op());
-            handle.record_attribute("trans.chi_c.tag_group_id", ext->req.get_tag_group_id());
-            handle.record_attribute("trans.chi_c.mpam", ext->req.get_mpam());
-            handle.record_attribute("trans.chi_c.rsp.db_id", ext->resp.get_db_id());
-            handle.record_attribute("trans.chi_c.rsp.pcrd_type", ext->resp.get_pcrd_type());
-            handle.record_attribute("trans.chi_c.rsp.resp_err", std::string(to_char(ext->resp.get_resp_err())));
-            handle.record_attribute("trans.chi_c.rsp.fwd_state", ext->resp.get_fwd_state());
-            handle.record_attribute("trans.chi_c.rsp.data_pull", ext->resp.get_data_pull());
-            handle.record_attribute("trans.chi_c.rsp.opcode", std::string(to_char(ext->resp.get_opcode())));
-            handle.record_attribute("trans.chi_c.rsp.resp", std::string(to_char(ext->resp.get_resp())));
-            handle.record_attribute("trans.chi_c.rsp.tgt_id", ext->resp.get_tgt_id());
-            handle.record_attribute("trans.chi_c.rsp.trace_tag", ext->resp.is_trace_tag());
-            handle.record_attribute("trans.chi_c.rsp.tag_op", ext->resp.get_tag_op());
-            handle.record_attribute("trans.chi_c.rsp.tag_group_id", ext->resp.get_tag_group_id());
-        }
+    tlm_id_ext_recording() { recordBegin = &recordBeginTx; }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(tlm::scc::tlm_id_extension::ID, handle,
+                                                           trans.get_extension<tlm::scc::tlm_id_extension>());
     }
-
-    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
 
-class chi_data_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
+struct chi_ctrl_ext_record : public tlm_extension_record_if {
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        auto ext = trans.get_extension<chi_data_extension>();
-        if(ext) {
-            handle.record_attribute("trans.chi_d.qos", ext->get_qos());
-            handle.record_attribute("trans.chi_d.src_id", ext->get_src_id());
-            handle.record_attribute("trans.chi_d.txn_id", ext->get_txn_id());
-            handle.record_attribute("trans.chi_d.db_id", ext->dat.get_db_id());
-            handle.record_attribute("trans.chi_d.resp_err", std::string(to_char(ext->dat.get_resp_err())));
-            handle.record_attribute("trans.chi_d.resp", std::string(to_char(ext->dat.get_resp())));
-            handle.record_attribute("trans.chi_d.fwd_state", ext->dat.get_fwd_state());
-            handle.record_attribute("trans.chi_d.data_pull", ext->dat.get_data_pull());
-            handle.record_attribute("trans.chi_d.data_source", ext->dat.get_data_source());
-            handle.record_attribute("trans.chi_d.cc_id", ext->dat.get_cc_id());
-            handle.record_attribute("trans.chi_d.data_id", ext->dat.get_data_id());
-            handle.record_attribute("trans.chi_d.poison", ext->dat.get_poison());
-            handle.record_attribute("trans.chi_d.tgt_id", ext->dat.get_tgt_id());
-            handle.record_attribute("trans.chi_d.home_node_id", ext->dat.get_home_n_id());
-            handle.record_attribute("trans.chi_d.opcode", std::string(to_char(ext->dat.get_opcode())));
-            handle.record_attribute("trans.chi_d.rsvdc", ext->dat.get_rsvdc());
-            handle.record_attribute("trans.chi_d.data_check", ext->dat.get_data_check());
-            handle.record_attribute("trans.chi_d.trace_tag", ext->dat.is_trace_tag());
-            handle.record_attribute("trans.chi_d.tag_op", ext->dat.get_tag_op());
-            handle.record_attribute("trans.chi_c.tag", ext->dat.get_tag());
-            handle.record_attribute("trans.chi_c.tu", ext->dat.get_tu());
-        }
-    }
+    chi_ctrl_ext_record() { recordBegin = &chi_ctrl_ext_record::record; }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
-};
-
-class chi_snp_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
-
-    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        auto ext = trans.get_extension<chi_snp_extension>();
-        if(ext) {
-            handle.record_attribute("trans.chi_s.qos", ext->get_qos());
-            handle.record_attribute("trans.chi_s.src_id", ext->get_src_id());
-            handle.record_attribute("trans.chi_s.txn_id", ext->get_txn_id());
-            handle.record_attribute("trans.chi_s.fwd_txn_id", ext->req.get_fwd_txn_id());
-            handle.record_attribute("trans.chi_s.stash_lp_id", ext->req.get_stash_lp_id());
-            handle.record_attribute("trans.chi_s.vm_id_ext", ext->req.get_vm_id_ext());
-            handle.record_attribute("trans.chi_s.stash_lp_id_valid", ext->req.is_stash_lp_id_valid());
-            handle.record_attribute("trans.chi_s.opcode", std::string(to_char(ext->req.get_opcode())));
-            handle.record_attribute("trans.chi_s.fwd_n_id", ext->req.get_fwd_n_id());
-            handle.record_attribute("trans.chi_s.non_secure", ext->req.is_non_secure());
-            handle.record_attribute("trans.chi_s.do_not_goto_sd", ext->req.is_do_not_goto_sd());
-            handle.record_attribute("trans.chi_s.do_not_data_pull", ext->req.is_do_not_data_pull());
-            handle.record_attribute("trans.chi_s.ret_to_src", ext->req.is_ret_to_src());
-            handle.record_attribute("trans.chi_s.trace_tag", ext->req.is_trace_tag());
-            handle.record_attribute("trans.chi_s.rsp.db_id", ext->resp.get_db_id());
-            handle.record_attribute("trans.chi_s.rsp.pcrd_type", ext->resp.get_pcrd_type());
-            handle.record_attribute("trans.chi_s.rsp.resp_err", std::string(to_char(ext->resp.get_resp_err())));
-            handle.record_attribute("trans.chi_s.rsp.fwd_state", ext->resp.get_fwd_state());
-            handle.record_attribute("trans.chi_s.rsp.data_pull", ext->resp.get_data_pull());
-            handle.record_attribute("trans.chi_s.rsp.opcode", std::string(to_char(ext->resp.get_opcode())));
-            handle.record_attribute("trans.chi_s.rsp.resp", std::string(to_char(ext->resp.get_resp())));
-            handle.record_attribute("trans.chi_s.rsp.tgt_id", ext->resp.get_tgt_id());
-            handle.record_attribute("trans.chi_s.rsp.trace_tag", ext->resp.is_trace_tag());
-        }
-    }
-
-    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
-};
-
-class chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
-
-    void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        auto ext = trans.get_extension<chi_credit_extension>();
-        if(ext) {
-            handle.record_attribute("trans.chi_credit.type", std::string(to_char(ext->type)));
-            handle.record_attribute("trans.chi_credit.count", ext->count);
-        }
-    }
-
-    void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        auto ext = trans.get_extension<chi_credit_extension>();
-        if(ext) {
-            handle.record_attribute("trans.chi_credit.type", std::string(to_char(ext->type)));
-            handle.record_attribute("trans.chi_credit.count", ext->count);
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<chi_ctrl_extension*>(e)) {
+            handle.record_attribute((prefix + "trans.chi_c.qos").c_str(), ext->get_qos());
+            handle.record_attribute((prefix + "trans.chi_c.src_id").c_str(), ext->get_src_id());
+            handle.record_attribute((prefix + "trans.chi_c.txn_id").c_str(), ext->get_txn_id());
+            handle.record_attribute((prefix + "trans.chi_c.tgt_id").c_str(), ext->req.get_tgt_id());
+            handle.record_attribute((prefix + "trans.chi_c.lp_id").c_str(), ext->req.get_lp_id());
+            handle.record_attribute((prefix + "trans.chi_c.return_txn_id").c_str(), ext->req.get_return_txn_id());
+            handle.record_attribute((prefix + "trans.chi_c.stash_lp_id").c_str(), ext->req.get_stash_lp_id());
+            handle.record_attribute((prefix + "trans.chi_c.size").c_str(), ext->req.get_size());
+            handle.record_attribute((prefix + "trans.chi_c.mem_attr").c_str(), ext->req.get_mem_attr());
+            handle.record_attribute((prefix + "trans.chi_c.req.pcrd_type").c_str(), ext->req.get_pcrd_type());
+            handle.record_attribute((prefix + "trans.chi_c.order").c_str(), ext->req.get_order());
+            handle.record_attribute((prefix + "trans.chi_c.endian").c_str(), ext->req.is_endian());
+            handle.record_attribute((prefix + "trans.chi_c.req.trace_tag").c_str(), ext->req.is_trace_tag());
+            handle.record_attribute((prefix + "trans.chi_c.return_n_id").c_str(), ext->req.get_return_n_id());
+            handle.record_attribute((prefix + "trans.chi_c.stash_n_id").c_str(), ext->req.get_stash_n_id());
+            handle.record_attribute((prefix + "trans.chi_c.opcode").c_str(), std::string(to_char(ext->req.get_opcode())));
+            handle.record_attribute((prefix + "trans.chi_c.stash_nnode_id_valid").c_str(), ext->req.is_stash_n_id_valid());
+            handle.record_attribute((prefix + "trans.chi_c.stash_lp_id_valid").c_str(), ext->req.is_stash_lp_id_valid());
+            handle.record_attribute((prefix + "trans.chi_c.non_secure").c_str(), ext->req.is_non_secure());
+            handle.record_attribute((prefix + "trans.chi_c.exp_comp_ack").c_str(), ext->req.is_exp_comp_ack());
+            handle.record_attribute((prefix + "trans.chi_c.allow_retry").c_str(), ext->req.is_allow_retry());
+            handle.record_attribute((prefix + "trans.chi_c.snp_attr").c_str(), ext->req.is_snp_attr());
+            handle.record_attribute((prefix + "trans.chi_c.excl").c_str(), ext->req.is_excl());
+            handle.record_attribute((prefix + "trans.chi_c.snoop_me").c_str(), ext->req.is_snoop_me());
+            handle.record_attribute((prefix + "trans.chi_c.likely_shared").c_str(), ext->req.is_likely_shared());
+            handle.record_attribute((prefix + "trans.chi_c.txn_rsvdc").c_str(), ext->req.get_rsvdc()); // Reserved for customer use.
+            handle.record_attribute((prefix + "trans.chi_c.tag_op").c_str(), ext->req.get_tag_op());
+            handle.record_attribute((prefix + "trans.chi_c.tag_group_id").c_str(), ext->req.get_tag_group_id());
+            handle.record_attribute((prefix + "trans.chi_c.mpam").c_str(), ext->req.get_mpam());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.db_id").c_str(), ext->resp.get_db_id());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.pcrd_type").c_str(), ext->resp.get_pcrd_type());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.resp_err").c_str(), std::string(to_char(ext->resp.get_resp_err())));
+            handle.record_attribute((prefix + "trans.chi_c.rsp.fwd_state").c_str(), ext->resp.get_fwd_state());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.data_pull").c_str(), ext->resp.get_data_pull());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.opcode").c_str(), std::string(to_char(ext->resp.get_opcode())));
+            handle.record_attribute((prefix + "trans.chi_c.rsp.resp").c_str(), std::string(to_char(ext->resp.get_resp())));
+            handle.record_attribute((prefix + "trans.chi_c.rsp.tgt_id").c_str(), ext->resp.get_tgt_id());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.trace_tag").c_str(), ext->resp.is_trace_tag());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.tag_op").c_str(), ext->resp.get_tag_op());
+            handle.record_attribute((prefix + "trans.chi_c.rsp.tag_group_id").c_str(), ext->resp.get_tag_group_id());
         }
     }
 };
+
+struct chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi::chi_protocol_types> {
+
+    chi_ctrl_ext_recording() { recordBegin = &recordBeginTx; }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_ctrl_extension::ID, handle, trans.get_extension<chi_ctrl_extension>());
+    }
+};
+
+struct chi_data_ext_record : public tlm_extension_record_if {
+
+    chi_data_ext_record() { recordBegin = &record; }
+
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<chi_data_extension*>(e)) {
+            handle.record_attribute((prefix + "trans.chi_d.qos").c_str(), ext->get_qos());
+            handle.record_attribute((prefix + "trans.chi_d.src_id").c_str(), ext->get_src_id());
+            handle.record_attribute((prefix + "trans.chi_d.txn_id").c_str(), ext->get_txn_id());
+            handle.record_attribute((prefix + "trans.chi_d.db_id").c_str(), ext->dat.get_db_id());
+            handle.record_attribute((prefix + "trans.chi_d.resp_err").c_str(), std::string(to_char(ext->dat.get_resp_err())));
+            handle.record_attribute((prefix + "trans.chi_d.resp").c_str(), std::string(to_char(ext->dat.get_resp())));
+            handle.record_attribute((prefix + "trans.chi_d.fwd_state").c_str(), ext->dat.get_fwd_state());
+            handle.record_attribute((prefix + "trans.chi_d.data_pull").c_str(), ext->dat.get_data_pull());
+            handle.record_attribute((prefix + "trans.chi_d.data_source").c_str(), ext->dat.get_data_source());
+            handle.record_attribute((prefix + "trans.chi_d.cc_id").c_str(), ext->dat.get_cc_id());
+            handle.record_attribute((prefix + "trans.chi_d.data_id").c_str(), ext->dat.get_data_id());
+            handle.record_attribute((prefix + "trans.chi_d.poison").c_str(), ext->dat.get_poison());
+            handle.record_attribute((prefix + "trans.chi_d.tgt_id").c_str(), ext->dat.get_tgt_id());
+            handle.record_attribute((prefix + "trans.chi_d.home_node_id").c_str(), ext->dat.get_home_n_id());
+            handle.record_attribute((prefix + "trans.chi_d.opcode").c_str(), std::string(to_char(ext->dat.get_opcode())));
+            handle.record_attribute((prefix + "trans.chi_d.rsvdc").c_str(), ext->dat.get_rsvdc());
+            handle.record_attribute((prefix + "trans.chi_d.data_check").c_str(), ext->dat.get_data_check());
+            handle.record_attribute((prefix + "trans.chi_d.trace_tag").c_str(), ext->dat.is_trace_tag());
+            handle.record_attribute((prefix + "trans.chi_d.tag_op").c_str(), ext->dat.get_tag_op());
+            handle.record_attribute((prefix + "trans.chi_c.tag").c_str(), ext->dat.get_tag());
+            handle.record_attribute((prefix + "trans.chi_c.tu").c_str(), ext->dat.get_tu());
+        }
+    }
+};
+
+struct chi_data_ext_recording : public tlm_extensions_recording_if<chi::chi_protocol_types> {
+
+    chi_data_ext_recording() { recordBegin = &recordBeginTx; }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_data_extension::ID, handle, trans.get_extension<chi_data_extension>());
+    }
+};
+
+struct chi_snp_ext_record : public tlm_extension_record_if {
+
+    chi_snp_ext_record() { recordBegin = &record; }
+
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<chi_snp_extension*>(e)) {
+            handle.record_attribute((prefix + "trans.chi_s.qos").c_str(), ext->get_qos());
+            handle.record_attribute((prefix + "trans.chi_s.src_id").c_str(), ext->get_src_id());
+            handle.record_attribute((prefix + "trans.chi_s.txn_id").c_str(), ext->get_txn_id());
+            handle.record_attribute((prefix + "trans.chi_s.fwd_txn_id").c_str(), ext->req.get_fwd_txn_id());
+            handle.record_attribute((prefix + "trans.chi_s.stash_lp_id").c_str(), ext->req.get_stash_lp_id());
+            handle.record_attribute((prefix + "trans.chi_s.vm_id_ext").c_str(), ext->req.get_vm_id_ext());
+            handle.record_attribute((prefix + "trans.chi_s.stash_lp_id_valid").c_str(), ext->req.is_stash_lp_id_valid());
+            handle.record_attribute((prefix + "trans.chi_s.opcode").c_str(), std::string(to_char(ext->req.get_opcode())));
+            handle.record_attribute((prefix + "trans.chi_s.fwd_n_id").c_str(), ext->req.get_fwd_n_id());
+            handle.record_attribute((prefix + "trans.chi_s.non_secure").c_str(), ext->req.is_non_secure());
+            handle.record_attribute((prefix + "trans.chi_s.do_not_goto_sd").c_str(), ext->req.is_do_not_goto_sd());
+            handle.record_attribute((prefix + "trans.chi_s.do_not_data_pull").c_str(), ext->req.is_do_not_data_pull());
+            handle.record_attribute((prefix + "trans.chi_s.ret_to_src").c_str(), ext->req.is_ret_to_src());
+            handle.record_attribute((prefix + "trans.chi_s.trace_tag").c_str(), ext->req.is_trace_tag());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.db_id").c_str(), ext->resp.get_db_id());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.pcrd_type").c_str(), ext->resp.get_pcrd_type());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.resp_err").c_str(), std::string(to_char(ext->resp.get_resp_err())));
+            handle.record_attribute((prefix + "trans.chi_s.rsp.fwd_state").c_str(), ext->resp.get_fwd_state());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.data_pull").c_str(), ext->resp.get_data_pull());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.opcode").c_str(), std::string(to_char(ext->resp.get_opcode())));
+            handle.record_attribute((prefix + "trans.chi_s.rsp.resp").c_str(), std::string(to_char(ext->resp.get_resp())));
+            handle.record_attribute((prefix + "trans.chi_s.rsp.tgt_id").c_str(), ext->resp.get_tgt_id());
+            handle.record_attribute((prefix + "trans.chi_s.rsp.trace_tag").c_str(), ext->resp.is_trace_tag());
+        }
+    }
+};
+
+struct chi_snp_ext_recording : public tlm_extensions_recording_if<chi::chi_protocol_types> {
+
+    chi_snp_ext_recording() { recordBegin = &recordBeginTx; }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_snp_extension::ID, handle, trans.get_extension<chi_snp_extension>());
+    }
+};
+
+struct chi_credit_ext_record : public tlm_extension_record_if {
+
+    chi_credit_ext_record() {
+        recordBegin = &record_begin;
+        recordEnd = &record_end;
+    }
+
+    static void record_begin(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<chi_credit_extension*>(e)) {
+            handle.record_attribute((prefix + "trans.chi_credit.type").c_str(), std::string(to_char(ext->type)));
+            handle.record_attribute((prefix + "trans.chi_credit.count").c_str(), ext->count);
+        }
+    }
+
+    static void record_end(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<chi_credit_extension*>(e)) {
+            handle.record_attribute((prefix + "trans.chi_credit.type").c_str(), std::string(to_char(ext->type)));
+            handle.record_attribute((prefix + "trans.chi_credit.count").c_str(), ext->count);
+        }
+    }
+};
+
+struct chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
+
+    chi_credit_ext_recording() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
+        if(auto ext = trans.get_extension<chi_ctrl_extension>()) {
+            tlm_extension_record_registry::get().recordBeginTx(chi_ctrl_extension::ID, handle, trans.get_extension<chi_ctrl_extension>());
+        }
+        if(auto ext = trans.get_extension<chi_credit_extension>()) {
+            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_ctrl_extension>());
+        }
+    }
+    static void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
+        if(auto ext = trans.get_extension<chi_credit_extension>()) {
+            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_ctrl_extension>());
+        }
+    }
+};
+
 namespace scv {
 using namespace tlm::scc::scv;
 #if defined(__GNUG__)
 __attribute__((constructor))
 #endif
 bool register_extensions() {
-    tlm::scc::tlm_id_extension ext(nullptr);                                                                                // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(ext.ID, new tlm_id_ext_recording()); // NOLINT
-    chi::chi_ctrl_extension extchi_req;                                                                                     // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_req.ID,
-                                                                                       new chi::chi_ctrl_ext_recording()); // NOLINT
-    chi::chi_data_extension extchi_data;                                                                                   // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_data.ID,
-                                                                                       new chi::chi_data_ext_recording()); // NOLINT
-    chi::chi_snp_extension extchi_snp;                                                                                     // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_snp.ID,
-                                                                                       new chi::chi_snp_ext_recording()); // NOLINT
-    chi::chi_credit_extension extchi_credit;                                                                              // NOLINT
-    tlm_extension_recording_registry<chi::chi_protocol_types>::inst().register_ext_rec(extchi_credit.ID,
-                                                                                       new chi::chi_credit_ext_recording()); // NOLINT
-    return true;                                                                                                             // NOLINT
+    tlm::scc::tlm_id_extension ext(nullptr);                                                        // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(ext.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            ext.ID,
+            util::make_unique<tlm_id_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(ext.ID))
+        tlm_extension_record_registry::get().register_ext_rec(ext.ID,
+                                                              util::make_unique<tlm_id_ext_record>()); // NOLINT
+    /********************************************************************************************************************/
+    chi::chi_ctrl_extension extchi_req;                                                                    // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_req.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_req.ID,
+            util::make_unique<chi::chi_ctrl_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_req.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_req.ID, util::make_unique<chi::chi_ctrl_ext_record>()); // NOLINT
+    /********************************************************************************************************************/
+    chi::chi_data_extension extchi_data;                                                                    // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_data.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_data.ID,
+            util::make_unique<chi::chi_data_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_req.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_req.ID, util::make_unique<chi::chi_data_ext_record>()); // NOLINT
+    /********************************************************************************************************************/
+    chi::chi_snp_extension extchi_snp;                                                                     // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_snp.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_snp.ID,
+            util::make_unique<chi::chi_snp_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_snp.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_snp.ID,
+                                                              util::make_unique<chi::chi_snp_ext_record>()); // NOLINT
+    /********************************************************************************************************************/
+    chi::chi_credit_extension extchi_credit;                                                                  // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_credit.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_credit.ID,
+            util::make_unique<chi::chi_credit_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_credit.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_credit.ID,
+                                                              util::make_unique<chi::chi_credit_ext_record>()); // NOLINT
+    return true;                                                                                                // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv
