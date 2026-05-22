@@ -551,16 +551,14 @@ struct chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protoco
     }
 
     static void recordBeginTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
-        if(auto ext = trans.get_extension<chi_ctrl_extension>()) {
-            tlm_extension_record_registry::get().recordBeginTx(chi_ctrl_extension::ID, handle, trans.get_extension<chi_ctrl_extension>(), "trans.chi_c.");
-        }
+
         if(auto ext = trans.get_extension<chi_credit_extension>()) {
-            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_ctrl_extension>(), "trans.chi_credit.");
+            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_credit_extension>(), "trans.chi_credit.");
         }
     }
     static void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
         if(auto ext = trans.get_extension<chi_credit_extension>()) {
-            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_ctrl_extension>(), "trans.chi_credit.");
+            tlm_extension_record_registry::get().recordBeginTx(chi_credit_extension::ID, handle, trans.get_extension<chi_credit_extension>(), "trans.chi_credit.");
         }
     }
 };
