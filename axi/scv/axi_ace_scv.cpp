@@ -18,115 +18,181 @@
 #include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <tlm/scc/scv/tlm_recorder.h>
 #include <tlm/scc/tlm_id.h>
+#include <fmt/format.h>
 
 namespace axi {
 namespace scv {
 
-class tlm_id_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
+using namespace tlm::scc::scv;
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext = trans.get_extension<tlm::scc::tlm_id_extension>()) {
-            handle.record_attribute("trans.uid", ext->id);
-        }
-    }
+struct tlm_id_ext_recording : public tlm_extensions_recording_if<axi::axi_protocol_types> {
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_base_protocol_types::tlm_payload_type& trans) override {}
-};
+    tlm_id_ext_recording() { recordBegin = &recordBeginTx; }
 
-class axi3_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
-
-    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext3 = trans.get_extension<axi3_extension>()) { // CTRL, DATA, RESP
-            handle.record_attribute("trans.axi3.id", ext3->get_id());
-            handle.record_attribute("trans.axi3.user[CTRL]", ext3->get_user(common::id_type::CTRL));
-            handle.record_attribute("trans.axi3.user[DATA]", ext3->get_user(common::id_type::DATA));
-            handle.record_attribute("trans.axi3.user[RESP]", ext3->get_user(common::id_type::RESP));
-            handle.record_attribute("trans.axi3.length", ext3->get_length());
-            handle.record_attribute("trans.axi3.size", ext3->get_size());
-            handle.record_attribute("trans.axi3.burst", std::string(to_char(ext3->get_burst())));
-            handle.record_attribute("trans.axi3.prot", ext3->get_prot());
-            handle.record_attribute("trans.axi3.exclusive", std::string(ext3->is_exclusive() ? "true" : "false"));
-            handle.record_attribute("trans.axi3.cache", ext3->get_cache());
-            handle.record_attribute("trans.axi4.cache_bufferable", ext3->is_bufferable());
-            handle.record_attribute("trans.axi4.cache_cacheable", ext3->is_cacheable());
-            handle.record_attribute("trans.axi4.cache_read_alloc", ext3->is_read_allocate());
-            handle.record_attribute("trans.axi4.cache_write_alloc", ext3->is_write_allocate());
-            handle.record_attribute("trans.axi3.qos", ext3->get_qos());
-            handle.record_attribute("trans.axi3.region", ext3->get_region());
-        }
-    }
-
-    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext3 = trans.get_extension<axi3_extension>()) {
-            handle.record_attribute("trans.axi3.resp", std::string(to_char(ext3->get_resp())));
-        }
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(tlm::scc::tlm_id_extension::ID, handle,
+                                                           trans.get_extension<tlm::scc::tlm_id_extension>(), "trans.");
     }
 };
-class axi4_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext4 = trans.get_extension<axi4_extension>()) {
-            handle.record_attribute("trans.axi4.id", ext4->get_id());
-            handle.record_attribute("trans.axi4.user[CTRL]", ext4->get_user(common::id_type::CTRL));
-            handle.record_attribute("trans.axi4.user[DATA]", ext4->get_user(common::id_type::DATA));
-            handle.record_attribute("trans.axi4.user[RESP]", ext4->get_user(common::id_type::RESP));
-            handle.record_attribute("trans.axi4.length", ext4->get_length());
-            handle.record_attribute("trans.axi4.size", ext4->get_size());
-            handle.record_attribute("trans.axi4.burst", std::string(to_char(ext4->get_burst())));
-            handle.record_attribute("trans.axi4.prot", ext4->get_prot());
-            handle.record_attribute("trans.axi4.exclusive", std::string(ext4->is_exclusive() ? "true" : "false"));
-            handle.record_attribute("trans.axi4.cache", ext4->get_cache());
-            handle.record_attribute("trans.axi4.cache_bufferable", ext4->is_bufferable());
-            handle.record_attribute("trans.axi4.cache_modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.axi4.cache_allocate", ext4->is_allocate());
-            handle.record_attribute("trans.axi4.cache_other_alloc", ext4->is_other_allocate());
-            handle.record_attribute("trans.axi4.qos", ext4->get_qos());
-            handle.record_attribute("trans.axi4.region", ext4->get_region());
-        }
+struct axi3_ext_record : public tlm_extension_record_if {
+
+    axi3_ext_record() {
+        recordBegin = &recordBeginTx;
+        recordEnd = recordEndTx;
     }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext4 = trans.get_extension<axi4_extension>()) {
-            handle.record_attribute("trans.axi4.resp", std::string(to_char(ext4->get_resp())));
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<axi3_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}id", prefix).c_str(), ext->get_id());
+            handle.record_attribute(fmt::format("{}user[CTRL]", prefix).c_str(), ext->get_user(common::id_type::CTRL));
+            handle.record_attribute(fmt::format("{}user[DATA]", prefix).c_str(), ext->get_user(common::id_type::DATA));
+            handle.record_attribute(fmt::format("{}user[RESP]", prefix).c_str(), ext->get_user(common::id_type::RESP));
+            handle.record_attribute(fmt::format("{}length", prefix).c_str(), ext->get_length());
+            handle.record_attribute(fmt::format("{}size", prefix).c_str(), ext->get_size());
+            handle.record_attribute(fmt::format("{}burst", prefix).c_str(), std::string(to_char(ext->get_burst())));
+            handle.record_attribute(fmt::format("{}prot", prefix).c_str(), ext->get_prot());
+            handle.record_attribute(fmt::format("{}exclusive", prefix).c_str(), std::string(ext->is_exclusive() ? "true" : "false"));
+            handle.record_attribute(fmt::format("{}cache", prefix).c_str(), ext->get_cache());
+            handle.record_attribute(fmt::format("{}cache_bufferable", prefix).c_str(), ext->is_bufferable());
+            handle.record_attribute(fmt::format("{}cache_cacheable", prefix).c_str(), ext->is_cacheable());
+            handle.record_attribute(fmt::format("{}cache_read_alloc", prefix).c_str(), ext->is_read_allocate());
+            handle.record_attribute(fmt::format("{}cache_write_alloc", prefix).c_str(), ext->is_write_allocate());
+            handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
+            handle.record_attribute(fmt::format("{}region", prefix).c_str(), ext->get_region());
+        }
+    }
+    static void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<axi3_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}resp", prefix).c_str(), std::string(to_char(ext->get_resp())));
         }
     }
 };
-class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_protocol_types> {
 
-    void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext4 = trans.get_extension<ace_extension>()) {
-            handle.record_attribute("trans.ace.id", ext4->get_id());
-            handle.record_attribute("trans.ace.user[CTRL]", ext4->get_user(common::id_type::CTRL));
-            handle.record_attribute("trans.ace.user[DATA]", ext4->get_user(common::id_type::DATA));
-            handle.record_attribute("trans.ace.length", ext4->get_length());
-            handle.record_attribute("trans.ace.size", ext4->get_size());
-            handle.record_attribute("trans.ace.burst", std::string(to_char(ext4->get_burst())));
-            handle.record_attribute("trans.ace.prot", ext4->get_prot());
-            handle.record_attribute("trans.ace.exclusive", std::string(ext4->is_exclusive() ? "true" : "false"));
-            handle.record_attribute("trans.ace.cache", ext4->get_cache());
-            handle.record_attribute("trans.ace.cache_bufferable", ext4->is_bufferable());
-            handle.record_attribute("trans.ace.cache_modifiable", ext4->is_modifiable());
-            handle.record_attribute("trans.ace.cache_allocate", ext4->is_allocate());
-            handle.record_attribute("trans.ace.cache_other_alloc", ext4->is_other_allocate());
-            handle.record_attribute("trans.ace.qos", ext4->get_qos());
-            handle.record_attribute("trans.ace.region", ext4->get_region());
-            handle.record_attribute("trans.ace.domain", std::string(to_char(ext4->get_domain())));
-            handle.record_attribute("trans.ace.snoop", std::string(to_char(ext4->get_snoop())));
-            handle.record_attribute("trans.ace.barrier", std::string(to_char(ext4->get_barrier())));
-            handle.record_attribute("trans.ace.unique", ext4->get_unique());
+struct axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+
+    axi3_ext_recording() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(axi3_extension::ID, handle, trans.get_extension<axi3_extension>(), "trans.axi3.");
+    }
+
+    static void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordEndTx(axi3_extension::ID, handle, trans.get_extension<axi3_extension>(), "trans.axi3.");
+    }
+};
+
+struct axi4_ext_record : public tlm_extension_record_if {
+
+    axi4_ext_record() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<axi4_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}id", prefix).c_str(), ext->get_id());
+            handle.record_attribute(fmt::format("{}user[CTRL]", prefix).c_str(), ext->get_user(common::id_type::CTRL));
+            handle.record_attribute(fmt::format("{}user[DATA]", prefix).c_str(), ext->get_user(common::id_type::DATA));
+            handle.record_attribute(fmt::format("{}user[RESP]", prefix).c_str(), ext->get_user(common::id_type::RESP));
+            handle.record_attribute(fmt::format("{}length", prefix).c_str(), ext->get_length());
+            handle.record_attribute(fmt::format("{}size", prefix).c_str(), ext->get_size());
+            handle.record_attribute(fmt::format("{}burst", prefix).c_str(), std::string(to_char(ext->get_burst())));
+            handle.record_attribute(fmt::format("{}prot", prefix).c_str(), ext->get_prot());
+            handle.record_attribute(fmt::format("{}exclusive", prefix).c_str(), std::string(ext->is_exclusive() ? "true" : "false"));
+            handle.record_attribute(fmt::format("{}cache", prefix).c_str(), ext->get_cache());
+            handle.record_attribute(fmt::format("{}cache_bufferable", prefix).c_str(), ext->is_bufferable());
+            handle.record_attribute(fmt::format("{}cache_modifiable", prefix).c_str(), ext->is_modifiable());
+            handle.record_attribute(fmt::format("{}cache_allocate", prefix).c_str(), ext->is_allocate());
+            handle.record_attribute(fmt::format("{}cache_other_alloc", prefix).c_str(), ext->is_other_allocate());
+            handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
+            handle.record_attribute(fmt::format("{}region", prefix).c_str(), ext->get_region());
         }
     }
 
-    void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) override {
-        if(auto ext4 = trans.get_extension<ace_extension>()) {
-            handle.record_attribute("trans.ace.resp", std::string(to_char(ext4->get_resp())));
-            handle.record_attribute("trans.ace.cresp", static_cast<unsigned>(ext4->get_cresp()));
-            handle.record_attribute("trans.ace.cresp_PassDirty", ext4->is_pass_dirty());
-            handle.record_attribute("trans.ace.cresp_IsShared", ext4->is_shared());
-            handle.record_attribute("trans.ace.cresp_SnoopDataTransfer", ext4->is_snoop_data_transfer());
-            handle.record_attribute("trans.ace.cresp_SnoopError", ext4->is_snoop_error());
-            handle.record_attribute("trans.ace.cresp_SnoopWasUnique", ext4->is_snoop_was_unique());
+    static void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<axi4_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}resp", prefix).c_str(), std::string(to_char(ext->get_resp())));
         }
+    }
+};
+
+struct axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+
+    axi4_ext_recording() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(axi4_extension::ID, handle, trans.get_extension<axi4_extension>(), "trans.axi4.");
+    }
+
+    static void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordEndTx(axi4_extension::ID, handle, trans.get_extension<axi4_extension>(), "trans.axi4.");
+    }
+};
+
+struct ace_ext_record : public tlm_extension_record_if {
+
+    ace_ext_record() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<ace_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}id", prefix).c_str(), ext->get_id());
+            handle.record_attribute(fmt::format("{}user[CTRL]", prefix).c_str(), ext->get_user(common::id_type::CTRL));
+            handle.record_attribute(fmt::format("{}user[DATA]", prefix).c_str(), ext->get_user(common::id_type::DATA));
+            handle.record_attribute(fmt::format("{}length", prefix).c_str(), ext->get_length());
+            handle.record_attribute(fmt::format("{}size", prefix).c_str(), ext->get_size());
+            handle.record_attribute(fmt::format("{}burst", prefix).c_str(), std::string(to_char(ext->get_burst())));
+            handle.record_attribute(fmt::format("{}prot", prefix).c_str(), ext->get_prot());
+            handle.record_attribute(fmt::format("{}exclusive", prefix).c_str(), std::string(ext->is_exclusive() ? "true" : "false"));
+            handle.record_attribute(fmt::format("{}cache", prefix).c_str(), ext->get_cache());
+            handle.record_attribute(fmt::format("{}cache_bufferable", prefix).c_str(), ext->is_bufferable());
+            handle.record_attribute(fmt::format("{}cache_modifiable", prefix).c_str(), ext->is_modifiable());
+            handle.record_attribute(fmt::format("{}cache_allocate", prefix).c_str(), ext->is_allocate());
+            handle.record_attribute(fmt::format("{}cache_other_alloc", prefix).c_str(), ext->is_other_allocate());
+            handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
+            handle.record_attribute(fmt::format("{}region", prefix).c_str(), ext->get_region());
+            handle.record_attribute(fmt::format("{}domain", prefix).c_str(), std::string(to_char(ext->get_domain())));
+            handle.record_attribute(fmt::format("{}snoop", prefix).c_str(), std::string(to_char(ext->get_snoop())));
+            handle.record_attribute(fmt::format("{}barrier", prefix).c_str(), std::string(to_char(ext->get_barrier())));
+            handle.record_attribute(fmt::format("{}unique", prefix).c_str(), ext->get_unique());
+        }
+    }
+
+    static void recordEndTx(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+        if(auto ext = dynamic_cast<ace_extension*>(e)) {
+            handle.record_attribute(fmt::format("{}resp", prefix).c_str(), std::string(to_char(ext->get_resp())));
+            handle.record_attribute(fmt::format("{}cresp", prefix).c_str(), static_cast<unsigned>(ext->get_cresp()));
+            handle.record_attribute(fmt::format("{}cresp_PassDirty", prefix).c_str(), ext->is_pass_dirty());
+            handle.record_attribute(fmt::format("{}cresp_IsShared", prefix).c_str(), ext->is_shared());
+            handle.record_attribute(fmt::format("{}cresp_SnoopDataTransfer", prefix).c_str(), ext->is_snoop_data_transfer());
+            handle.record_attribute(fmt::format("{}cresp_SnoopError", prefix).c_str(), ext->is_snoop_error());
+            handle.record_attribute(fmt::format("{}cresp_SnoopWasUnique", prefix).c_str(), ext->is_snoop_was_unique());
+        }
+    }
+};
+
+struct ace_ext_recording : public tlm_extensions_recording_if<axi_protocol_types> {
+
+    ace_ext_recording() {
+        recordBegin = &recordBeginTx;
+        recordEnd = &recordEndTx;
+    }
+
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(ace_extension::ID, handle, trans.get_extension<ace_extension>(), "trans.ace.");
+    }
+
+    static void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordEndTx(ace_extension::ID, handle, trans.get_extension<ace_extension>(), "trans.ace.");
     }
 };
 
@@ -134,19 +200,38 @@ class ace_ext_recording : public tlm::scc::scv::tlm_extensions_recording_if<axi_
 __attribute__((constructor))
 #endif
 bool register_extensions() {
-    tlm::scc::tlm_id_extension ext(nullptr); // NOLINT
-    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(ext.ID,
-                                                                                                      new tlm_id_ext_recording()); // NOLINT
-    axi::axi3_extension ext3;                                                                                                      // NOLINT
-    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        ext3.ID, new axi::scv::axi3_ext_recording()); // NOLINT
-    axi::axi4_extension ext4;                         // NOLINT
-    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        ext4.ID, new axi::scv::axi4_ext_recording()); // NOLINT
-    axi::ace_extension extace;                        // NOLINT
-    tlm::scc::scv::tlm_extension_recording_registry<axi::axi_protocol_types>::inst().register_ext_rec(
-        extace.ID, new axi::scv::ace_ext_recording()); // NOLINT
-    return true;                                       // NOLINT
+    tlm::scc::tlm_id_extension ext(nullptr);                                                   // NOLINT
+    if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(ext.ID)) // NOLINT
+        tlm_extension_recording_registry<axi_protocol_types>::get().register_ext_rec(ext.ID,
+                                                                                     util::make_unique<tlm_id_ext_recording>()); // NOLINT
+    /********************************************************************************************************************/ axi::
+    axi3_extension ext3;                                                                    // NOLINT
+    if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(ext3.ID)) // NOLINT
+        tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
+            ext3.ID,
+            util::make_unique<axi::scv::axi3_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(ext3.ID))
+        tlm_extension_record_registry::get().register_ext_rec(ext3.ID,
+                                                              util::make_unique<axi3_ext_record>()); // NOLINT
+    /********************************************************************************************************************/ axi::
+    axi4_extension ext4;                                                                    // NOLINT
+    if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(ext4.ID)) // NOLINT
+        tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
+            ext4.ID,
+            util::make_unique<axi::scv::axi4_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(ext4.ID))
+        tlm_extension_record_registry::get().register_ext_rec(ext4.ID,
+                                                              util::make_unique<axi4_ext_record>()); // NOLINT
+    /********************************************************************************************************************/ axi::
+    ace_extension extace;                                                                   // NOLINT
+    if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(extace.ID)) // NOLINT
+        tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
+            extace.ID,
+            util::make_unique<axi::scv::ace_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extace.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extace.ID,
+                                                              util::make_unique<ace_ext_record>()); // NOLINT
+    return true;                                                                                    // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv
