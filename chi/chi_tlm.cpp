@@ -588,8 +588,8 @@ bool register_extensions() {
         tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
             extchi_data.ID,
             util::make_unique<chi::chi_data_ext_recording>()); // NOLINT
-    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_req.ID))
-        tlm_extension_record_registry::get().register_ext_rec(extchi_req.ID, util::make_unique<chi::chi_data_ext_record>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_data.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_data.ID, util::make_unique<chi::chi_data_ext_record>()); // NOLINT
     /********************************************************************************************************************/
     chi::chi_snp_extension extchi_snp;                                                                     // NOLINT
     if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_snp.ID)) // NOLINT
