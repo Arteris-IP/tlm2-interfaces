@@ -42,6 +42,13 @@
 //! SCV components for CHI
 namespace chi {
 namespace scv {
+namespace {
+inline bool has_credit(chi::chi_protocol_types::tlm_payload_type& trans){
+    return trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::REQ>>() ||
+        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::RESP>>() ||
+        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::DATA>>();
+}
+}
 
 bool register_extensions();
 
@@ -431,10 +438,8 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
-    chi::chi_credit_extension* chi_ext{nullptr};
-    trans.get_extension(chi_ext);
     if(nb_streamHandleTimed) {
-        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && has_credit(trans)));
     }
     /*************************************************************************
      * do the access
@@ -462,10 +467,10 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
          *************************************************************************/
         if(nb_streamHandleTimed) {
             record_nb_timed(trans, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase, delay, h,
-                            (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+                            (phase == tlm::BEGIN_REQ && has_credit(trans)));
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && has_credit(trans)));
     }
     // End the transaction
     nb_trHandle[FW]->end_transaction(h, phase2string(phase));
@@ -503,10 +508,8 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
-    chi::chi_credit_extension* chi_ext;
-    trans.get_extension(chi_ext);
     if(nb_streamHandleTimed) {
-        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && has_credit(trans)));
     }
     /*************************************************************************
      * do the access
@@ -534,10 +537,10 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
          *************************************************************************/
         if(nb_streamHandleTimed) {
             record_nb_timed(trans, (status == tlm::TLM_COMPLETED && phase == tlm::BEGIN_REQ) ? tlm::END_RESP : phase, delay, h,
-                            (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+                            (phase == tlm::BEGIN_REQ && has_credit(trans)));
         }
     } else if(nb_streamHandleTimed && status == tlm::TLM_UPDATED) {
-        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && chi_ext != nullptr));
+        record_nb_timed(trans, phase, delay, h, (phase == tlm::BEGIN_REQ && has_credit(trans)));
     }
     // End the transaction
     nb_trHandle[BW]->end_transaction(h, phase2string(phase));

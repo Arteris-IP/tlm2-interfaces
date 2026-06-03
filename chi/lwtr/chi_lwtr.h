@@ -34,6 +34,13 @@
 //! @brief LWTR components for CHI
 namespace chi {
 namespace lwtr {
+namespace {
+inline bool has_credit(chi::chi_protocol_types::tlm_payload_type& trans){
+    return trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::REQ>>() ||
+        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::RESP>>() ||
+        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::DATA>>();
+}
+}
 
 using tx_db = ::lwtr::tx_db;
 using tx_fiber = ::lwtr::tx_fiber;
@@ -487,7 +494,7 @@ tlm::tlm_sync_enum chi_lwtr<TYPES>::nb_transport_fw(typename TYPES::tlm_payload_
     if(nb_streamHandleTimed) {
         nb_chi_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h,
                              (trans.template get_extension<chi::chi_snp_extension>() != nullptr),
-                             (phase == tlm::BEGIN_REQ) && (trans.template get_extension<chi::chi_credit_extension>() != nullptr));
+                             (phase == tlm::BEGIN_REQ) && has_credit(trans));
         rec.tr->deep_copy_from(trans);
         nb_timed_peq.notify(rec, delay);
     }
@@ -571,7 +578,7 @@ tlm::tlm_sync_enum chi_lwtr<TYPES>::nb_transport_bw(typename TYPES::tlm_payload_
     if(nb_streamHandleTimed) {
         nb_chi_rec_entry rec(mm::get().allocate(), phase, reinterpret_cast<uint64_t>(&trans), h,
                              (trans.template get_extension<chi::chi_snp_extension>() != nullptr),
-                             (phase == tlm::BEGIN_REQ) && (trans.template get_extension<chi::chi_credit_extension>() != nullptr));
+                             (phase == tlm::BEGIN_REQ) && has_credit(trans));
         rec.tr->deep_copy_from(trans);
         nb_timed_peq.notify(rec, delay);
     }

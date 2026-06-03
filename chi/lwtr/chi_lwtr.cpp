@@ -117,8 +117,18 @@ template <class Archive> void record(Archive& ar, chi::chi_snp_extension const& 
     ar& field("rsp.trace_tag", e.resp.is_trace_tag());
 }
 
-template <class Archive> void record(Archive& ar, chi::chi_credit_extension const& e) {
-    ar& field("type", to_char(e.type));
+template <class Archive> void record(Archive& ar, chi::chi_credit_extension<credit_type_e::REQ> const& e) {
+    ar& field("type", to_char(credit_type_e::REQ));
+    ar& field("count", e.count);
+}
+
+template <class Archive> void record(Archive& ar, chi::chi_credit_extension<credit_type_e::RESP> const& e) {
+    ar& field("type", to_char(credit_type_e::RESP));
+    ar& field("count", e.count);
+}
+
+template <class Archive> void record(Archive& ar, chi::chi_credit_extension<credit_type_e::DATA> const& e) {
+    ar& field("type", to_char(credit_type_e::DATA));
     ar& field("count", e.count);
 }
 } // namespace lwtr
@@ -168,9 +178,13 @@ class chi_snp_ext_recording : public tlm::scc::lwtr::lwtr4tlm2_extension_registr
     }
     void recordEndTx(::lwtr::tx_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
 };
-class chi_link_ext_recording : public tlm::scc::lwtr::lwtr4tlm2_extension_registry_if<chi_protocol_types> {
+class chi_credit_ext_recording : public tlm::scc::lwtr::lwtr4tlm2_extension_registry_if<chi_protocol_types> {
     void recordBeginTx(::lwtr::tx_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {
-        if(auto* ext = trans.get_extension<chi::chi_credit_extension>())
+        if(auto* ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::REQ>>())
+            handle.record_attribute("trans.chi_credit", *ext);
+        if(auto* ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::RESP>>())
+            handle.record_attribute("trans.chi_credit", *ext);
+        if(auto* ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::DATA>>())
             handle.record_attribute("trans.chi_credit", *ext);
     }
     void recordEndTx(::lwtr::tx_handle& handle, chi_protocol_types::tlm_payload_type& trans) override {}
@@ -193,9 +207,15 @@ bool register_extensions() {
     chi::chi_snp_extension chi_s;                           // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         chi_s.ID, new chi::lwtr::chi_snp_ext_recording()); // NOLINT
-    chi::chi_credit_extension chi_l;                       // NOLINT
+    chi::chi_credit_extension<credit_type_e::REQ> chi_req;                       // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-        chi_l.ID, new chi::lwtr::chi_link_ext_recording()); // NOLINT
+            chi_req.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
+    chi::chi_credit_extension<credit_type_e::RESP> chi_resp;                       // NOLINT
+    tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+            chi_resp.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
+    chi::chi_credit_extension<credit_type_e::DATA> chi_data;                       // NOLINT
+    tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
+            chi_data.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
     return true;                                            // NOLINT
 }
 bool registered = register_extensions();

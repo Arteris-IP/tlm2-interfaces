@@ -532,11 +532,32 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 }
 
 void chi::pe::chi_rn_initiator_b::clk_counter() {
-    if(m_clock_counter > 1 && snp_credit_sent.get() < 15 && snp_counter.get() < snp_req_credit_limit.get_value()) {
-        auto credit2send =
-            std::min<unsigned>(15 - snp_credit_sent.get(), std::min<int>(0, snp_req_credit_limit.get_value() - snp_counter.get()));
-        grant_credit(credit2send);
-        snp_credit_sent += credit2send;
+    if(m_clock_counter > 1){
+        if(m_clock_counter < 3 && ProvidedSnpCreditCounter.get() < 15 && snp_counter.get() < snp_req_limit.get_value()) {
+            auto possible_snp_credits = snp_req_limit.get_value() - snp_counter.get() - ProvidedSnpCreditCounter.get();
+            auto max_allowed_credits = std::min(snp_req_credit_limit.get_value(), 15u);
+            auto credit2send = std::min<unsigned>(max_allowed_credits-ProvidedSnpCreditCounter.get() , possible_snp_credits);
+            if(credit2send) {
+                grant_credit(credit_type_e::REQ, credit2send);
+                ProvidedSnpCreditCounter += credit2send;
+            }
+        }
+        auto cresp_send_limit = std::min(15u, cresp_req_credit_limit.get_value());
+        if( ProvidedCrespCreditCounter.get() < cresp_send_limit) {
+            auto credit2send = cresp_send_limit - ProvidedCrespCreditCounter;
+            if(credit2send) {
+            grant_credit(credit_type_e::RESP, credit2send);
+            ProvidedCrespCreditCounter += credit2send;
+            }
+        }
+        auto rdat_send_limit = std::min(15u, rdat_req_credit_limit.get_value());
+        if( ProvidedRdatCreditCounter.get() < rdat_send_limit) {
+            auto credit2send = rdat_send_limit - ProvidedRdatCreditCounter;
+            if(credit2send) {
+            grant_credit(credit_type_e::DATA, credit2send);
+            ProvidedRdatCreditCounter += credit2send;
+            }
+        }
     }
     m_clock_counter++;
 }
@@ -568,39 +589,50 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
         if(phase == tlm::BEGIN_REQ) {
             if(trans.has_mm())
                 trans.acquire();
-            snp_credit_sent--;
+            ProvidedSnpCreditCounter--;
             snp_peq.notify(trans, t);
-            if(snp_counter < snp_req_credit_limit.get_value()) {
-                snp_counter++;
-                snp_credit_sent++;
-                trans.set_auto_extension(new chi_credit_extension(credit_type_e::REQ));
-            }
         } else {
             auto it = tx_state_by_trans.find(to_id(trans));
             sc_assert(it != tx_state_by_trans.end());
             it->second->peq.notify(std::make_tuple(&trans, phase), t);
         }
     } else {
-        if(phase == tlm::BEGIN_REQ) {
-            if(auto credit_ext = trans.get_extension<chi_credit_extension>()) {
-                if(credit_ext->type == credit_type_e::REQ) {
-                    SCCTRACEALL(SCMOD) << "Received " << credit_ext->count << " req " << (credit_ext->count == 1 ? "credit" : "credits");
-                    for(auto i = 0U; i < credit_ext->count; ++i)
-                        req_credits.post();
-                }
-                phase = tlm::END_RESP;
-                trans.set_response_status(tlm::TLM_OK_RESPONSE);
-                if(clk_if)
-                    t += clk_if->period() - 1_ps;
-                return tlm::TLM_COMPLETED;
-            } else {
-                SCCFATAL(SCMOD) << "Illegal transaction received from HN";
+        if(phase == tlm::BEGIN_REQ || phase==tlm::END_REQ || phase == tlm::END_RESP || phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA) {
+            bool finish=false;
+            if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::REQ>>()) {
+                for (auto i = 0U; i < ext->count; ++i)
+                    ReceivedReqCreditCounter.post();
+                SCCDEBUG(SCMOD) << "got " << ext->count << " REQ credits, snp_crd_counter=" << ReceivedReqCreditCounter.get_value();
+                finish=true;
+            } else if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::RESP>>()) {
+                for (auto i = 0U; i < ext->count; ++i)
+                    ReceivedSrespCreditCounter.post();
+                SCCDEBUG(SCMOD) << "got " << ext->count << " SResp credits, sresp_crd_counter=" << ReceivedSrespCreditCounter.get_value();
+                finish=true;
+            } else if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::DATA>>()) {
+                finish=true;
+                for (auto i = 0U; i < ext->count; ++i)
+                    ReceivedWdatCreditCounter.post();
+                SCCDEBUG(SCMOD) << "got " << ext->count << " WDat credits, rdat_crd_counter=" << ReceivedWdatCreditCounter.get_value();
+                finish=true;
             }
-        } else {
-            auto it = tx_state_by_trans.find(to_id(trans));
-            sc_assert(it != tx_state_by_trans.end());
-            it->second->peq.notify(std::make_tuple(&trans, phase), t);
+            if(finish)
+                if(phase == tlm::BEGIN_REQ) {
+                    phase = tlm::END_RESP;
+                    trans.set_response_status(tlm::TLM_OK_RESPONSE);
+                    if(clk_if)
+                        t += clk_if->period() - 1_ps;
+                    return tlm::TLM_COMPLETED;
+                }
         }
+        auto it = tx_state_by_trans.find(to_id(trans));
+        sc_assert(it != tx_state_by_trans.end());
+        if(phase == tlm::BEGIN_RESP) {
+            ProvidedCrespCreditCounter--;
+        } else if(phase == chi::BEGIN_PARTIAL_DATA || phase == chi::BEGIN_DATA) {
+            ProvidedRdatCreditCounter--;
+        }
+        it->second->peq.notify(std::make_tuple(&trans, phase), t);
     }
     return tlm::TLM_ACCEPTED;
 }
@@ -709,12 +741,19 @@ void chi::pe::chi_rn_initiator_b::create_data_ext(payload_type& trans) {
 void chi::pe::chi_rn_initiator_b::send_packet(tlm::tlm_phase phase, payload_type& trans, chi::pe::chi_rn_initiator_b::tx_state* txs) {
     if(protocol_cb[WDAT])
         protocol_cb[WDAT](WDAT, trans);
+    ReceivedWdatCreditCounter.wait();
     sc_core::sc_time delay = sc_core::SC_ZERO_TIME;
     tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
     if(ret == tlm::TLM_UPDATED) {
-        if(phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA) {
+        if(phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA){
+            if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::DATA>>()) {
+                for(auto i =0u; i<ext->count; ++i) //TODO: remove credit extension
+                    ReceivedWdatCreditCounter.post();
+                trans.set_auto_extension<chi_credit_extension<credit_type_e::DATA>>(nullptr);
+            }
             if(delay.value())
                 wait(delay);
+
         }
     } else {
         auto entry = txs->peq.get();
@@ -793,10 +832,13 @@ void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& 
         SCCDEBUG(SCMOD) << "Send the CompAck response on SRSP channel, addr: 0x" << std::hex << trans.get_address();
         if(protocol_cb[SRSP])
             protocol_cb[SRSP](SRSP, trans);
+        ReceivedSrespCreditCounter.wait();
         tlm::tlm_phase phase = chi::ACK;
         auto delay = SC_ZERO_TIME;
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
-        if(ret == tlm::TLM_UPDATED && phase == chi::ACK) {
+        if(phase == chi::ACK) {
+            if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::RESP>>())
+                for(auto i=0u; i<ext->count; ++i) ReceivedSrespCreditCounter.post();
             if(delay.value())
                 wait(delay);
         } else {
@@ -1022,7 +1064,15 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                                 << exp_beat_cnt;
                 phase = phase == chi::BEGIN_PARTIAL_DATA ? (tlm::tlm_phase)chi::END_PARTIAL_DATA : (tlm::tlm_phase)END_DATA;
                 delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
+                auto rdat_send_limit = std::min(15u, rdat_req_credit_limit.get_value());
+                chi::chi_credit_extension<credit_type_e::DATA> ext;
+                if( ProvidedRdatCreditCounter.get() < rdat_send_limit) {
+                    ext.count = rdat_send_limit - ProvidedRdatCreditCounter;
+                    trans.set_extension(&ext);
+                    ProvidedRdatCreditCounter += ext.count;
+                }
                 socket_fw->nb_transport_fw(trans, phase, delay);
+                trans.set_extension<chi::chi_credit_extension<credit_type_e::DATA>>(nullptr);
                 if(phase == chi::END_DATA) {
                     not_finish &= 0x1; // clear bit1
                     if(input_beat_cnt != exp_beat_cnt)
@@ -1091,7 +1141,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
         {
             sem_lock lck(req_chnl);
             // Check if Link-credits are available for sending this transaction and wait if not
-            req_credits.wait();
+            ReceivedReqCreditCounter.wait();
             tx_outstanding++;
             tx_waiting4crd--;
             SCCTRACE(SCMOD) << "starting transaction with txn_id=" << txn_id;
@@ -1102,6 +1152,12 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
             if(ret == tlm::TLM_UPDATED) {
                 sc_assert(phase == tlm::END_REQ);
+                if(auto credit_ext = trans.get_extension<chi_credit_extension<credit_type_e::REQ>>()) {
+                    SCCTRACEALL(SCMOD) << "Received " << credit_ext->count << " req " << (credit_ext->count == 1 ? "credit" : "credits");
+                    for(auto i = 0U; i < credit_ext->count; ++i)
+                        ReceivedReqCreditCounter.post();
+                    trans.set_auto_extension<chi_credit_extension<credit_type_e::REQ>>(nullptr);
+               }
                 wait(delay);
             } else {
                 auto entry = txs->peq.get();
@@ -1109,16 +1165,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             }
             if(protocol_cb[REQ])
                 protocol_cb[REQ](REQ, trans);
-            auto credit_ext = trans.get_extension<chi_credit_extension>();
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
-            if(credit_ext) {
-                if(credit_ext->type == credit_type_e::REQ) {
-                    SCCTRACEALL(SCMOD) << "Received " << credit_ext->count << " req " << (credit_ext->count == 1 ? "credit" : "credits");
-                    for(auto i = 0U; i < credit_ext->count; ++i)
-                        req_credits.post();
-                    trans.set_auto_extension<chi_credit_extension>(nullptr);
-                }
-            }
         }
 
         if((req_optype_e::AtomicLoadAdd <= req_ext->req.get_opcode()) && (req_ext->req.get_opcode() <= req_optype_e::AtomicCompare))
@@ -1202,9 +1249,14 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             sresp_chnl.wait();
         if(protocol_cb[SRSP])
             protocol_cb[SRSP](SRSP, trans);
+        ReceivedSrespCreditCounter.wait();
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
         if(ret == tlm::TLM_UPDATED) {
             sc_assert(phase == tlm::END_RESP); // SRSP channel
+            if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::RESP>>()) {
+                for(auto i =0u; i<ext->count; ++i) ReceivedSrespCreditCounter.post();
+                trans.set_auto_extension<chi_credit_extension<credit_type_e::RESP>>(nullptr);
+            }
             wait(delay);
             not_finish &= 0x1; // clear bit1
         }
@@ -1229,9 +1281,10 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             SCCTRACE(SCMOD) << "RDAT packet received with phase " << phase << ". Beat count: " << beat_cnt << ", addr: 0x" << std::hex
                             << trans.get_address();
             not_finish &= 0x1; // clear bit1
-            if(protocol_cb[WDAT])
-                protocol_cb[WDAT](WDAT, trans);
+            if(protocol_cb[RDAT])
+                protocol_cb[RDAT](RDAT, trans);
             phase = phase == chi::BEGIN_PARTIAL_DATA ? (tlm::tlm_phase)chi::END_PARTIAL_DATA : (tlm::tlm_phase)END_DATA;
+            //TODO add credit handling
             delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
@@ -1301,19 +1354,23 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
         tx_state_pool.pop_back();
     }
     auto* txs = it->second;
-
     sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
     tlm::tlm_phase phase = tlm::END_REQ;
+    snp_counter++;
+    chi::chi_credit_extension<credit_type_e::REQ> ext;
+    if(snp_counter.get()<snp_req_limit.get_value() && ProvidedSnpCreditCounter.get()<std::min(snp_req_credit_limit.get_value(), 15u)) {
+        trans->set_extension(&ext);
+        ProvidedSnpCreditCounter++;
+    }
     socket_fw->nb_transport_fw(*trans, phase, delay);
+    trans->set_extension<chi::chi_credit_extension<credit_type_e::REQ>>(nullptr);
     if(protocol_cb[SNP])
         protocol_cb[SNP](SNP, *trans);
     auto cycles = 0U;
     if(bw_o.get_interface())
         cycles = bw_o->transport(*trans);
     if(cycles < std::numeric_limits<unsigned>::max()) {
-        // we handle the snoop access ourselfs
-        //        for(size_t i = 0; i < cycles + 1; ++i)
-        //            wait(clk_i.posedge_event());
+        // we handle the snoop response ourselfs
         auto clock_count = sc_core::sc_time_stamp().value() / clk_if->period().value();
         auto e = new atp::timing_params(clock_count + cycles - 2);
         trans->set_auto_extension(e);
@@ -1327,12 +1384,22 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     }
 }
 
-void chi::pe::chi_rn_initiator_b::grant_credit(unsigned amount) {
+void chi::pe::chi_rn_initiator_b::grant_credit(credit_type_e type, unsigned amount) {
     tlm::tlm_phase ph = tlm::BEGIN_REQ;
     auto t = sc_core::SC_ZERO_TIME;
-    tlm::scc::tlm_gp_shared_ptr gp = tlm::scc::tlm_mm<chi_protocol_types>::get().allocate<chi_credit_extension>();
-    auto ext = gp->template get_extension<chi_credit_extension>();
-    ext->type = credit_type_e::REQ;
-    ext->count = amount;
-    socket_fw->nb_transport_fw(*gp, ph, t);
+    tlm::tlm_generic_payload gp;
+    switch(type) {
+    case credit_type_e::REQ:
+        gp.set_extension(new chi_credit_extension<credit_type_e::REQ>(amount));
+        break;
+    case credit_type_e::RESP:
+        gp.set_extension(new chi_credit_extension<credit_type_e::RESP>(amount));
+        break;
+    case credit_type_e::DATA:
+        gp.set_extension(new chi_credit_extension<credit_type_e::DATA>(amount));
+        break;
+    default:
+        return;
+    }
+    socket_fw->nb_transport_fw(gp, ph, t);
 }

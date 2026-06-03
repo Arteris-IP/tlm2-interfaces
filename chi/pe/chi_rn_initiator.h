@@ -96,7 +96,13 @@ public:
 
     cci::cci_param<bool> use_legacy_mapping{"use_legacy_mapping", false};
 
+    cci::cci_param<unsigned> snp_req_limit{"snp_req_limit", std::numeric_limits<unsigned>::max()};
+
     cci::cci_param<unsigned> snp_req_credit_limit{"snp_req_credit_limit", std::numeric_limits<unsigned>::max()};
+
+    cci::cci_param<unsigned> cresp_req_credit_limit{"cresp_credit_limit", std::numeric_limits<unsigned>::max()};
+
+    cci::cci_param<unsigned> rdat_req_credit_limit{"rdat_credit_limit", std::numeric_limits<unsigned>::max()};
 
     void add_protocol_cb(channel_e e, cb_function_t cb) {
         assert(e < CH_CNT);
@@ -119,13 +125,17 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore req_credits{"TxReqCredits", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedReqCreditCounter{"ReceivedReqCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedWdatCreditCounter{"ReceivedWdatCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedSrespCreditCounter{"ReceivedSrespCreditCounter", 0U, true}; // L-credits provided by completer(HN)
 
     scc::sc_variable<unsigned> snp_counter{"SnpInFlight", 0};
 
-    scc::sc_variable<unsigned> snp_credit_sent{"SnpCreditGranted", 0};
+    scc::sc_variable<unsigned> ProvidedSnpCreditCounter{"ProvidedSnpCreditCounter", 0};
+    scc::sc_variable<unsigned> ProvidedCrespCreditCounter{"ProvidedCrespCreditCounter", 0};
+    scc::sc_variable<unsigned> ProvidedRdatCreditCounter{"ProvidedRdatCreditCounter", 0};
 
-    void grant_credit(unsigned amount = 1);
+    void grant_credit(credit_type_e type, unsigned amount = 1);
 
     sc_core::sc_port_b<chi::chi_fw_transport_if<chi_protocol_types>>& socket_fw;
 

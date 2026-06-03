@@ -732,15 +732,6 @@ private:
     bool trace_tag{false};
 };
 
-struct credit {
-    credit() = default;
-    credit(short unsigned count, chi::credit_type_e type)
-    : count(count)
-    , type(type) {}
-    unsigned short count{1};
-    credit_type_e type{credit_type_e::LINK};
-};
-
 struct chi_ctrl_extension : public tlm::tlm_extension<chi_ctrl_extension> {
     /**
      * @brief the default constructor
@@ -854,29 +845,27 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     data dat{};
 };
 
-struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension>, public credit {
+template<credit_type_e TYPE>
+struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension<TYPE>> {
     /**
      * @brief the default constructor
      */
     chi_credit_extension() = default;
 
-    chi_credit_extension(credit_type_e type, unsigned short count = 1)
-    : credit(count, type) {}
-    /**
-     * @brief the copy constructor
-     * @param the extension to copy from
-    chi_credit_extension(const chi_credit_extension* o) : chi_extension<response>(o){}
-     */
+    chi_credit_extension(unsigned short count)
+    : count(count) {}
     /**
      * @brief the clone function to create deep copies of
      * @return pointer to heap-allocated extension
      */
-    tlm::tlm_extension_base* clone() const { return new chi_credit_extension(*this); };
+    tlm::tlm_extension_base* clone() const { return new chi_credit_extension<TYPE>(*this); };
     /**
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_credit_extension&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_credit_extension<TYPE>&>(ext); } // use assignment operator
+
+    unsigned short count{1};
 };
 
 //! aliases for payload and phase types
