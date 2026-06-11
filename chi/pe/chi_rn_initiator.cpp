@@ -176,7 +176,7 @@ void convert_axi4ace_to_chi(tlm::tlm_generic_payload& gp, char const* name, bool
             }
             if(opcode == chi::req_optype_e::StashOnceUnique || opcode == chi::req_optype_e::StashOnceShared) {
                 gp.set_data_length(0);
-                gp.set_command(tlm::TLM_IGNORE_COMMAND);
+                gp.set_command(tlm::TLM_WRITE_COMMAND);
                 if(ace_ext->is_stash_nid_en()) {
                     chi_req_ext->req.set_stash_n_id(ace_ext->get_stash_nid());
                     chi_req_ext->req.set_stash_n_id_valid(true);
