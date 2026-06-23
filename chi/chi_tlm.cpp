@@ -15,9 +15,9 @@
  */
 
 #include "chi_tlm.h"
+#include <fmt/format.h>
 #include <iostream>
 #include <tlm/scc/scv/tlm_extension_recording_registry.h>
-#include <fmt/format.h>
 namespace chi {
 namespace {
 std::array<std::string, 3> cmd_str{"R", "W", "I"};
@@ -369,17 +369,12 @@ template <> const char* is_valid_msg<chi::chi_ctrl_extension>(chi_ctrl_extension
 #include <tlm/scc/tlm_id.h>
 namespace chi {
 using namespace tlm::scc::scv;
-#ifdef HAS_SCV
-using namespace ::scv;
-#else
-using namespace ::scv_tr;
-#endif
 
 struct tlm_id_ext_recording : public tlm_extensions_recording_if<chi::chi_protocol_types> {
 
     tlm_id_ext_recording() { recordBegin = &recordBeginTx; }
 
-    static void recordBeginTx(scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
         tlm_extension_record_registry::get().recordBeginTx(tlm::scc::tlm_id_extension::ID, handle,
                                                            trans.get_extension<tlm::scc::tlm_id_extension>(), "trans.");
     }
@@ -389,7 +384,7 @@ struct chi_ctrl_ext_record : public tlm_extension_record_if {
 
     chi_ctrl_ext_record() { recordBegin = &chi_ctrl_ext_record::record; }
 
-    static void record(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_ctrl_extension*>(e)) {
             handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
             handle.record_attribute(fmt::format("{}src_id", prefix).c_str(), ext->get_src_id());
@@ -439,8 +434,9 @@ struct chi_ctrl_ext_recording : public tlm_extensions_recording_if<chi::chi_prot
 
     chi_ctrl_ext_recording() { recordBegin = &recordBeginTx; }
 
-    static void recordBeginTx(scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
-        tlm_extension_record_registry::get().recordBeginTx(chi_ctrl_extension::ID, handle, trans.get_extension<chi_ctrl_extension>(), "trans.chi_c.");
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_ctrl_extension::ID, handle, trans.get_extension<chi_ctrl_extension>(),
+                                                           "trans.chi_c.");
     }
 };
 
@@ -448,7 +444,7 @@ struct chi_data_ext_record : public tlm_extension_record_if {
 
     chi_data_ext_record() { recordBegin = &record; }
 
-    static void record(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_data_extension*>(e)) {
             handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
             handle.record_attribute(fmt::format("{}src_id", prefix).c_str(), ext->get_src_id());
@@ -479,8 +475,9 @@ struct chi_data_ext_recording : public tlm_extensions_recording_if<chi::chi_prot
 
     chi_data_ext_recording() { recordBegin = &recordBeginTx; }
 
-    static void recordBeginTx(scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
-        tlm_extension_record_registry::get().recordBeginTx(chi_data_extension::ID, handle, trans.get_extension<chi_data_extension>(), "trans.chi_d.");
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_data_extension::ID, handle, trans.get_extension<chi_data_extension>(),
+                                                           "trans.chi_d.");
     }
 };
 
@@ -488,7 +485,7 @@ struct chi_snp_ext_record : public tlm_extension_record_if {
 
     chi_snp_ext_record() { recordBegin = &record; }
 
-    static void record(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_snp_extension*>(e)) {
             handle.record_attribute(fmt::format("{}qos", prefix).c_str(), ext->get_qos());
             handle.record_attribute(fmt::format("{}src_id", prefix).c_str(), ext->get_src_id());
@@ -521,21 +518,20 @@ struct chi_snp_ext_recording : public tlm_extensions_recording_if<chi::chi_proto
 
     chi_snp_ext_recording() { recordBegin = &recordBeginTx; }
 
-    static void recordBeginTx(scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
-        tlm_extension_record_registry::get().recordBeginTx(chi_snp_extension::ID, handle, trans.get_extension<chi_snp_extension>(), "trans.chi_s.");
+    static void recordBeginTx(SCVNS scv_tr_handle& handle, chi::chi_protocol_types::tlm_payload_type& trans) {
+        tlm_extension_record_registry::get().recordBeginTx(chi_snp_extension::ID, handle, trans.get_extension<chi_snp_extension>(),
+                                                           "trans.chi_s.");
     }
 };
 
 namespace {
-    std::array<std::string, 4> credit_name = {"LINK", "REQ", "RESP", "DATA"};
+std::array<std::string, 4> credit_name = {"LINK", "REQ", "RESP", "DATA"};
 }
 struct chi_req_credit_ext_record : public tlm_extension_record_if {
 
-    chi_req_credit_ext_record() {
-        recordEnd = &record_end;
-    }
+    chi_req_credit_ext_record() { recordEnd = &record_end; }
 
-    static void record_end(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record_end(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_credit_extension<credit_type_e::REQ>*>(e)) {
             handle.record_attribute(fmt::format("{}type", prefix).c_str(), credit_name[1]);
             handle.record_attribute(fmt::format("{}count", prefix).c_str(), ext->count);
@@ -545,11 +541,9 @@ struct chi_req_credit_ext_record : public tlm_extension_record_if {
 
 struct chi_resp_credit_ext_record : public tlm_extension_record_if {
 
-    chi_resp_credit_ext_record() {
-        recordEnd = &record_end;
-    }
+    chi_resp_credit_ext_record() { recordEnd = &record_end; }
 
-    static void record_end(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record_end(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_credit_extension<credit_type_e::RESP>*>(e)) {
             handle.record_attribute(fmt::format("{}type", prefix).c_str(), credit_name[2]);
             handle.record_attribute(fmt::format("{}count", prefix).c_str(), ext->count);
@@ -559,11 +553,9 @@ struct chi_resp_credit_ext_record : public tlm_extension_record_if {
 
 struct chi_data_credit_ext_record : public tlm_extension_record_if {
 
-    chi_data_credit_ext_record() {
-        recordEnd = &record_end;
-    }
+    chi_data_credit_ext_record() { recordEnd = &record_end; }
 
-    static void record_end(scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
+    static void record_end(SCVNS scv_tr_handle& handle, tlm::tlm_extension_base* e, std::string const& prefix) {
         if(auto ext = dynamic_cast<chi_credit_extension<credit_type_e::DATA>*>(e)) {
             handle.record_attribute(fmt::format("{}type", prefix).c_str(), credit_name[2]);
             handle.record_attribute(fmt::format("{}count", prefix).c_str(), ext->count);
@@ -573,17 +565,18 @@ struct chi_data_credit_ext_record : public tlm_extension_record_if {
 
 struct chi_credit_ext_recording : public tlm_extensions_recording_if<chi_protocol_types> {
 
-    chi_credit_ext_recording() {
-        recordEnd = &recordEndTx;
-    }
+    chi_credit_ext_recording() { recordEnd = &recordEndTx; }
 
-    static void recordEndTx(scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
+    static void recordEndTx(SCVNS scv_tr_handle& handle, chi_protocol_types::tlm_payload_type& trans) {
         if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::REQ>>())
-            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::REQ>::ID, handle, ext, "trans.chi_credit.");
+            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::REQ>::ID, handle, ext,
+                                                             "trans.chi_credit.");
         else if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::RESP>>())
-            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::RESP>::ID, handle, ext, "trans.chi_credit.");
+            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::RESP>::ID, handle, ext,
+                                                             "trans.chi_credit.");
         else if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::DATA>>())
-            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::DATA>::ID, handle, ext, "trans.chi_credit.");
+            tlm_extension_record_registry::get().recordEndTx(chi_credit_extension<credit_type_e::DATA>::ID, handle, ext,
+                                                             "trans.chi_credit.");
     }
 };
 
@@ -624,7 +617,7 @@ bool register_extensions() {
         tlm_extension_record_registry::get().register_ext_rec(extchi_snp.ID,
                                                               util::make_unique<chi::chi_snp_ext_record>()); // NOLINT
     /********************************************************************************************************************/
-    chi::chi_credit_extension<credit_type_e::REQ> extchi_req_credit;                                                                  // NOLINT
+    chi::chi_credit_extension<credit_type_e::REQ> extchi_req_credit;                                              // NOLINT
     if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_req_credit.ID)) // NOLINT
         tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
             extchi_req_credit.ID,
@@ -632,15 +625,15 @@ bool register_extensions() {
     if(!tlm_extension_record_registry::get().is_ext_registered(extchi_req_credit.ID))
         tlm_extension_record_registry::get().register_ext_rec(extchi_req_credit.ID,
                                                               util::make_unique<chi::chi_req_credit_ext_record>()); // NOLINT
-    chi::chi_credit_extension<credit_type_e::RESP> extchi_resp_credit;                                                                  // NOLINT
+    chi::chi_credit_extension<credit_type_e::RESP> extchi_resp_credit;                                              // NOLINT
     if(!tlm_extension_record_registry::get().is_ext_registered(extchi_resp_credit.ID))
         tlm_extension_record_registry::get().register_ext_rec(extchi_resp_credit.ID,
                                                               util::make_unique<chi::chi_resp_credit_ext_record>()); // NOLINT
-    chi::chi_credit_extension<credit_type_e::DATA> extchi_data_credit;                                                                  // NOLINT
+    chi::chi_credit_extension<credit_type_e::DATA> extchi_data_credit;                                               // NOLINT
     if(!tlm_extension_record_registry::get().is_ext_registered(extchi_data_credit.ID))
         tlm_extension_record_registry::get().register_ext_rec(extchi_data_credit.ID,
                                                               util::make_unique<chi::chi_data_credit_ext_record>()); // NOLINT
-    return true;                                                                                                // NOLINT
+    return true;                                                                                                     // NOLINT
 }
 bool registered = register_extensions();
 } // namespace scv
