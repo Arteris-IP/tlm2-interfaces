@@ -34,7 +34,7 @@ namespace lwtr {
 
 using tx_db = ::lwtr::tx_db;
 using tx_fiber = ::lwtr::tx_fiber;
-template <typename BEGIN = ::lwtr::no_data, typename END = ::lwtr::no_data> using tx_generator = ::lwtr::tx_generator<BEGIN, END>;
+template <typename BEGIN, typename END> using tx_generator = ::lwtr::tx_generator<BEGIN, END>;
 using tx_handle = ::lwtr::tx_handle;
 using mm = tlm::scc::tlm_mm<>;
 using namespace tlm::scc::lwtr;
