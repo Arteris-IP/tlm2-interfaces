@@ -35,12 +35,12 @@
 namespace chi {
 namespace lwtr {
 namespace {
-inline bool has_credit(chi::chi_protocol_types::tlm_payload_type& trans){
+inline bool has_credit(chi::chi_protocol_types::tlm_payload_type& trans) {
     return trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::REQ>>() ||
-        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::RESP>>() ||
-        trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::DATA>>();
+           trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::RESP>>() ||
+           trans.get_extension<chi::chi_credit_extension<chi::credit_type_e::DATA>>();
 }
-}
+} // namespace
 
 using tx_db = ::lwtr::tx_db;
 using tx_fiber = ::lwtr::tx_fiber;

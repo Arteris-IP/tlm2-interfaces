@@ -207,16 +207,16 @@ bool register_extensions() {
     chi::chi_snp_extension chi_s;                           // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
         chi_s.ID, new chi::lwtr::chi_snp_ext_recording()); // NOLINT
-    chi::chi_credit_extension<credit_type_e::REQ> chi_req;                       // NOLINT
+    chi::chi_credit_extension<credit_type_e::REQ> chi_req; // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-            chi_req.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
-    chi::chi_credit_extension<credit_type_e::RESP> chi_resp;                       // NOLINT
+        chi_req.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
+    chi::chi_credit_extension<credit_type_e::RESP> chi_resp;    // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-            chi_resp.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
-    chi::chi_credit_extension<credit_type_e::DATA> chi_data;                       // NOLINT
+        chi_resp.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
+    chi::chi_credit_extension<credit_type_e::DATA> chi_data;     // NOLINT
     tlm::scc::lwtr::lwtr4tlm2_extension_registry<chi::chi_protocol_types>::inst().register_ext_rec(
-            chi_data.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
-    return true;                                            // NOLINT
+        chi_data.ID, new chi::lwtr::chi_credit_ext_recording()); // NOLINT
+    return true;                                                 // NOLINT
 }
 bool registered = register_extensions();
 

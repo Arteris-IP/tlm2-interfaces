@@ -845,8 +845,7 @@ struct chi_data_extension : public tlm::tlm_extension<chi_data_extension> {
     data dat{};
 };
 
-template<credit_type_e TYPE>
-struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension<TYPE>> {
+template <credit_type_e TYPE> struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension<TYPE>> {
     /**
      * @brief the default constructor
      */
@@ -863,7 +862,9 @@ struct chi_credit_extension : public tlm::tlm_extension<chi_credit_extension<TYP
      * @brief deep copy all values from ext
      * @param ext
      */
-    void copy_from(tlm::tlm_extension_base const& ext) { *this = static_cast<const chi_credit_extension<TYPE>&>(ext); } // use assignment operator
+    void copy_from(tlm::tlm_extension_base const& ext) {
+        *this = static_cast<const chi_credit_extension<TYPE>&>(ext);
+    } // use assignment operator
 
     unsigned short count{1};
 };

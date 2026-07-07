@@ -532,30 +532,30 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 }
 
 void chi::pe::chi_rn_initiator_b::clk_counter() {
-    if(m_clock_counter > 1){
+    if(m_clock_counter > 1) {
         if(m_clock_counter < 3 && ProvidedSnpCreditCounter.get() < 15 && snp_counter.get() < snp_req_limit.get_value()) {
             auto possible_snp_credits = snp_req_limit.get_value() - snp_counter.get() - ProvidedSnpCreditCounter.get();
             auto max_allowed_credits = std::min(snp_req_credit_limit.get_value(), 15u);
-            auto credit2send = std::min<unsigned>(max_allowed_credits-ProvidedSnpCreditCounter.get() , possible_snp_credits);
+            auto credit2send = std::min<unsigned>(max_allowed_credits - ProvidedSnpCreditCounter.get(), possible_snp_credits);
             if(credit2send) {
                 grant_credit(credit_type_e::REQ, credit2send);
                 ProvidedSnpCreditCounter += credit2send;
             }
         }
         auto cresp_send_limit = std::min(15u, cresp_req_credit_limit.get_value());
-        if( ProvidedCrespCreditCounter.get() < cresp_send_limit) {
+        if(ProvidedCrespCreditCounter.get() < cresp_send_limit) {
             auto credit2send = cresp_send_limit - ProvidedCrespCreditCounter;
             if(credit2send) {
-            grant_credit(credit_type_e::RESP, credit2send);
-            ProvidedCrespCreditCounter += credit2send;
+                grant_credit(credit_type_e::RESP, credit2send);
+                ProvidedCrespCreditCounter += credit2send;
             }
         }
         auto rdat_send_limit = std::min(15u, rdat_req_credit_limit.get_value());
-        if( ProvidedRdatCreditCounter.get() < rdat_send_limit) {
+        if(ProvidedRdatCreditCounter.get() < rdat_send_limit) {
             auto credit2send = rdat_send_limit - ProvidedRdatCreditCounter;
             if(credit2send) {
-            grant_credit(credit_type_e::DATA, credit2send);
-            ProvidedRdatCreditCounter += credit2send;
+                grant_credit(credit_type_e::DATA, credit2send);
+                ProvidedRdatCreditCounter += credit2send;
             }
         }
     }
@@ -597,24 +597,25 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
             it->second->peq.notify(std::make_tuple(&trans, phase), t);
         }
     } else {
-        if(phase == tlm::BEGIN_REQ || phase==tlm::END_REQ || phase == tlm::END_RESP || phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA) {
-            bool finish=false;
-            if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::REQ>>()) {
-                for (auto i = 0U; i < ext->count; ++i)
+        if(phase == tlm::BEGIN_REQ || phase == tlm::END_REQ || phase == tlm::END_RESP || phase == chi::END_PARTIAL_DATA ||
+           phase == chi::END_DATA) {
+            bool finish = false;
+            if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::REQ>>()) {
+                for(auto i = 0U; i < ext->count; ++i)
                     ReceivedReqCreditCounter.post();
                 SCCDEBUG(SCMOD) << "got " << ext->count << " REQ credits, snp_crd_counter=" << ReceivedReqCreditCounter.get_value();
-                finish=true;
-            } else if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::RESP>>()) {
-                for (auto i = 0U; i < ext->count; ++i)
+                finish = true;
+            } else if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::RESP>>()) {
+                for(auto i = 0U; i < ext->count; ++i)
                     ReceivedSrespCreditCounter.post();
                 SCCDEBUG(SCMOD) << "got " << ext->count << " SResp credits, sresp_crd_counter=" << ReceivedSrespCreditCounter.get_value();
-                finish=true;
-            } else if (auto ext = trans.get_extension<chi_credit_extension<credit_type_e::DATA>>()) {
-                finish=true;
-                for (auto i = 0U; i < ext->count; ++i)
+                finish = true;
+            } else if(auto ext = trans.get_extension<chi_credit_extension<credit_type_e::DATA>>()) {
+                finish = true;
+                for(auto i = 0U; i < ext->count; ++i)
                     ReceivedWdatCreditCounter.post();
                 SCCDEBUG(SCMOD) << "got " << ext->count << " WDat credits, rdat_crd_counter=" << ReceivedWdatCreditCounter.get_value();
-                finish=true;
+                finish = true;
             }
             if(finish)
                 if(phase == tlm::BEGIN_REQ) {
@@ -745,15 +746,14 @@ void chi::pe::chi_rn_initiator_b::send_packet(tlm::tlm_phase phase, payload_type
     sc_core::sc_time delay = sc_core::SC_ZERO_TIME;
     tlm::tlm_sync_enum ret = socket_fw->nb_transport_fw(trans, phase, delay);
     if(ret == tlm::TLM_UPDATED) {
-        if(phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA){
+        if(phase == chi::END_PARTIAL_DATA || phase == chi::END_DATA) {
             if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::DATA>>()) {
-                for(auto i =0u; i<ext->count; ++i) //TODO: remove credit extension
+                for(auto i = 0u; i < ext->count; ++i) // TODO: remove credit extension
                     ReceivedWdatCreditCounter.post();
                 trans.set_auto_extension<chi_credit_extension<credit_type_e::DATA>>(nullptr);
             }
             if(delay.value())
                 wait(delay);
-
         }
     } else {
         auto entry = txs->peq.get();
@@ -838,7 +838,8 @@ void chi::pe::chi_rn_initiator_b::send_comp_ack(payload_type& trans, tx_state*& 
         auto ret = socket_fw->nb_transport_fw(trans, phase, delay);
         if(phase == chi::ACK) {
             if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::RESP>>())
-                for(auto i=0u; i<ext->count; ++i) ReceivedSrespCreditCounter.post();
+                for(auto i = 0u; i < ext->count; ++i)
+                    ReceivedSrespCreditCounter.post();
             if(delay.value())
                 wait(delay);
         } else {
@@ -1066,7 +1067,7 @@ void chi::pe::chi_rn_initiator_b::exec_atomic_protocol(const unsigned int txn_id
                 delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
                 auto rdat_send_limit = std::min(15u, rdat_req_credit_limit.get_value());
                 chi::chi_credit_extension<credit_type_e::DATA> ext;
-                if( ProvidedRdatCreditCounter.get() < rdat_send_limit) {
+                if(ProvidedRdatCreditCounter.get() < rdat_send_limit) {
                     ext.count = rdat_send_limit - ProvidedRdatCreditCounter;
                     trans.set_extension(&ext);
                     ProvidedRdatCreditCounter += ext.count;
@@ -1157,7 +1158,7 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
                     for(auto i = 0U; i < credit_ext->count; ++i)
                         ReceivedReqCreditCounter.post();
                     trans.set_auto_extension<chi_credit_extension<credit_type_e::REQ>>(nullptr);
-               }
+                }
                 wait(delay);
             } else {
                 auto entry = txs->peq.get();
@@ -1254,7 +1255,8 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
         if(ret == tlm::TLM_UPDATED) {
             sc_assert(phase == tlm::END_RESP); // SRSP channel
             if(auto ext = trans.get_extension<chi::chi_credit_extension<credit_type_e::RESP>>()) {
-                for(auto i =0u; i<ext->count; ++i) ReceivedSrespCreditCounter.post();
+                for(auto i = 0u; i < ext->count; ++i)
+                    ReceivedSrespCreditCounter.post();
                 trans.set_auto_extension<chi_credit_extension<credit_type_e::RESP>>(nullptr);
             }
             wait(delay);
@@ -1284,7 +1286,7 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             if(protocol_cb[RDAT])
                 protocol_cb[RDAT](RDAT, trans);
             phase = phase == chi::BEGIN_PARTIAL_DATA ? (tlm::tlm_phase)chi::END_PARTIAL_DATA : (tlm::tlm_phase)END_DATA;
-            //TODO add credit handling
+            // TODO add credit handling
             delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
             socket_fw->nb_transport_fw(trans, phase, delay);
             beat_cnt++;
@@ -1358,7 +1360,7 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
     tlm::tlm_phase phase = tlm::END_REQ;
     snp_counter++;
     chi::chi_credit_extension<credit_type_e::REQ> ext;
-    if(snp_counter.get()<snp_req_limit.get_value() && ProvidedSnpCreditCounter.get()<std::min(snp_req_credit_limit.get_value(), 15u)) {
+    if(snp_counter.get() < snp_req_limit.get_value() && ProvidedSnpCreditCounter.get() < std::min(snp_req_credit_limit.get_value(), 15u)) {
         trans->set_extension(&ext);
         ProvidedSnpCreditCounter++;
     }

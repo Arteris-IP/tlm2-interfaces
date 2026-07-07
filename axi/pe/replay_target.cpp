@@ -30,7 +30,7 @@ void replay_buffer::start_of_simulation() {
                 auto token = util::split(line, ',');
                 auto addr = strtoull(token[1].c_str(), nullptr, 10);
                 auto id = CATCH_ALL_SEQUENCE;
-                if (token[2].c_str()[0] != '*') {
+                if(token[2].c_str()[0] != '*') {
                     id = strtoull(token[2].c_str(), nullptr, 10) + 1;
                 }
                 auto start_cycle = strtoull(token[3].c_str(), nullptr, 10);
@@ -57,10 +57,8 @@ void replay_buffer::transport(tlm::tlm_generic_payload& trans, bool lt_transport
     auto addr = trans.get_address();
     auto cycle = clk_if ? sc_core::sc_time_stamp() / clk_if->period() : 0;
 
-    auto find_and_push = [&](std::vector<entry_t>& sequence, 
-                             scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>>& fifo) {
-        auto it = std::find_if(std::begin(sequence), std::end(sequence),
-                                [addr](entry_t const& e) { return std::get<0>(e) == addr; });
+    auto find_and_push = [&](std::vector<entry_t>& sequence, scc::fifo_w_cb<std::tuple<tlm::tlm_generic_payload*, unsigned>>& fifo) {
+        auto it = std::find_if(std::begin(sequence), std::end(sequence), [addr](entry_t const& e) { return std::get<0>(e) == addr; });
         if(it != std::end(sequence)) {
             fifo.push_back(std::make_tuple(&trans, std::get<1>(*it)));
             sequence.erase(it);

@@ -15,10 +15,10 @@
  */
 
 #include <axi/axi_tlm.h>
+#include <fmt/format.h>
 #include <tlm/scc/scv/tlm_extension_recording_registry.h>
 #include <tlm/scc/scv/tlm_recorder.h>
 #include <tlm/scc/tlm_id.h>
-#include <fmt/format.h>
 
 namespace axi {
 namespace scv {
@@ -77,7 +77,8 @@ struct axi3_ext_recording : public tlm_extensions_recording_if<axi_protocol_type
     }
 
     static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
-        tlm_extension_record_registry::get().recordBeginTx(axi3_extension::ID, handle, trans.get_extension<axi3_extension>(), "trans.axi3.");
+        tlm_extension_record_registry::get().recordBeginTx(axi3_extension::ID, handle, trans.get_extension<axi3_extension>(),
+                                                           "trans.axi3.");
     }
 
     static void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
@@ -128,7 +129,8 @@ struct axi4_ext_recording : public tlm_extensions_recording_if<axi_protocol_type
     }
 
     static void recordBeginTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
-        tlm_extension_record_registry::get().recordBeginTx(axi4_extension::ID, handle, trans.get_extension<axi4_extension>(), "trans.axi4.");
+        tlm_extension_record_registry::get().recordBeginTx(axi4_extension::ID, handle, trans.get_extension<axi4_extension>(),
+                                                           "trans.axi4.");
     }
 
     static void recordEndTx(SCVNS scv_tr_handle& handle, axi_protocol_types::tlm_payload_type& trans) {
@@ -205,7 +207,7 @@ bool register_extensions() {
         tlm_extension_recording_registry<axi_protocol_types>::get().register_ext_rec(ext.ID,
                                                                                      util::make_unique<tlm_id_ext_recording>()); // NOLINT
     /********************************************************************************************************************/ axi::
-    axi3_extension ext3;                                                                    // NOLINT
+        axi3_extension ext3;                                                                    // NOLINT
     if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(ext3.ID)) // NOLINT
         tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
             ext3.ID,
@@ -214,7 +216,7 @@ bool register_extensions() {
         tlm_extension_record_registry::get().register_ext_rec(ext3.ID,
                                                               util::make_unique<axi3_ext_record>()); // NOLINT
     /********************************************************************************************************************/ axi::
-    axi4_extension ext4;                                                                    // NOLINT
+        axi4_extension ext4;                                                                    // NOLINT
     if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(ext4.ID)) // NOLINT
         tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
             ext4.ID,
@@ -223,7 +225,7 @@ bool register_extensions() {
         tlm_extension_record_registry::get().register_ext_rec(ext4.ID,
                                                               util::make_unique<axi4_ext_record>()); // NOLINT
     /********************************************************************************************************************/ axi::
-    ace_extension extace;                                                                   // NOLINT
+        ace_extension extace;                                                                     // NOLINT
     if(!tlm_extension_recording_registry<axi_protocol_types>::get().is_ext_registered(extace.ID)) // NOLINT
         tlm_extension_recording_registry<axi::axi_protocol_types>::get().register_ext_rec(
             extace.ID,

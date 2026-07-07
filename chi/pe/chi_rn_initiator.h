@@ -125,8 +125,8 @@ protected:
 
     std::string instance_name;
 
-    scc::ordered_semaphore ReceivedReqCreditCounter{"ReceivedReqCreditCounter", 0U, true}; // L-credits provided by completer(HN)
-    scc::ordered_semaphore ReceivedWdatCreditCounter{"ReceivedWdatCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedReqCreditCounter{"ReceivedReqCreditCounter", 0U, true};     // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedWdatCreditCounter{"ReceivedWdatCreditCounter", 0U, true};   // L-credits provided by completer(HN)
     scc::ordered_semaphore ReceivedSrespCreditCounter{"ReceivedSrespCreditCounter", 0U, true}; // L-credits provided by completer(HN)
 
     scc::sc_variable<unsigned> snp_counter{"SnpInFlight", 0};
