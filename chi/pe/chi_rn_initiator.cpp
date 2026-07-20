@@ -1405,3 +1405,36 @@ void chi::pe::chi_rn_initiator_b::grant_credit(credit_type_e type, unsigned amou
     }
     socket_fw->nb_transport_fw(gp, ph, t);
 }
+/*
+    scc::ordered_semaphore ReceivedReqCreditCounter{"ReceivedReqCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedWdatCreditCounter{"ReceivedWdatCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+    scc::ordered_semaphore ReceivedSrespCreditCounter{"ReceivedSrespCreditCounter", 0U, true}; // L-credits provided by completer(HN)
+
+    scc::sc_variable<unsigned> snp_counter{"SnpInFlight", 0};
+
+    scc::sc_variable<unsigned> ProvidedSnpCreditCounter{"ProvidedSnpCreditCounter", 0};
+    scc::sc_variable<unsigned> ProvidedCrespCreditCounter{"ProvidedCrespCreditCounter", 0};
+    scc::sc_variable<unsigned> ProvidedRdatCreditCounter{"ProvidedRdatCreditCounter", 0};
+
+ */
+ unsigned chi::pe::chi_rn_initiator_b::get_credit_count(channel_e e) {
+    assert(e < CH_CNT);
+    switch(e){
+    case REQ:
+        return ReceivedReqCreditCounter.get_value();
+    case WDAT:
+        return ReceivedWdatCreditCounter.get_value();
+    case SRSP:
+        return ReceivedSrespCreditCounter.get_value();
+    case CRSP:
+        return ProvidedCrespCreditCounter;
+    case RDAT:
+        return ProvidedRdatCreditCounter;
+    case SNP:
+        return ProvidedSnpCreditCounter;
+    default:
+        return 0;
+    }
+}
+
+

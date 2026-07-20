@@ -109,6 +109,8 @@ public:
         protocol_cb[e] = cb;
     }
 
+    unsigned get_credit_count(channel_e e);
+
 protected:
     void end_of_elaboration() override { clk_if = dynamic_cast<sc_core::sc_clock*>(clk_i.get_interface()); }
 
