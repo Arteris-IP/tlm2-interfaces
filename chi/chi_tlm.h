@@ -869,6 +869,10 @@ template <credit_type_e TYPE> struct chi_credit_extension : public tlm::tlm_exte
     unsigned short count{1};
 };
 
+using req_credit_extension = chi_credit_extension<credit_type_e::REQ>;
+using resp_credit_extension = chi_credit_extension<credit_type_e::RESP>;
+using dat_credit_extension = chi_credit_extension<credit_type_e::DATA>;
+
 //! aliases for payload and phase types
 using chi_payload = tlm::tlm_generic_payload;
 using chi_phase = tlm::tlm_phase;
