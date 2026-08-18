@@ -1169,13 +1169,13 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             wait(clk_i.posedge_event()); // sync to clock before releasing resource
         }
 
+        bool send_compack = false;
         if((req_optype_e::AtomicLoadAdd <= req_ext->req.get_opcode()) && (req_ext->req.get_opcode() <= req_optype_e::AtomicCompare))
             exec_atomic_protocol(txn_id, trans, txs);
         else {
             exec_read_write_protocol(txn_id, trans, txs);
             bool is_atomic =
                 req_ext->req.get_opcode() >= req_optype_e::AtomicStoreAdd && req_ext->req.get_opcode() <= req_optype_e::AtomicCompare;
-            bool compack_allowed = true;
             switch(req_ext->req.get_opcode()) {
             case req_optype_e::WriteUniqueFullStash:
             case req_optype_e::WriteUniquePtlStash:
@@ -1196,17 +1196,18 @@ void chi::pe::chi_rn_initiator_b::transport(payload_type& trans, bool blocking) 
             case req_optype_e::WriteBackFullCleanShPerSep:
             case req_optype_e::WriteCleanFullCleanSh:
             case req_optype_e::WriteCleanFullCleanShPerSep:
-                compack_allowed = false;
+                send_compack = false;
                 break;
             default:
+                send_compack = !is_atomic;
                 break;
             }
-            if(!is_atomic && compack_allowed && req_ext->req.is_exp_comp_ack())
-                send_comp_ack(trans, txs);
         }
 
         trans.set_response_status(tlm::TLM_OK_RESPONSE);
         wait(clk_i.posedge_event()); // sync to clock
+        if(send_compack && req_ext->req.is_exp_comp_ack())
+            send_comp_ack(trans, txs);
         tx_state_pool.push_back(it->second);
         tx_state_pool.back()->peq.clear();
         tx_state_by_trans.erase(it);

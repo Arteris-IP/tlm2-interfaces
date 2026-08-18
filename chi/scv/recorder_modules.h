@@ -62,6 +62,7 @@ public:
 
 private:
     void start_of_simulation() override { BASE::initialize_streams(); }
+    void end_of_simulation() override { BASE::release_handles(); }
 };
 
 template <unsigned int BUSWIDTH = 32>

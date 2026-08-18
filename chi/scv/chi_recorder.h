@@ -107,8 +107,6 @@ public:
     }
 
     virtual ~chi_trx_recorder() override {
-        btx_handle_map.clear();
-
         delete b_streamHandle;
         for(auto* p : b_trHandle)
             delete p; // NOLINT
@@ -217,9 +215,8 @@ private:
     //! transaction generator handle for blocking transactions with annotated
     //! delays
     std::array<SCVNS scv_tr_generator<>*, 3> b_trTimedHandle{{nullptr, nullptr, nullptr}};
-    std::unordered_map<uint64_t, SCVNS scv_tr_handle> btx_handle_map;
 
-    enum DIR { FW, BW, REQ=FW, WDAT=BW, SRSP, CRSP, RDAT, SNP, REQ_CRD, WDAT_CRD, SRSP_CRD, CRSP_CRD, RDAT_CRD, SNP_CRD, NONE };
+    enum DIR { FW, BW, REQ=FW, WDAT=BW, SRSP, CRSP, RDAT, SNP, NONE };
     enum TYPE { READ = tlm::TLM_READ_COMMAND, WRITE = tlm::TLM_WRITE_COMMAND, OTHER = tlm::TLM_IGNORE_COMMAND, SNOOP, NO_OF_TYPES };
     //! non-blocking transaction recording stream handle
     SCVNS scv_tr_stream* nb_streamHandle{nullptr};
@@ -228,7 +225,10 @@ private:
     //! transaction generator handle for non-blocking transactions
     std::array<SCVNS scv_tr_generator<std::string, std::string>*, 2> nb_trHandle{{nullptr, nullptr}};
     //! transaction generator handle for non-blocking transactions with annotated delays
-    std::array<SCVNS scv_tr_generator<>*, 12> nb_trTimedHandle{{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
+    std::array<SCVNS scv_tr_generator<std::string>*, 6> nb_trTimedHandle{{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
+    std::array<SCVNS scv_tr_generator<>*, 6> nb_trTimedCrdHandle{{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
+    std::array<std::unordered_map<void*, SCVNS scv_tr_handle>, 6> open_nb_tx_handle_map;
+    std::unordered_map<void*, SCVNS scv_tr_handle> nb_tx_handle_map;
     //! dmi transaction recording stream handle
     SCVNS scv_tr_stream* dmi_streamHandle{nullptr};
     //! transaction generator handle for DMI transactions
@@ -260,18 +260,18 @@ protected:
                 new SCVNS scv_tr_generator<std::string, std::string>("bw", *nb_streamHandle, "tlm_phase", "tlm_phase[return_path]");
             if(enableTimedTracing.get_value()) {
                 nb_streamHandleTimed = new SCVNS scv_tr_stream((fixed_basename + "_nb_timed").c_str(), "[TLM][chi][nb][timed]", m_db);
-                nb_trTimedHandle[REQ] = new SCVNS scv_tr_generator<>("REQ", *nb_streamHandleTimed);
-                nb_trTimedHandle[WDAT] = new SCVNS scv_tr_generator<>("WDAT", *nb_streamHandleTimed);
-                nb_trTimedHandle[SRSP] = new SCVNS scv_tr_generator<>("SRSP", *nb_streamHandleTimed);
-                nb_trTimedHandle[CRSP] = new SCVNS scv_tr_generator<>("CRSP", *nb_streamHandleTimed);
-                nb_trTimedHandle[RDAT] = new SCVNS scv_tr_generator<>("RDAT", *nb_streamHandleTimed);
-                nb_trTimedHandle[SNP] = new SCVNS scv_tr_generator<>("SNP", *nb_streamHandleTimed);
-                nb_trTimedHandle[REQ_CRD] = new SCVNS scv_tr_generator<>("REQ_CRD", *nb_streamHandleTimed);
-                nb_trTimedHandle[WDAT_CRD] = new SCVNS scv_tr_generator<>("WDAT_CRD", *nb_streamHandleTimed);
-                nb_trTimedHandle[SRSP_CRD] = new SCVNS scv_tr_generator<>("SRSP_CRD", *nb_streamHandleTimed);
-                nb_trTimedHandle[CRSP_CRD] = new SCVNS scv_tr_generator<>("CRSP_CRD", *nb_streamHandleTimed);
-                nb_trTimedHandle[RDAT_CRD] = new SCVNS scv_tr_generator<>("RDAT_CRD", *nb_streamHandleTimed);
-                nb_trTimedHandle[SNP_CRD] = new SCVNS scv_tr_generator<>("SNP_CRD", *nb_streamHandleTimed);
+                nb_trTimedHandle[REQ] = new SCVNS scv_tr_generator<std::string>("REQ", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedHandle[WDAT] = new SCVNS scv_tr_generator<std::string>("WDAT", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedHandle[SRSP] = new SCVNS scv_tr_generator<std::string>("SRSP", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedHandle[CRSP] = new SCVNS scv_tr_generator<std::string>("CRSP", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedHandle[RDAT] = new SCVNS scv_tr_generator<std::string>("RDAT", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedHandle[SNP] = new SCVNS scv_tr_generator<std::string>("SNP", *nb_streamHandleTimed, "tlm_phase");
+                nb_trTimedCrdHandle[REQ] = new SCVNS scv_tr_generator<>("REQ_CRD", *nb_streamHandleTimed);
+                nb_trTimedCrdHandle[WDAT] = new SCVNS scv_tr_generator<>("WDAT_CRD", *nb_streamHandleTimed);
+                nb_trTimedCrdHandle[SRSP] = new SCVNS scv_tr_generator<>("SRSP_CRD", *nb_streamHandleTimed);
+                nb_trTimedCrdHandle[CRSP] = new SCVNS scv_tr_generator<>("CRSP_CRD", *nb_streamHandleTimed);
+                nb_trTimedCrdHandle[RDAT] = new SCVNS scv_tr_generator<>("RDAT_CRD", *nb_streamHandleTimed);
+                nb_trTimedCrdHandle[SNP] = new SCVNS scv_tr_generator<>("SNP_CRD", *nb_streamHandleTimed);
             }
         }
         if(m_db && enableDmiTracing.get_value() && !dmi_streamHandle) {
@@ -282,6 +282,11 @@ protected:
         }
     }
 
+    void release_handles() {
+        nb_tx_handle_map.clear();
+        for(auto& m:open_nb_tx_handle_map)
+            m.clear();
+    }
 private:
     const std::string fixed_basename;
 
@@ -458,7 +463,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_fw(typename TYPES::tlm_
     /*************************************************************************
      * do the timed notification
      *************************************************************************/
-    if(nb_streamHandleTimed&& status != tlm::TLM_ACCEPTED) {
+    if(nb_streamHandleTimed) {
         record_nb_timed(trans, initial_phase, phase, initial_delay, delay, h, false);
     }
     // End the transaction
@@ -524,7 +529,7 @@ tlm::tlm_sync_enum chi_trx_recorder<TYPES>::nb_transport_bw(typename TYPES::tlm_
     /*************************************************************************
      * do the timed notification if req. finished here
      *************************************************************************/
-    if(nb_streamHandleTimed && status != tlm::TLM_ACCEPTED) {
+    if(nb_streamHandleTimed) {
         record_nb_timed(trans, initial_phase, phase, initial_delay, delay, h, true);
     }
      // End the transaction
@@ -547,53 +552,78 @@ void chi_trx_recorder<TYPES>::record_nb_timed(typename TYPES::tlm_payload_type& 
     chi::chi_credit_extension<chi::credit_type_e::DATA>* dat_crd_ext;
     trans.get_extension(dat_crd_ext);
     auto credits = 0u;
-    if(begin_phase == tlm::BEGIN_REQ && end_phase == tlm::END_RESP) {
+    if(begin_phase == tlm::BEGIN_REQ && end_phase == tlm::END_RESP) { // a dedicated CREDIT transaction
         if(is_bw){
             if(req_crd_ext){
-                crd_fiber = REQ_CRD;
+                crd_fiber = REQ;
                 credits=req_crd_ext->count;
             } else if(resp_crd_ext){
-                crd_fiber = SRSP_CRD;
+                crd_fiber = SRSP;
                 credits=resp_crd_ext->count;
             } else if(dat_crd_ext){
-                crd_fiber = WDAT_CRD;
+                crd_fiber = WDAT;
                 credits=dat_crd_ext->count;
             }
         } else {
             if(req_crd_ext){
-                crd_fiber = SNP_CRD;
+                crd_fiber = SNP;
                 credits=req_crd_ext->count;
             } else if(resp_crd_ext){
-                crd_fiber = CRSP_CRD;
+                crd_fiber = CRSP;
                 credits=resp_crd_ext->count;
             } else if(dat_crd_ext){
-                crd_fiber = RDAT_CRD;
+                crd_fiber = RDAT;
                 credits=dat_crd_ext->count;
             }
         }
-        h = nb_trTimedHandle[crd_fiber]->begin_transaction(sc_core::sc_time_stamp() + begin_delay);
+        h = nb_trTimedCrdHandle[crd_fiber]->begin_transaction(sc_core::sc_time_stamp() + begin_delay);
         h.add_relation(rel_str(tlm::scc::scv::PARENT_CHILD), parent);
         h.record_attribute("credits", credits);
-        nb_trTimedHandle[crd_fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
+        nb_trTimedCrdHandle[crd_fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
         return;
     }
+    bool accepted = begin_phase == end_phase;
     if(is_bw) {
         if(begin_phase == tlm::BEGIN_REQ) {
             fiber = SNP;
             if(req_crd_ext) {
-                crd_fiber = SNP_CRD;
+                crd_fiber = SNP;
                 credits=req_crd_ext->count;
            }
+        } else if(begin_phase == tlm::END_REQ) {
+            auto it = open_nb_tx_handle_map[REQ].find(&trans);
+            if(it != open_nb_tx_handle_map[REQ].end())
+                nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+            open_nb_tx_handle_map[REQ].erase(it);
+            return;
         } else if(begin_phase == tlm::BEGIN_RESP) {
             fiber = CRSP;
             if(resp_crd_ext) {
-                crd_fiber =CRSP_CRD;
+                crd_fiber =CRSP;
                 credits=resp_crd_ext->count;
            }
+        } else if(begin_phase == tlm::END_RESP) {
+            auto it = open_nb_tx_handle_map[SRSP].find(&trans);
+            if(it != open_nb_tx_handle_map[SRSP].end())
+                nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+            open_nb_tx_handle_map[SRSP].erase(it);
+            return;
         } else if(begin_phase == chi::BEGIN_DATA || begin_phase==chi::BEGIN_PARTIAL_DATA) {
             fiber = RDAT;
             if(dat_crd_ext) {
-                crd_fiber = RDAT_CRD;
+                crd_fiber = RDAT;
+                credits=dat_crd_ext->count;
+            }
+        } else if(begin_phase == chi::END_DATA || begin_phase==chi::END_PARTIAL_DATA) {
+            auto it = open_nb_tx_handle_map[WDAT].find(&trans);
+            if(it != open_nb_tx_handle_map[WDAT].end())
+                nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+            open_nb_tx_handle_map[WDAT].erase(it);
+            return;
+        } else if(begin_phase == ACK) {
+            fiber = CRSP;
+            if(dat_crd_ext) {
+                crd_fiber = CRSP;
                 credits=dat_crd_ext->count;
             }
         }
@@ -601,37 +631,70 @@ void chi_trx_recorder<TYPES>::record_nb_timed(typename TYPES::tlm_payload_type& 
         if(begin_phase == tlm::BEGIN_REQ) {
             fiber = REQ;
             if(req_crd_ext) {
-                crd_fiber = REQ_CRD;
+                crd_fiber = REQ;
                 credits=req_crd_ext->count;
             }
-       } else if(begin_phase == tlm::BEGIN_RESP) {
+        } else if(begin_phase == tlm::END_REQ) {
+            auto it = open_nb_tx_handle_map[SNP].find(&trans);
+            if(it != open_nb_tx_handle_map[SNP].end())
+                nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+            open_nb_tx_handle_map[SNP].erase(it);
+            return;
+      } else if(begin_phase == tlm::BEGIN_RESP) {
             fiber = SRSP;
             if(resp_crd_ext) {
-                crd_fiber =SRSP_CRD;
+                crd_fiber =SRSP;
                 credits=resp_crd_ext->count;
            }
-        } else if(begin_phase == chi::BEGIN_DATA || begin_phase==chi::BEGIN_PARTIAL_DATA) {
+       } else if(begin_phase == tlm::END_RESP) {
+           auto it = open_nb_tx_handle_map[CRSP].find(&trans);
+           if(it != open_nb_tx_handle_map[CRSP].end()){
+               nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+               open_nb_tx_handle_map[CRSP].erase(it);
+           }
+           return;
+       } else if(begin_phase == chi::BEGIN_DATA || begin_phase==chi::BEGIN_PARTIAL_DATA) {
             fiber = WDAT;
             if(dat_crd_ext) {
-                crd_fiber = WDAT_CRD;
+                crd_fiber = WDAT;
                 credits=dat_crd_ext->count;
             }
+       } else if(begin_phase == chi::END_DATA || begin_phase==chi::END_PARTIAL_DATA) {
+           auto it = open_nb_tx_handle_map[RDAT].find(&trans);
+           if(it != open_nb_tx_handle_map[RDAT].end())
+               nb_trTimedHandle[fiber]->end_transaction(it->second, sc_core::sc_time_stamp() + begin_delay);
+           open_nb_tx_handle_map[RDAT].erase(it);
+           return;
+       } else if(begin_phase == ACK) {
+           fiber = SRSP;
+           if(dat_crd_ext) {
+               crd_fiber = SRSP;
+               credits=dat_crd_ext->count;
+           }
         }
     }
     if(crd_fiber != NONE) {
-        h = nb_trTimedHandle[crd_fiber]->begin_transaction(sc_core::sc_time_stamp() + begin_delay);
+        h = nb_trTimedCrdHandle[crd_fiber]->begin_transaction(sc_core::sc_time_stamp() + begin_delay);
         h.add_relation(rel_str(tlm::scc::scv::PARENT_CHILD), parent);
         h.record_attribute("credits", credits);
-        nb_trTimedHandle[crd_fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
+        nb_trTimedCrdHandle[crd_fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
     }
-    h = nb_trTimedHandle[fiber]->begin_transaction(sc_core::sc_time_stamp() + begin_delay);
+    h = nb_trTimedHandle[fiber]->begin_transaction(phase2string(begin_phase), sc_core::sc_time_stamp() + begin_delay);
     h.add_relation(rel_str(tlm::scc::scv::PARENT_CHILD), parent);
+    if(begin_phase!=tlm::BEGIN_REQ) {
+        auto it = nb_tx_handle_map.find(&trans);
+        if(it!=nb_tx_handle_map.end())
+            h.add_relation(rel_str(tlm::scc::scv::PREDECESSOR_SUCCESSOR), it->second);
+    }
     tlm::scc::scv::record(h, trans);
     for(auto& ext : tlm::scc::scv::tlm_extension_recording_registry<TYPES>::get())
         if(ext)
-            ext->recordEndTx(h, trans);
-
-    nb_trTimedHandle[fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
+            ext->recordBeginTx(h, trans);
+    nb_tx_handle_map[&trans]=h;
+    if(accepted && begin_phase != chi::ACK) {
+        open_nb_tx_handle_map[fiber][&trans]=h;
+    } else
+        nb_trTimedHandle[fiber]->end_transaction(h, sc_core::sc_time_stamp() + end_delay);
 }
 
 template <typename TYPES>
