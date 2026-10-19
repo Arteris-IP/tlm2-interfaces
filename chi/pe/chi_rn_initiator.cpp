@@ -788,10 +788,9 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
                 wait(clk_i.negedge_event());
                 clock_count = sc_core::sc_time_stamp().value() / clk_if->period().value();
             }
-            wdat_chnl.wait(1);
-            auto time_offset = sc_core::sc_time_stamp() % clk_if->period();
-        } else
-            wdat_chnl.wait();
+            wait(clk_i.posedge_event());
+        }
+        wdat_chnl.wait(1);
         for(auto i = 0U; i < beat_cnt; ++i) {
             if(i < beat_cnt - 1)
                 phase = chi::BEGIN_PARTIAL_DATA;
@@ -1245,10 +1244,9 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             while(get_clk_cnt() < e->start_soonest) {
                 wait(clk_i.negedge_event());
             }
-            sresp_chnl.wait(1);
             wait(clk_i.posedge_event());
-        } else
-            sresp_chnl.wait();
+        }
+        sresp_chnl.wait(1);
         if(protocol_cb[SRSP])
             protocol_cb[SRSP](SRSP, trans);
         ReceivedSrespCreditCounter.wait();
