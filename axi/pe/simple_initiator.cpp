@@ -30,7 +30,7 @@ using namespace axi::pe;
 /******************************************************************************
  * initiator
  ******************************************************************************/
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
 SC_HAS_PROCESS(simple_initiator_b);
 #endif
 simple_initiator_b::simple_initiator_b(const sc_core::sc_module_name& nm,

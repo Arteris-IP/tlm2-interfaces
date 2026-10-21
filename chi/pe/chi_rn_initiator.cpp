@@ -502,7 +502,7 @@ bool make_rsp_from_req(tlm::tlm_generic_payload& gp, chi::rsp_optype_e rsp_opcod
 
 } // anonymous namespace
 
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
 SC_HAS_PROCESS(chi_rn_initiator_b);
 #endif
 chi::pe::chi_rn_initiator_b::chi_rn_initiator_b(sc_core::sc_module_name nm,

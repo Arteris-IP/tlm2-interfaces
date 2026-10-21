@@ -8,7 +8,7 @@ const unsigned int CATCH_ALL_SEQUENCE = 0;
 replay_buffer::replay_buffer(const sc_core::sc_module_name& nm)
 : sc_core::sc_module(nm) {
     fw_i.bind(*this);
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
     SC_HAS_PROCESS(replay_buffer);
 #endif
     SC_METHOD(process_req2resp_fifos);

@@ -7,7 +7,7 @@ rate_limiting_buffer::rate_limiting_buffer(const sc_core::sc_module_name& nm, cc
 : rd_resp_delay(rd_resp_delay)
 , wr_resp_delay(wr_resp_delay) {
     fw_i.bind(*this);
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
     SC_HAS_PROCESS(rate_limiting_buffer);
 #endif
     SC_METHOD(process_req2resp_fifos);

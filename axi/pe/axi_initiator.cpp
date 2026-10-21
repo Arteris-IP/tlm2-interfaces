@@ -33,7 +33,7 @@ uint8_t log2n(uint8_t siz) { return ((siz > 1) ? 1 + log2n(siz >> 1) : 0); }
 
 } // anonymous namespace
 
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
 SC_HAS_PROCESS(axi_initiator_b);
 #endif
 axi_initiator_b::axi_initiator_b(sc_core::sc_module_name nm, sc_core::sc_port_b<axi::axi_fw_transport_if<axi_protocol_types>>& port,

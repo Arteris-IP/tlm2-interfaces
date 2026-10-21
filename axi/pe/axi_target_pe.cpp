@@ -51,7 +51,7 @@ struct axi_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
     }
 };
 
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
 SC_HAS_PROCESS(axi_target_pe);
 #endif
 axi_target_pe::axi_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width, flavor_e flavor)

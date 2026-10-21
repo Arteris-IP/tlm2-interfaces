@@ -33,7 +33,9 @@ namespace scv {
  */
 template <unsigned int BUSWIDTH, typename TYPES, typename BASE> class axitlm_recorder_module : public sc_core::sc_module, public BASE {
 public:
+#if IEEE_1666_SYSTEMC < 202301L
     SC_HAS_PROCESS(axitlm_recorder_module); // NOLINT
+#endif
     //! The target socket of the recorder to be bound to the initiator
     typename BASE::template target_socket_type<BUSWIDTH> tsckt{"tsckt"};
     //! The initiator to be bound to the target socket

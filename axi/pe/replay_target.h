@@ -103,7 +103,7 @@ public:
         repl_buffer.clk_i(clk_i);
         pe.fw_o(repl_buffer.fw_i);
         repl_buffer.bw_o(pe.bw_i);
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
         SC_HAS_PROCESS(replay_target);
 #endif
         SC_METHOD(end_of_reset);

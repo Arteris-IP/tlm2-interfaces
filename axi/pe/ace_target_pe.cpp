@@ -53,7 +53,7 @@ struct ace_target_pe::bw_intor_impl : public tlm::scc::pe::intor_bw_nb {
     virtual ~bw_intor_impl() = default;
 };
 
-#if SYSTEMC_VERSION < 20250221
+#if IEEE_1666_SYSTEMC < 202301L
 SC_HAS_PROCESS(ace_target_pe);
 #endif
 ace_target_pe::ace_target_pe(const sc_core::sc_module_name& nm, size_t transfer_width)
