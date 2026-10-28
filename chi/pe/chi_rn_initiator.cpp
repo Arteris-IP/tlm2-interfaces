@@ -533,7 +533,7 @@ chi::pe::chi_rn_initiator_b::~chi_rn_initiator_b() {
 
 void chi::pe::chi_rn_initiator_b::clk_counter() {
     if(m_clock_counter > 1) {
-        if(m_clock_counter < 3 && ProvidedSnpCreditCounter.get() < 15 && snp_counter.get() < snp_req_limit.get_value()) {
+        if(ProvidedSnpCreditCounter.get() < 15 && snp_counter.get() < snp_req_limit.get_value()) {
             auto possible_snp_credits = snp_req_limit.get_value() - snp_counter.get() - ProvidedSnpCreditCounter.get();
             auto max_allowed_credits = std::min(snp_req_credit_limit.get_value(), 15u);
             auto credit2send = std::min<unsigned>(max_allowed_credits - ProvidedSnpCreditCounter.get(), possible_snp_credits);
@@ -589,8 +589,11 @@ tlm::tlm_sync_enum chi::pe::chi_rn_initiator_b::nb_transport_bw(payload_type& tr
         if(phase == tlm::BEGIN_REQ) {
             if(trans.has_mm())
                 trans.acquire();
-            ProvidedSnpCreditCounter--;
             snp_peq.notify(trans, t);
+            if(clk_if)
+                t =  ::scc::time_to_next_posedge(clk_if, t) - 1_ps;
+            phase = tlm::END_REQ;
+            return tlm::TLM_UPDATED;
         } else {
             auto it = tx_state_by_trans.find(to_id(trans));
             sc_assert(it != tx_state_by_trans.end());
@@ -775,28 +778,24 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
         create_data_ext(trans);
         data_ext = trans.get_extension<chi::chi_data_extension>();
     }
-
+    auto snp_ext = trans.get_extension<chi::chi_snp_extension>();
     auto beat_cnt = calculate_beats(trans);
     SCCDEBUG(SCMOD) << "Starting transaction on channel WDAT : (opcode, cmd, addr, len) = (" << to_char(data_ext->dat.get_opcode()) << ", "
                     << trans.get_command() << ", " << std::hex << trans.get_address() << ", " << trans.get_data_length() << ")";
-    if(!data_interleaving.get_value()) {
-        auto e = trans.get_extension<atp::timing_params>();
-        if(e) {
-            sem_lock l(prio_wdat_chnl);
-            auto clock_count = sc_core::sc_time_stamp().value() / clk_if->period().value();
-            while(clock_count < e->start_soonest) {
-                wait(clk_i.negedge_event());
-                clock_count = sc_core::sc_time_stamp().value() / clk_if->period().value();
-            }
-            wait(clk_i.posedge_event());
+    auto e = trans.get_extension<atp::timing_params>();
+    if(e) {
+        while(get_clk_cnt() < e->start_soonest) {
+            wait(clk_i.negedge_event());
         }
-        wdat_chnl.wait(1);
+        wait(clk_i.posedge_event());
+    }
+    if(!data_interleaving.get_value()) {
+        wdat_chnl.wait(snp_ext?1:0);
         for(auto i = 0U; i < beat_cnt; ++i) {
             if(i < beat_cnt - 1)
                 phase = chi::BEGIN_PARTIAL_DATA;
             else
                 phase = chi::BEGIN_DATA;
-
             // transfer_width_in_bytes is bus_width in bytes, data_ID reference from table 13_42
             data_ext->dat.set_data_id(i << (transfer_width_in_bytes * 8 / 128 - 1));
             SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id()
@@ -808,12 +807,11 @@ void chi::pe::chi_rn_initiator_b::send_wdata(payload_type& trans, chi::pe::chi_r
     } else { // data packet interleaving allowed
         for(auto i = 0U; i < beat_cnt; ++i) {
             {
-                sem_lock lck(wdat_chnl);
+                sem_lock lck(wdat_chnl, snp_ext?1:0);
                 if(i < beat_cnt - 1)
                     phase = chi::BEGIN_PARTIAL_DATA;
                 else
                     phase = chi::BEGIN_DATA;
-
                 data_ext->dat.set_data_id(i << (transfer_width_in_bytes * 8 / 128 - 1));
                 SCCTRACE(SCMOD) << "WDAT flit with txnid " << data_ext->cmn.get_txn_id()
                                 << " data_id = " << (unsigned int)(data_ext->dat.get_data_id()) << " sent. Beat count: " << i
@@ -1240,13 +1238,12 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
     {
         auto e = trans.get_extension<atp::timing_params>();
         if(e) {
-            sem_lock l(prio_sresp_chnl);
             while(get_clk_cnt() < e->start_soonest) {
                 wait(clk_i.negedge_event());
             }
             wait(clk_i.posedge_event());
         }
-        sresp_chnl.wait(1);
+        sem_lock lck(sresp_chnl, 1);
         if(protocol_cb[SRSP])
             protocol_cb[SRSP](SRSP, trans);
         ReceivedSrespCreditCounter.wait();
@@ -1262,7 +1259,6 @@ void chi::pe::chi_rn_initiator_b::handle_snoop_response(payload_type& trans, chi
             not_finish &= 0x1; // clear bit1
         }
         wait(clk_i.posedge_event()); // sync to clock before releasing resource
-        sresp_chnl.post();
     }
     if(snp_ext->resp.get_data_pull() && trans.get_data_length() < 64) {
         delete[] trans.get_data_ptr();
@@ -1354,17 +1350,8 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
         std::tie(it, success) = tx_state_by_trans.insert({to_id(trans), tx_state_pool.back()});
         tx_state_pool.pop_back();
     }
-    auto* txs = it->second;
-    sc_time delay = clk_if ? ::scc::time_to_next_posedge(clk_if) - 1_ps : SC_ZERO_TIME;
-    tlm::tlm_phase phase = tlm::END_REQ;
+    ProvidedSnpCreditCounter--;
     snp_counter++;
-    chi::chi_credit_extension<credit_type_e::REQ> ext;
-    if(snp_counter.get() < snp_req_limit.get_value() && ProvidedSnpCreditCounter.get() < std::min(snp_req_credit_limit.get_value(), 15u)) {
-        trans->set_extension(&ext);
-        ProvidedSnpCreditCounter++;
-    }
-    socket_fw->nb_transport_fw(*trans, phase, delay);
-    trans->set_extension<chi::chi_credit_extension<credit_type_e::REQ>>(nullptr);
     if(protocol_cb[SNP])
         protocol_cb[SNP](SNP, *trans);
     auto cycles = 0U;
@@ -1372,11 +1359,9 @@ void chi::pe::chi_rn_initiator_b::snoop_handler(payload_type* trans) {
         cycles = bw_o->transport(*trans);
     if(cycles < std::numeric_limits<unsigned>::max()) {
         // we handle the snoop response ourselfs
-        auto clock_count = sc_core::sc_time_stamp().value() / clk_if->period().value();
-        auto e = new atp::timing_params(clock_count + cycles - 2);
+        auto e = new atp::timing_params(get_clk_cnt() + cycles - 2);
         trans->set_auto_extension(e);
-
-        handle_snoop_response(*trans, txs);
+        handle_snoop_response(*trans, it->second);
         tx_state_pool.push_back(it->second);
         tx_state_pool.back()->peq.clear();
         tx_state_by_trans.erase(to_id(trans));
