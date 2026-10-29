@@ -616,6 +616,37 @@ bool register_extensions() {
     if(!tlm_extension_record_registry::get().is_ext_registered(extchi_snp.ID))
         tlm_extension_record_registry::get().register_ext_rec(extchi_snp.ID,
                                                               util::make_unique<chi::chi_snp_ext_record>()); // NOLINT
+    /********************************************************************************************************************/
+    {chi::chi_credit_extension<credit_type_e::REQ> extchi_crd;                                                                     // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_crd.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_crd.ID,
+            util::make_unique<chi::chi_credit_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_crd.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_crd.ID,
+                                                              util::make_unique<chi::chi_req_credit_ext_record>()); // NOLINT
+
+    }
+    {chi::chi_credit_extension<credit_type_e::RESP> extchi_crd;                                                                     // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_crd.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_crd.ID,
+            util::make_unique<chi::chi_credit_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_crd.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_crd.ID,
+                                                              util::make_unique<chi::chi_resp_credit_ext_record>()); // NOLINT
+
+    }
+    {chi::chi_credit_extension<credit_type_e::DATA> extchi_crd;                                                                     // NOLINT
+    if(!tlm_extension_recording_registry<chi::chi_protocol_types>::get().is_ext_registered(extchi_crd.ID)) // NOLINT
+        tlm_extension_recording_registry<chi::chi_protocol_types>::get().register_ext_rec(
+            extchi_crd.ID,
+            util::make_unique<chi::chi_credit_ext_recording>()); // NOLINT
+    if(!tlm_extension_record_registry::get().is_ext_registered(extchi_crd.ID))
+        tlm_extension_record_registry::get().register_ext_rec(extchi_crd.ID,
+                                                              util::make_unique<chi::chi_data_credit_ext_record>()); // NOLINT
+
+    }
     return true;                                                                                                     // NOLINT
 }
 bool registered = register_extensions();
