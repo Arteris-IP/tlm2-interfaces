@@ -236,23 +236,23 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
             return "illegal write snoop value";
     }
     if(cache < 2 && domain != axi::domain_e::SYSTEM)
-        return "non-cacheable transactions require AXDOMAIN setting of SYSTEM(0x3) based on specification";
+        return "device transactions require AxDOMAIN setting of SYSTEM(0x3) based on specification";
     if(cache > 3 && domain == axi::domain_e::SYSTEM)
-        return "cacheable transaction must not set AXDOMAIN to SYSTEM(0x3) based on specification";
+        return "cacheable transaction must not set AxDOMAIN to SYSTEM(0x3) based on specification";
     if((cache & 2) == 0 && domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM) {
         if(domain != domain_e::INNER_SHAREABLE)
-            return "illegal AXDOMAIN=INNER_SHAREABLE(0x1) for no non-cacheable access";
-        return "illegal AXDOMAIN=OUTER_SHAREABLE(0x2) for no non-cacheable access";
+            return "illegal AxDOMAIN=INNER_SHAREABLE(0x1) for no non-cacheable access";
+        return "illegal AxDOMAIN=OUTER_SHAREABLE(0x2) for no non-cacheable access";
     }
     // check table ED3-7 and D3-8 of IHI0022H
     switch(ext->get_snoop()) {
     case snoop_e::READ_NO_SNOOP:
         if(domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM)
-            return "illegal AXDOMAIN for no non-coherent READ_NO_SNOOP access";
+            return "illegal ARDOMAIN for no non-coherent READ_NO_SNOOP access";
         break;
     case snoop_e::WRITE_NO_SNOOP: // non coherent access to coherent domain
         if(domain != domain_e::NON_SHAREABLE && domain != domain_e::SYSTEM)
-            return "illegal AXDOMAIN for no non-coherent WRITE_NO_SNOOP access";
+            return "illegal AWDOMAIN for no non-coherent WRITE_NO_SNOOP access";
         break;
     case snoop_e::READ_ONCE:
     case snoop_e::READ_SHARED:
@@ -267,8 +267,8 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     case snoop_e::EVICT:
         if(domain != domain_e::INNER_SHAREABLE && domain != domain_e::OUTER_SHAREABLE) {
             if(domain != domain_e::NON_SHAREABLE)
-                return "illegal AXDOMAIN=NON_SHAREABLE(0x0) for coherent access";
-            return "illegal AXDOMAIN=SYSTEM(0x3) for coherent access";
+                return "illegal AxDOMAIN=NON_SHAREABLE(0x0) for coherent access";
+            return "illegal AxDOMAIN=SYSTEM(0x3) for coherent access";
         }
         break;
     case snoop_e::CLEAN_SHARED:
@@ -278,7 +278,7 @@ template <> char const* is_valid_msg<axi::ace_extension>(axi::ace_extension* ext
     case snoop_e::WRITE_BACK:
     case snoop_e::WRITE_EVICT:
         if(domain == domain_e::SYSTEM) {
-            return "illegal AXDOMAIN=SYSTEM(0x3) for coherent access";
+            return "illegal AxDOMAIN=SYSTEM(0x3) for coherent access";
         }
         break;
     default:
